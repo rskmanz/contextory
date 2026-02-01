@@ -1,0 +1,386 @@
+{
+  "projects": [
+    {
+      "id": "rajob",
+      "name": "rajob",
+      "icon": "👾",
+      "gradient": "bg-gradient-to-br from-pink-400 via-rose-400 to-red-400",
+      "category": "Side Projects"
+    },
+    {
+      "id": "osushi",
+      "name": "Osushi",
+      "icon": "🍣",
+      "gradient": "bg-gradient-to-br from-orange-300 via-orange-400 to-amber-400",
+      "category": "Side Projects"
+    },
+    {
+      "id": "tsunagu",
+      "name": "Tsunagu",
+      "icon": "🎏",
+      "gradient": "bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-300",
+      "category": "Side Projects"
+    },
+    {
+      "id": "salesforce",
+      "name": "Salesforce",
+      "icon": "💡",
+      "gradient": "bg-gradient-to-br from-green-300 via-emerald-400 to-teal-400",
+      "category": "Side Projects"
+    },
+    {
+      "id": "founder-university",
+      "name": "Founder University",
+      "icon": "🔥",
+      "gradient": "bg-gradient-to-br from-cyan-300 via-cyan-400 to-sky-400",
+      "category": "VCs"
+    },
+    {
+      "id": "delight-x",
+      "name": "Delight X",
+      "icon": "🌌",
+      "gradient": "bg-gradient-to-br from-blue-300 via-blue-400 to-indigo-400",
+      "category": "VCs"
+    },
+    {
+      "id": "bayond",
+      "name": "Bayond",
+      "icon": "🌀",
+      "gradient": "bg-gradient-to-br from-pink-400 via-rose-400 to-red-400",
+      "category": "Main"
+    },
+    {
+      "id": "hanryo",
+      "name": "HanRyo",
+      "icon": "🐹",
+      "gradient": "bg-gradient-to-br from-orange-300 via-orange-400 to-amber-400",
+      "category": "Main"
+    },
+    {
+      "id": "clawdbot",
+      "name": "clawdbot",
+      "icon": "🚀",
+      "gradient": "bg-gradient-to-br from-amber-300 via-amber-400 to-orange-300",
+      "category": "Main"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "big-query-data",
+      "name": "Big Query Data",
+      "projectId": "rajob",
+      "category": "Data",
+      "categoryIcon": "📊"
+    },
+    {
+      "id": "api-integration",
+      "name": "API Integration",
+      "projectId": "rajob",
+      "category": "Development",
+      "categoryIcon": "💻"
+    },
+    {
+      "id": "frontend",
+      "name": "Frontend",
+      "projectId": "osushi",
+      "category": "Development",
+      "categoryIcon": "💻"
+    },
+    {
+      "id": "backend",
+      "name": "Backend",
+      "projectId": "osushi",
+      "category": "Development",
+      "categoryIcon": "💻"
+    },
+    {
+      "id": "mobile-app",
+      "name": "Mobile App",
+      "projectId": "osushi",
+      "category": "Development",
+      "categoryIcon": "💻"
+    },
+    {
+      "id": "contract",
+      "name": "Contract",
+      "projectId": "tsunagu",
+      "category": "Operations",
+      "categoryIcon": "⚙️"
+    },
+    {
+      "id": "design",
+      "name": "Design",
+      "projectId": "tsunagu",
+      "category": "Design",
+      "categoryIcon": "🎨"
+    },
+    {
+      "id": "integration",
+      "name": "Integration",
+      "projectId": "salesforce",
+      "category": "Development",
+      "categoryIcon": "💻"
+    },
+    {
+      "id": "pitch-deck",
+      "name": "Pitch Deck",
+      "projectId": "founder-university",
+      "category": "Marketing",
+      "categoryIcon": "📣"
+    },
+    {
+      "id": "weekly-report",
+      "name": "Weekly Report",
+      "projectId": "founder-university",
+      "category": "Operations",
+      "categoryIcon": "⚙️"
+    }
+  ],
+  "contexts": [
+    {
+      "id": "home",
+      "name": "Home",
+      "icon": "🏠",
+      "type": "board",
+      "workspaceId": "big-query-data",
+      "viewStyle": "grid",
+      "data": {
+        "nodes": [],
+        "edges": []
+      }
+    },
+    {
+      "id": "4pyw379",
+      "name": "test",
+      "icon": "🏠",
+      "type": "tree",
+      "workspaceId": "big-query-data",
+      "viewStyle": "mindmap",
+      "data": {
+        "nodes": [
+          {
+            "content": "New item",
+            "parentId": null,
+            "id": "8oif3pg"
+          },
+          {
+            "content": "New item",
+            "parentId": "8oif3pg",
+            "id": "co557mh"
+          },
+          {
+            "content": "New item",
+            "parentId": "co557mh",
+            "id": "g4tcpqj"
+          },
+          {
+            "content": "New node",
+            "parentId": "8oif3pg",
+            "id": "xszk7bx"
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "4c1a4ao",
+      "name": "test2",
+      "icon": "🏠",
+      "type": "board",
+      "viewStyle": "kanban",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "asi2yjm"
+          },
+          {
+            "content": "New card",
+            "parentId": "asi2yjm",
+            "id": "o2gmxcu"
+          },
+          {
+            "content": "New card",
+            "parentId": "094ekjc",
+            "id": "3su9yvd"
+          },
+          {
+            "content": "New Group",
+            "parentId": null,
+            "id": "094ekjc"
+          },
+          {
+            "content": "New Group",
+            "parentId": null,
+            "id": "7rwb2l6"
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "kl2ylb6",
+      "name": "test4",
+      "icon": "🏠",
+      "type": "canvas",
+      "viewStyle": "freeform",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [
+          {
+            "content": "New note",
+            "parentId": null,
+            "metadata": {
+              "x": 292,
+              "y": 265
+            },
+            "id": "jc2sxrz"
+          },
+          {
+            "content": "New note",
+            "parentId": null,
+            "metadata": {
+              "x": 502,
+              "y": 258
+            },
+            "id": "8fhxsgv"
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "name": "test",
+      "icon": "📝",
+      "type": "board",
+      "viewStyle": "grid",
+      "workspaceId": "integration",
+      "data": {
+        "nodes": [],
+        "edges": []
+      },
+      "id": "6nc4cb6"
+    }
+  ],
+  "objects": [
+    {
+      "id": "prompts",
+      "name": "Prompts",
+      "icon": "💬",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "tools",
+      "name": "Tools",
+      "icon": "🔧",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "files",
+      "name": "Files",
+      "icon": "📁",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "tasks",
+      "name": "Tasks",
+      "icon": "✅",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "agents",
+      "name": "AI Agents",
+      "icon": "🤖",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "chat",
+      "name": "Chat",
+      "icon": "💬",
+      "builtIn": true,
+      "workspaceId": "big-query-data"
+    },
+    {
+      "name": "test",
+      "icon": "👤",
+      "workspaceId": "integration",
+      "builtIn": false,
+      "id": "22ut322"
+    }
+  ],
+  "items": [
+    {
+      "id": "prompt-1",
+      "name": "Summary Template",
+      "objectId": "prompts",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "prompt-2",
+      "name": "Analysis Prompt",
+      "objectId": "prompts",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "objectId": "tools",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "objectId": "tools",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "objectId": "tools",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "file-1",
+      "name": "design-v2.fig",
+      "objectId": "files",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "task-1",
+      "name": "Setup env",
+      "objectId": "tasks",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "agent-1",
+      "name": "Code Reviewer",
+      "objectId": "agents",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "id": "chat-1",
+      "name": "General",
+      "objectId": "chat",
+      "workspaceId": "big-query-data"
+    },
+    {
+      "name": "New item",
+      "objectId": "22ut322",
+      "workspaceId": "integration",
+      "id": "c9c4uf8"
+    },
+    {
+      "name": "New item",
+      "objectId": "prompts",
+      "workspaceId": "big-query-data",
+      "id": "4o4fkdm"
+    }
+  ]
+}
