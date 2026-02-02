@@ -49,6 +49,7 @@ export default function WorkspacePage() {
   const [expandedObjects, setExpandedObjects] = useState<Set<string>>(new Set());
   const [isWorkspacesExpanded, setIsWorkspacesExpanded] = useState(true);
   const [isContextsExpanded, setIsContextsExpanded] = useState(true);
+  const [isGlobalObjectsExpanded, setIsGlobalObjectsExpanded] = useState(true);
   const [isObjectsExpanded, setIsObjectsExpanded] = useState(true);
   const [isMarkdownSidebarOpen, setIsMarkdownSidebarOpen] = useState(false);
 
@@ -60,6 +61,7 @@ export default function WorkspacePage() {
   const currentWorkspace = workspaces.find((w) => w.id === subproject);
   const workspaceContexts = contexts.filter((c) => c.workspaceId === subproject);
   const workspaceObjects = objects.filter((o) => o.workspaceId === subproject);
+  const globalObjects = objects.filter((o) => o.projectId === project && o.workspaceId === null);
 
   // Auto-select first context or object
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function WorkspacePage() {
     : null;
 
   const selectedObject = activeTab?.type === 'object'
-    ? workspaceObjects.find((o) => o.id === activeTab.id)
+    ? workspaceObjects.find((o) => o.id === activeTab.id) || globalObjects.find((o) => o.id === activeTab.id)
     : null;
 
   const handleEditContext = (ctx: Context) => {
@@ -169,7 +171,11 @@ export default function WorkspacePage() {
     }
 
     if (selectedObject) {
-      const objectItems = items.filter((i) => i.objectId === selectedObject.id && i.workspaceId === subproject);
+      // For global objects (workspaceId === null), show all items
+      // For local objects, filter by workspace
+      const objectItems = selectedObject.workspaceId === null
+        ? items.filter((i) => i.objectId === selectedObject.id)
+        : items.filter((i) => i.objectId === selectedObject.id && i.workspaceId === subproject);
       return <ObjectGridView object={selectedObject} items={objectItems} workspaceId={subproject} />;
     }
 
@@ -212,6 +218,9 @@ export default function WorkspacePage() {
 
   // Get all workspaces for current project
   const projectWorkspaces = workspaces.filter((w) => w.projectId === project);
+  // Separate top-level and sub-workspaces
+  const topLevelWorkspaces = projectWorkspaces.filter((w) => !w.parentItemId);
+  const subWorkspaces = projectWorkspaces.filter((w) => w.parentItemId);
 
   return (
     <div className="flex h-screen bg-white font-sans overflow-hidden">
@@ -309,7 +318,8 @@ export default function WorkspacePage() {
               </button>
               {isWorkspacesExpanded && (
                 <div className="px-2 space-y-0.5">
-                  {projectWorkspaces.map((ws) => (
+                  {/* Top-level workspaces */}
+                  {topLevelWorkspaces.map((ws) => (
                     <Link
                       key={ws.id}
                       href={`/${project}/${ws.id}`}
@@ -323,6 +333,37 @@ export default function WorkspacePage() {
                       <span className="truncate">{ws.name}</span>
                     </Link>
                   ))}
+
+                  {/* Sub-workspaces section */}
+                  {subWorkspaces.length > 0 && (
+                    <>
+                      <div className="pt-2 pb-1">
+                        <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider px-3">Sub-workspaces</span>
+                      </div>
+                      {subWorkspaces.map((ws) => {
+                        const parentItem = items.find((i) => i.id === ws.parentItemId);
+                        return (
+                          <Link
+                            key={ws.id}
+                            href={`/${project}/${ws.id}`}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                              ws.id === subproject
+                                ? 'bg-purple-50 text-purple-900 shadow-sm border border-purple-200'
+                                : 'text-zinc-500 hover:text-zinc-900 hover:bg-white/60'
+                            }`}
+                          >
+                            <span className="text-sm">🔗</span>
+                            <span className="truncate">{ws.name}</span>
+                            {parentItem && (
+                              <span className="text-[10px] text-zinc-400 ml-auto truncate max-w-[60px]" title={`From: ${parentItem.name}`}>
+                                ← {parentItem.name}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -395,7 +436,103 @@ export default function WorkspacePage() {
                 )}
               </div>
 
-              {/* Objects Section */}
+              {/* Global Objects Section */}
+              {globalObjects.length > 0 && (
+                <div className="px-3 mb-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <button
+                      onClick={() => setIsGlobalObjectsExpanded(!isGlobalObjectsExpanded)}
+                      className="flex items-center gap-2 flex-1 text-left hover:bg-zinc-50 rounded-lg py-1 px-1 transition-colors"
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className={`text-zinc-400 transition-transform ${isGlobalObjectsExpanded ? 'rotate-90' : ''}`}
+                      >
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                      <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Global</span>
+                      <span className="text-[10px] text-zinc-400">{globalObjects.length}</span>
+                    </button>
+                  </div>
+                  {isGlobalObjectsExpanded && (
+                    <div className="space-y-0.5">
+                      {globalObjects.map((obj) => {
+                        const objectItems = items.filter((i) => i.objectId === obj.id);
+                        const isExpanded = expandedObjects.has(obj.id);
+                        return (
+                          <div key={obj.id}>
+                            <button
+                              onClick={() => {
+                                setActiveTab({ type: 'object', id: obj.id });
+                                toggleObjectExpand(obj.id);
+                              }}
+                              onDoubleClick={() => handleEditObject(obj)}
+                              className={`group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                                activeTab?.type === 'object' && activeTab.id === obj.id
+                                  ? 'bg-blue-50 text-blue-900 border border-blue-200'
+                                  : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {/* Expand arrow */}
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className={`transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                              >
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                              </svg>
+                              <span className="text-sm">{obj.icon}</span>
+                              <span className="flex-1 text-left truncate">{obj.name}</span>
+                              <span className="text-[10px] text-zinc-400 tabular-nums">{objectItems.length}</span>
+                              {!obj.builtIn && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteObject(obj);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </button>
+                            {/* Drilled items */}
+                            {isExpanded && objectItems.length > 0 && (
+                              <div className="ml-5 pl-2 border-l border-blue-200 mt-0.5 space-y-0.5">
+                                {objectItems.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 rounded-md cursor-default"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-300 flex-shrink-0"></span>
+                                    <span className="truncate">{item.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {isExpanded && objectItems.length === 0 && (
+                              <div className="ml-5 pl-2 border-l border-blue-200 mt-0.5">
+                                <p className="text-[11px] text-zinc-400 py-1.5 px-2">No items</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Objects Section (Local) */}
               <div className="px-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <button
@@ -413,7 +550,7 @@ export default function WorkspacePage() {
                     >
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Objects</span>
+                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Local</span>
                     <span className="text-[10px] text-zinc-400">{workspaceObjects.length}</span>
                   </button>
                   <button

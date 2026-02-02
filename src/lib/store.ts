@@ -51,6 +51,19 @@ interface AppState {
     addItem: (item: Omit<ObjectItem, 'id'>) => Promise<string>;
     updateItem: (id: string, updates: Partial<ObjectItem>) => Promise<void>;
     deleteItem: (id: string) => Promise<void>;
+
+    // Global Objects (Phase 4)
+    addGlobalObject: (projectId: string, object: Omit<ObjectType, 'id' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    getGlobalObjects: (projectId: string) => ObjectType[];
+
+    // Sub-workspaces (Phase 4)
+    createSubWorkspace: (parentItemId: string, projectId: string, name: string) => Promise<string>;
+    getSubWorkspaces: (parentItemId: string) => Workspace[];
+
+    // Item contextData (Phase 4)
+    updateItemContext: (itemId: string, nodes: ContextNode[]) => Promise<void>;
+    addItemNode: (itemId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
+    deleteItemNode: (itemId: string, nodeId: string) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -331,6 +344,94 @@ export const useStore = create<AppState>((set, get) => ({
     deleteItem: async (id) => {
         set((state) => ({
             items: state.items.filter((i) => i.id !== id),
+        }));
+        await get().saveData();
+    },
+
+    // Global Objects (Phase 4)
+    addGlobalObject: async (projectId, object) => {
+        const id = generateId();
+        const newObject: ObjectType = {
+            ...object,
+            id,
+            projectId,
+            workspaceId: null, // null = global object
+        };
+        set((state) => ({ objects: [...state.objects, newObject] }));
+        await get().saveData();
+        return id;
+    },
+
+    getGlobalObjects: (projectId) => {
+        return get().objects.filter((o) => o.projectId === projectId && o.workspaceId === null);
+    },
+
+    // Sub-workspaces (Phase 4)
+    createSubWorkspace: async (parentItemId, projectId, name) => {
+        const id = generateId();
+        const newWorkspace: Workspace = {
+            id,
+            name,
+            projectId,
+            parentItemId,
+        };
+        set((state) => ({ workspaces: [...state.workspaces, newWorkspace] }));
+        await get().saveData();
+        return id;
+    },
+
+    getSubWorkspaces: (parentItemId) => {
+        return get().workspaces.filter((w) => w.parentItemId === parentItemId);
+    },
+
+    // Item contextData (Phase 4)
+    updateItemContext: async (itemId, nodes) => {
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId ? { ...i, contextData: { nodes } } : i
+            ),
+        }));
+        await get().saveData();
+    },
+
+    addItemNode: async (itemId, node) => {
+        const nodeId = generateId();
+        const newNode: ContextNode = { ...node, id: nodeId };
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? {
+                          ...i,
+                          contextData: {
+                              nodes: [...(i.contextData?.nodes || []), newNode],
+                          },
+                      }
+                    : i
+            ),
+        }));
+        await get().saveData();
+        return nodeId;
+    },
+
+    deleteItemNode: async (itemId, nodeId) => {
+        set((state) => ({
+            items: state.items.map((i) => {
+                if (i.id !== itemId) return i;
+                // Delete node and all its descendants
+                const nodes = i.contextData?.nodes || [];
+                const toDelete = new Set<string>();
+                const findDescendants = (id: string) => {
+                    toDelete.add(id);
+                    nodes.filter((n) => n.parentId === id).forEach((n) => findDescendants(n.id));
+                };
+                findDescendants(nodeId);
+                return {
+                    ...i,
+                    contextData: {
+                        nodes: nodes.filter((n) => !toDelete.has(n.id)),
+                    },
+                };
+            }),
         }));
         await get().saveData();
     },

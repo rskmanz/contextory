@@ -19,6 +19,8 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, onClose }) => {
   const updateItem = useStore((state) => state.updateItem);
+  const createSubWorkspace = useStore((state) => state.createSubWorkspace);
+  const workspaces = useStore((state) => state.workspaces);
 
   const [nodes, setNodes] = useState<ContextNode[]>(item.contextData?.nodes || []);
   const [markdown, setMarkdown] = useState('');
@@ -26,6 +28,11 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [allExpanded, setAllExpanded] = useState(false);
+  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+
+  // Check if item already has a sub-workspace
+  const existingSubWorkspace = workspaces.find((w) => w.parentItemId === item.id);
 
   // Load markdown if markdownId exists
   useEffect(() => {
@@ -134,28 +141,87 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
     });
   }, []);
 
+  // Expand/collapse all nodes
+  const toggleExpandAll = useCallback(() => {
+    if (allExpanded) {
+      setExpandedNodes(new Set());
+      setAllExpanded(false);
+    } else {
+      const allNodeIds = nodes.map((n) => n.id);
+      setExpandedNodes(new Set(allNodeIds));
+      setAllExpanded(true);
+    }
+  }, [allExpanded, nodes]);
+
+  // Create sub-workspace from this item
+  const handleCreateSubWorkspace = useCallback(async () => {
+    if (isCreatingWorkspace) return;
+    setIsCreatingWorkspace(true);
+    try {
+      const workspaceId = await createSubWorkspace(item.id, object.projectId, `${item.name} Workspace`);
+      // Navigate to the new workspace (optional - user can manually navigate)
+      window.location.href = `/${object.projectId}/${workspaceId}`;
+    } finally {
+      setIsCreatingWorkspace(false);
+    }
+  }, [createSubWorkspace, item.id, item.name, object.projectId, isCreatingWorkspace]);
+
   const renderNode = useCallback(
-    (node: TreeNode, depth: number = 0) => {
+    (node: TreeNode, depth: number = 0, isLast: boolean = true) => {
       const hasChildren = node.children.length > 0;
       const isExpanded = expandedNodes.has(node.id);
       const isEditing = editingNodeId === node.id;
 
       return (
-        <div key={node.id}>
+        <div key={node.id} className="relative">
+          {/* Vertical indent line for non-root nodes */}
+          {depth > 0 && (
+            <div
+              className="absolute top-0 bottom-0 border-l border-zinc-200"
+              style={{ left: `${(depth - 1) * 20 + 14}px` }}
+            />
+          )}
+
           <div
-            className="group flex items-center gap-1 py-1 px-2 rounded hover:bg-zinc-100"
-            style={{ paddingLeft: `${depth * 16 + 8}px` }}
+            className="group flex items-center gap-1 py-1.5 px-2 rounded hover:bg-zinc-100 relative"
+            style={{ paddingLeft: `${depth * 20 + 8}px` }}
           >
+            {/* Horizontal branch line for non-root nodes */}
+            {depth > 0 && (
+              <div
+                className="absolute border-t border-zinc-200"
+                style={{
+                  left: `${(depth - 1) * 20 + 14}px`,
+                  width: '12px',
+                  top: '50%',
+                }}
+              />
+            )}
+
             <button
-              className={`w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 ${
+              className={`w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors ${
                 !hasChildren ? 'invisible' : ''
               }`}
               onClick={() => toggleExpand(node.id)}
             >
-              {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              >
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
             </button>
 
-            {!hasChildren && <span className="w-5 h-5 flex items-center justify-center text-zinc-300">•</span>}
+            {!hasChildren && (
+              <span className="w-5 h-5 flex items-center justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
+              </span>
+            )}
 
             {isEditing ? (
               <input
@@ -179,12 +245,12 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
                     setEditingNodeId(null);
                   }
                 }}
-                className="flex-1 px-2 py-0.5 text-sm border border-blue-400 rounded outline-none"
+                className="flex-1 px-2 py-0.5 text-sm border border-blue-400 rounded outline-none bg-white"
                 autoFocus
               />
             ) : (
               <span
-                className="flex-1 text-sm text-zinc-700 cursor-pointer"
+                className="flex-1 text-sm text-zinc-700 cursor-pointer hover:text-zinc-900"
                 onDoubleClick={() => {
                   setEditingNodeId(node.id);
                   setEditContent(node.content);
@@ -194,16 +260,16 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
               </span>
             )}
 
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
+            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
               <button
-                className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 text-xs"
+                className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-blue-500 hover:bg-blue-50 rounded text-xs transition-colors"
                 onClick={() => handleAddNode(node.id)}
                 title="Add child"
               >
                 +
               </button>
               <button
-                className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500 text-xs"
+                className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded text-xs transition-colors"
                 onClick={() => handleDeleteNode(node.id)}
                 title="Delete"
               >
@@ -212,7 +278,13 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
             </div>
           </div>
 
-          {hasChildren && isExpanded && node.children.map((child) => renderNode(child, depth + 1))}
+          {hasChildren && isExpanded && (
+            <div className="relative">
+              {node.children.map((child, idx) =>
+                renderNode(child, depth + 1, idx === node.children.length - 1)
+              )}
+            </div>
+          )}
         </div>
       );
     },
@@ -232,9 +304,27 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
             <span className="text-2xl">{object.icon}</span>
             <h2 className="text-lg font-semibold text-zinc-800">{item.name}</h2>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xl">
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            {existingSubWorkspace ? (
+              <a
+                href={`/${object.projectId}/${existingSubWorkspace.id}`}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                Open Workspace →
+              </a>
+            ) : (
+              <button
+                onClick={handleCreateSubWorkspace}
+                disabled={isCreatingWorkspace}
+                className="px-3 py-1.5 text-xs font-medium bg-zinc-100 text-zinc-600 rounded-lg hover:bg-zinc-200 disabled:opacity-50 transition-colors"
+              >
+                {isCreatingWorkspace ? 'Creating...' : '+ Create Workspace'}
+              </button>
+            )}
+            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xl">
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -243,12 +333,22 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-zinc-600">Context</h3>
-              <button
-                onClick={() => handleAddNode(null)}
-                className="text-xs text-blue-500 hover:underline"
-              >
-                + Add item
-              </button>
+              <div className="flex items-center gap-2">
+                {nodes.length > 0 && (
+                  <button
+                    onClick={toggleExpandAll}
+                    className="text-xs text-zinc-400 hover:text-zinc-600"
+                  >
+                    {allExpanded ? '− Collapse all' : '+ Expand all'}
+                  </button>
+                )}
+                <button
+                  onClick={() => handleAddNode(null)}
+                  className="text-xs text-blue-500 hover:underline"
+                >
+                  + Add item
+                </button>
+              </div>
             </div>
             <div className="bg-zinc-50 rounded-lg border border-zinc-200 p-2 min-h-[100px]">
               {tree.length === 0 ? (
