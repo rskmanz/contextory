@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
+import { ItemDetailPanel } from './ItemDetailPanel';
 
 interface ObjectGridViewProps {
   object: ObjectType;
@@ -136,26 +137,13 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
         </div>
       )}
 
-      {/* Selected Item Details Panel */}
+      {/* Item Detail Panel */}
       {selectedItemId && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 shadow-lg">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{object.icon}</span>
-                <span className="font-medium text-zinc-800">
-                  {items.find((i) => i.id === selectedItemId)?.name}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedItemId(null)}
-                className="text-zinc-400 hover:text-zinc-600"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <ItemDetailPanel
+          item={items.find((i) => i.id === selectedItemId)!}
+          object={object}
+          onClose={() => setSelectedItemId(null)}
+        />
       )}
     </div>
   );
