@@ -16,6 +16,7 @@ import { KanbanView } from '@/components/views/KanbanView';
 import { GridView } from '@/components/views/GridView';
 import { FreeformView } from '@/components/views/FreeformView';
 import { ObjectGridView } from '@/components/views/ObjectGridView';
+import { ContextMarkdownSidebar } from '@/components/views/ContextMarkdownSidebar';
 import { useStore } from '@/lib/store';
 import { Context, ObjectType, VIEW_STYLES, ViewStyle } from '@/types';
 
@@ -49,6 +50,7 @@ export default function WorkspacePage() {
   const [isWorkspacesExpanded, setIsWorkspacesExpanded] = useState(true);
   const [isContextsExpanded, setIsContextsExpanded] = useState(true);
   const [isObjectsExpanded, setIsObjectsExpanded] = useState(true);
+  const [isMarkdownSidebarOpen, setIsMarkdownSidebarOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -246,24 +248,40 @@ export default function WorkspacePage() {
             ]}
           />
 
-          {/* View style switcher */}
-          {selectedContext && getAvailableStyles().length > 1 && (
-            <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
-              {getAvailableStyles().map((style) => (
-                <button
-                  key={style}
-                  onClick={() => handleViewStyleChange(style as ViewStyle)}
-                  className={`px-3 py-1 text-xs font-medium rounded transition-colors capitalize ${
-                    selectedContext.viewStyle === style
-                      ? 'bg-white text-zinc-900 shadow-sm'
-                      : 'text-zinc-600 hover:bg-white/50'
-                  }`}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* View style switcher */}
+            {selectedContext && getAvailableStyles().length > 1 && (
+              <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
+                {getAvailableStyles().map((style) => (
+                  <button
+                    key={style}
+                    onClick={() => handleViewStyleChange(style as ViewStyle)}
+                    className={`px-3 py-1 text-xs font-medium rounded transition-colors capitalize ${
+                      selectedContext.viewStyle === style
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-600 hover:bg-white/50'
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Summary sidebar toggle */}
+            {selectedContext && (
+              <button
+                onClick={() => setIsMarkdownSidebarOpen(!isMarkdownSidebarOpen)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  isMarkdownSidebarOpen
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                }`}
+              >
+                📝 Summary
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content area below breadcrumb */}
@@ -486,8 +504,17 @@ export default function WorkspacePage() {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 overflow-hidden bg-white">{renderView()}</div>
+
+            {/* Markdown Sidebar */}
+            {selectedContext && (
+              <ContextMarkdownSidebar
+                context={selectedContext}
+                isOpen={isMarkdownSidebarOpen}
+                onClose={() => setIsMarkdownSidebarOpen(false)}
+              />
+            )}
           </div>
         </div>
       </div>
