@@ -144,6 +144,11 @@
       "type": "board",
       "workspaceId": "big-query-data",
       "viewStyle": "kanban",
+      "objectIds": [
+        "prompts",
+        "tasks"
+      ],
+      "markdownId": "context-home",
       "data": {
         "nodes": [
           {
@@ -345,6 +350,24 @@
       "projectId": "salesforce",
       "workspaceId": "integration",
       "builtIn": false
+    },
+    {
+      "id": "global-teams",
+      "name": "Teams",
+      "icon": "👥",
+      "projectId": "rajob",
+      "workspaceId": null,
+      "category": "People",
+      "builtIn": false
+    },
+    {
+      "id": "global-tools",
+      "name": "Tools",
+      "icon": "🔧",
+      "projectId": "rajob",
+      "workspaceId": null,
+      "category": "Tools",
+      "builtIn": false
     }
   ],
   "items": [
@@ -413,6 +436,85 @@
       "objectId": "prompts",
       "workspaceId": "big-query-data",
       "id": "4o4fkdm"
+    },
+    {
+      "id": "team-frontend",
+      "name": "Frontend Team",
+      "objectId": "global-teams",
+      "workspaceId": null,
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Skills",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "React",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "TypeScript",
+            "parentId": "n1"
+          },
+          {
+            "id": "n4",
+            "content": "Members",
+            "parentId": null
+          },
+          {
+            "id": "n5",
+            "content": "Alice",
+            "parentId": "n4"
+          },
+          {
+            "id": "n6",
+            "content": "Bob",
+            "parentId": "n4"
+          }
+        ]
+      },
+      "markdownId": "team-frontend"
+    },
+    {
+      "id": "team-backend",
+      "name": "Backend Team",
+      "objectId": "global-teams",
+      "workspaceId": null,
+      "contextData": {
+        "nodes": [
+          {
+            "id": "b1",
+            "content": "Skills",
+            "parentId": null
+          },
+          {
+            "id": "b2",
+            "content": "Node.js",
+            "parentId": "b1"
+          },
+          {
+            "id": "b3",
+            "content": "PostgreSQL",
+            "parentId": "b1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tool-github",
+      "name": "GitHub",
+      "objectId": "global-tools",
+      "workspaceId": null,
+      "markdownId": "tool-github"
+    },
+    {
+      "id": "tool-figma",
+      "name": "Figma",
+      "objectId": "global-tools",
+      "workspaceId": null
     }
   ]
 }

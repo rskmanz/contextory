@@ -406,11 +406,11 @@ export default function WorkspacePage() {
                 {isContextsExpanded && (
                   <div className="space-y-1">
                     {workspaceContexts.map((ctx) => (
-                      <button
+                      <div
                         key={ctx.id}
                         onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
                         onDoubleClick={() => handleEditContext(ctx)}
-                        className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                           activeTab?.type === 'context' && activeTab.id === ctx.id
                             ? 'bg-zinc-100 text-zinc-900'
                             : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
@@ -427,7 +427,7 @@ export default function WorkspacePage() {
                         >
                           ×
                         </button>
-                      </button>
+                      </div>
                     ))}
                     {workspaceContexts.length === 0 && (
                       <p className="text-xs text-zinc-400 px-4 py-2">No contexts yet</p>

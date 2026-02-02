@@ -179,6 +179,117 @@ describe('Store - Phase 4 CRUD Functions', () => {
   });
 });
 
+describe('Store - Context CRUD Functions', () => {
+  describe('Contexts', () => {
+    it('addContext creates a new context with data', async () => {
+      const store = useStore.getState();
+      const id = await store.addContext({
+        name: 'Roadmap',
+        icon: '🗺️',
+        type: 'tree',
+        viewStyle: 'mindmap',
+        workspaceId: 'ws-1',
+        objectIds: ['obj-1', 'obj-2'],
+        markdownId: 'roadmap-md',
+        data: { nodes: [] },
+      });
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts).toHaveLength(1);
+      expect(contexts[0].name).toBe('Roadmap');
+      expect(contexts[0].objectIds).toEqual(['obj-1', 'obj-2']);
+      expect(contexts[0].markdownId).toBe('roadmap-md');
+    });
+
+    it('updateContext modifies existing context including objectIds', async () => {
+      useStore.setState({
+        contexts: [
+          {
+            id: 'ctx-1',
+            name: 'Old Name',
+            icon: '📝',
+            type: 'tree',
+            viewStyle: 'list',
+            workspaceId: 'ws-1',
+            data: { nodes: [] },
+          },
+        ],
+      });
+
+      const store = useStore.getState();
+      await store.updateContext('ctx-1', {
+        name: 'New Name',
+        objectIds: ['obj-1'],
+        markdownId: 'ctx-md',
+      });
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts[0].name).toBe('New Name');
+      expect(contexts[0].objectIds).toEqual(['obj-1']);
+      expect(contexts[0].markdownId).toBe('ctx-md');
+    });
+
+    it('deleteContext removes context', async () => {
+      useStore.setState({
+        contexts: [
+          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', workspaceId: 'ws-1', data: { nodes: [] } },
+        ],
+      });
+
+      const store = useStore.getState();
+      await store.deleteContext('ctx-1');
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts).toHaveLength(1);
+      expect(contexts[0].id).toBe('ctx-2');
+    });
+  });
+
+  describe('Context Nodes', () => {
+    beforeEach(() => {
+      useStore.setState({
+        contexts: [
+          {
+            id: 'ctx-1',
+            name: 'Test Context',
+            icon: '📝',
+            type: 'tree',
+            viewStyle: 'list',
+            workspaceId: 'ws-1',
+            data: { nodes: [{ id: 'n1', content: 'Root', parentId: null }] },
+          },
+        ],
+      });
+    });
+
+    it('addNode adds a node to context', async () => {
+      const store = useStore.getState();
+      const nodeId = await store.addNode('ctx-1', { content: 'Child', parentId: 'n1' });
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts[0].data.nodes).toHaveLength(2);
+      expect(contexts[0].data.nodes.find((n) => n.id === nodeId)?.content).toBe('Child');
+    });
+
+    it('updateNode modifies node content', async () => {
+      const store = useStore.getState();
+      await store.updateNode('ctx-1', 'n1', { content: 'Updated Root' });
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts[0].data.nodes[0].content).toBe('Updated Root');
+    });
+
+    it('deleteNode removes node', async () => {
+      const store = useStore.getState();
+      await store.deleteNode('ctx-1', 'n1');
+
+      const contexts = useStore.getState().contexts;
+      expect(contexts[0].data.nodes).toHaveLength(0);
+    });
+  });
+});
+
 describe('Store - Basic CRUD Functions', () => {
   describe('Projects', () => {
     it('addProject creates a new project', async () => {
