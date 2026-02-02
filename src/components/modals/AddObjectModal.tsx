@@ -6,12 +6,13 @@ import { useStore } from '@/lib/store';
 interface AddObjectModalProps {
     isOpen: boolean;
     onClose: () => void;
+    projectId: string;
     workspaceId: string;
 }
 
 const icons = ['👤', '🏢', '📄', '🎯', '💰', '📧', '🔗', '📋'];
 
-export const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, workspaceId }) => {
+export const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose, projectId, workspaceId }) => {
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('👤');
 
@@ -21,7 +22,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({ isOpen, onClose,
         e.preventDefault();
         if (!name.trim()) return;
 
-        await addObject({ name, icon, workspaceId, builtIn: false });
+        await addObject({ name, icon, projectId, workspaceId, builtIn: false });
         setName('');
         setIcon('👤');
         onClose();

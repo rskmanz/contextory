@@ -511,6 +511,7 @@ export default function WorkspacePage() {
       <AddObjectModal
         isOpen={isAddObjectOpen}
         onClose={() => setIsAddObjectOpen(false)}
+        projectId={project}
         workspaceId={subproject}
       />
 

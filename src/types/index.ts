@@ -12,8 +12,10 @@ export interface Workspace {
   id: string;
   name: string;
   projectId: string;
+  parentItemId?: string;  // if set, this is a sub-workspace of an item (future)
   category?: string;
   categoryIcon?: string;
+  type?: string;          // department, activity, client, etc.
 }
 
 // Node within a context (tree structure)
@@ -68,9 +70,11 @@ export interface Context {
   type: ContextType;
   viewStyle: ViewStyle;
   workspaceId: string;
+  objectIds?: string[];           // linked objects (optional)
+  markdownId?: string;            // reference to .md file (optional)
   data: {
     nodes: ContextNode[];
-    edges?: ContextEdge[];
+    edges?: ContextEdge[];        // keeping for backward compatibility
   };
 }
 
@@ -78,18 +82,21 @@ export interface ObjectType {
   id: string;
   name: string;
   icon: string;
+  projectId: string;              // always set
+  workspaceId: string | null;     // null = global, 'id' = local
+  category?: string;              // Work, People, Tools, etc.
   builtIn: boolean;
-  workspaceId: string;
 }
 
 export interface ObjectItem {
   id: string;
   name: string;
   objectId: string;
-  workspaceId: string;
-  notes?: string;
-  files?: string[];
-  links?: string[];
+  workspaceId: string | null;     // null = global object item
+  markdownId?: string;            // reference to .md file (optional)
+  contextData?: {                 // tree structure (optional)
+    nodes: ContextNode[];
+  };
 }
 
 // Category for grouping projects
@@ -109,7 +116,7 @@ export const GRADIENT_OPTIONS = [
 // Icon options for projects
 export const ICON_OPTIONS = ['👾', '🍣', '🎏', '💡', '🔥', '🌌', '🌀', '🐹', '🚀', '📦', '🎨', '💻', '📊'] as const;
 
-// Category icon options
+// Category icon options (for workspaces)
 export const CATEGORY_ICONS = {
   'Data': '📊',
   'Development': '💻',
@@ -117,3 +124,17 @@ export const CATEGORY_ICONS = {
   'Marketing': '📣',
   'Operations': '⚙️',
 } as const;
+
+// Object category suggestions (not enforced - category can be any string)
+export const OBJECT_CATEGORY_SUGGESTIONS = [
+  'Work',           // Features, Requirements, Tasks, Milestones, Sprints, Bugs
+  'People',         // Teams, Stakeholders, Users, Contacts, Clients, Personas
+  'Tools',          // GitHub, Slack, Figma, Jira, Linear, Notion, AWS, APIs
+  'Knowledge',      // Skills, Questions, Q&A, Learnings, Notes, Insights
+  'Content',        // Documents, Designs, Code, Prompts, Templates
+  'Tracking',       // Reminders, Deadlines, Goals, OKRs, KPIs
+  'Communication',  // Meetings, Conversations, Decisions, Feedback
+  'Ideas',          // Thoughts, Ideas, Brainstorms, Hypotheses
+  'External',       // News, Trends, Competitors, Market Research
+  'Assets',         // Products, Services, Brands, Campaigns
+] as const;

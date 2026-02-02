@@ -203,7 +203,7 @@
       "name": "test2",
       "icon": "🏠",
       "type": "board",
-      "viewStyle": "kanban",
+      "viewStyle": "flow",
       "workspaceId": "big-query-data",
       "data": {
         "nodes": [
@@ -249,19 +249,28 @@
             "content": "New note",
             "parentId": null,
             "metadata": {
-              "x": 194,
-              "y": 201
+              "x": 404,
+              "y": 280.20000076293945
             },
-            "id": "jc2sxrz"
+            "id": "347r1li"
           },
           {
             "content": "New note",
             "parentId": null,
             "metadata": {
-              "x": 437,
-              "y": 201
+              "x": 163,
+              "y": 150.20000076293945
             },
-            "id": "8fhxsgv"
+            "id": "6njtx4v"
+          },
+          {
+            "content": "New note",
+            "parentId": null,
+            "metadata": {
+              "x": 553,
+              "y": 141.20000076293945
+            },
+            "id": "m97iuam"
           }
         ],
         "edges": []
@@ -285,49 +294,57 @@
       "id": "prompts",
       "name": "Prompts",
       "icon": "💬",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
       "id": "tools",
       "name": "Tools",
       "icon": "🔧",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
       "id": "files",
       "name": "Files",
       "icon": "📁",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
       "id": "tasks",
       "name": "Tasks",
       "icon": "✅",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
       "id": "agents",
       "name": "AI Agents",
       "icon": "🤖",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
       "id": "chat",
       "name": "Chat",
       "icon": "💬",
-      "builtIn": true,
-      "workspaceId": "big-query-data"
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "builtIn": true
     },
     {
+      "id": "22ut322",
       "name": "test",
       "icon": "👤",
+      "projectId": "salesforce",
       "workspaceId": "integration",
-      "builtIn": false,
+      "builtIn": false
       "id": "22ut322"
     }
   ],

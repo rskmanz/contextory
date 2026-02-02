@@ -115,12 +115,17 @@ export const useStore = create<AppState>((set, get) => ({
         const workspaceIds = get().workspaces
             .filter((w) => w.projectId === id)
             .map((w) => w.id);
+        const objectIds = get().objects
+            .filter((o) => o.projectId === id)
+            .map((o) => o.id);
         set((state) => ({
             projects: state.projects.filter((p) => p.id !== id),
             workspaces: state.workspaces.filter((w) => w.projectId !== id),
             contexts: state.contexts.filter((c) => !workspaceIds.includes(c.workspaceId)),
-            objects: state.objects.filter((o) => !workspaceIds.includes(o.workspaceId)),
-            items: state.items.filter((i) => !workspaceIds.includes(i.workspaceId)),
+            // Delete all objects belonging to this project (both global and local)
+            objects: state.objects.filter((o) => o.projectId !== id),
+            // Delete all items belonging to objects in this project
+            items: state.items.filter((i) => !objectIds.includes(i.objectId)),
         }));
         await get().saveData();
     },
@@ -141,11 +146,19 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     deleteWorkspace: async (id) => {
+        // Get local objects in this workspace (not global objects)
+        const localObjectIds = get().objects
+            .filter((o) => o.workspaceId === id)
+            .map((o) => o.id);
         set((state) => ({
             workspaces: state.workspaces.filter((w) => w.id !== id),
             contexts: state.contexts.filter((c) => c.workspaceId !== id),
+            // Only delete local objects (workspaceId matches), not global objects
             objects: state.objects.filter((o) => o.workspaceId !== id),
-            items: state.items.filter((i) => i.workspaceId !== id),
+            // Delete items: local object items OR items with this workspaceId
+            items: state.items.filter((i) =>
+                !localObjectIds.includes(i.objectId) && i.workspaceId !== id
+            ),
         }));
         await get().saveData();
     },
