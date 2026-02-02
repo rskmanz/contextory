@@ -46,6 +46,9 @@ export default function WorkspacePage() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ type: 'context' | 'object'; item: Context | ObjectType } | null>(null);
   const [expandedObjects, setExpandedObjects] = useState<Set<string>>(new Set());
+  const [isWorkspacesExpanded, setIsWorkspacesExpanded] = useState(true);
+  const [isContextsExpanded, setIsContextsExpanded] = useState(true);
+  const [isObjectsExpanded, setIsObjectsExpanded] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -268,25 +271,42 @@ export default function WorkspacePage() {
           {/* Workspaces Sidebar */}
           <div className="w-48 bg-zinc-50/50 border-r border-zinc-100 flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto py-3">
-              <div className="px-3 mb-1">
+              <button
+                onClick={() => setIsWorkspacesExpanded(!isWorkspacesExpanded)}
+                className="w-full flex items-center gap-2 px-3 mb-1 text-left hover:bg-white/60 rounded-lg py-1 transition-colors"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`text-zinc-400 transition-transform ${isWorkspacesExpanded ? 'rotate-90' : ''}`}
+                >
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
                 <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Workspaces</span>
-              </div>
-              <div className="px-2 space-y-0.5">
-                {projectWorkspaces.map((ws) => (
-                  <Link
-                    key={ws.id}
-                    href={`/${project}/${ws.id}`}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      ws.id === subproject
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-900 hover:bg-white/60'
-                    }`}
-                  >
-                    <span className="text-sm">{ws.categoryIcon || '📁'}</span>
-                    <span className="truncate">{ws.name}</span>
-                  </Link>
-                ))}
-              </div>
+                <span className="text-[10px] text-zinc-400 ml-auto">{projectWorkspaces.length}</span>
+              </button>
+              {isWorkspacesExpanded && (
+                <div className="px-2 space-y-0.5">
+                  {projectWorkspaces.map((ws) => (
+                    <Link
+                      key={ws.id}
+                      href={`/${project}/${ws.id}`}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        ws.id === subproject
+                          ? 'bg-white text-zinc-900 shadow-sm'
+                          : 'text-zinc-500 hover:text-zinc-900 hover:bg-white/60'
+                      }`}
+                    >
+                      <span className="text-sm">{ws.categoryIcon || '📁'}</span>
+                      <span className="truncate">{ws.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -295,8 +315,25 @@ export default function WorkspacePage() {
             <div className="flex-1 overflow-y-auto py-3">
               {/* Contexts Section */}
               <div className="px-3 mb-4">
-                <div className="flex items-center justify-between mb-1.5 px-1">
-                  <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Contexts</span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <button
+                    onClick={() => setIsContextsExpanded(!isContextsExpanded)}
+                    className="flex items-center gap-2 flex-1 text-left hover:bg-zinc-50 rounded-lg py-1 px-1 transition-colors"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={`text-zinc-400 transition-transform ${isContextsExpanded ? 'rotate-90' : ''}`}
+                    >
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Contexts</span>
+                    <span className="text-[10px] text-zinc-400">{workspaceContexts.length}</span>
+                  </button>
                   <button
                     onClick={() => setIsAddContextOpen(true)}
                     className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 rounded-md hover:bg-zinc-100 transition-colors"
@@ -307,41 +344,60 @@ export default function WorkspacePage() {
                     </svg>
                   </button>
                 </div>
-                <div className="space-y-1">
-                  {workspaceContexts.map((ctx) => (
-                    <button
-                      key={ctx.id}
-                      onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
-                      onDoubleClick={() => handleEditContext(ctx)}
-                      className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                        activeTab?.type === 'context' && activeTab.id === ctx.id
-                          ? 'bg-zinc-100 text-zinc-900'
-                          : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
-                      }`}
-                    >
-                      <span className="text-sm">{ctx.icon}</span>
-                      <span className="flex-1 text-left truncate">{ctx.name}</span>
+                {isContextsExpanded && (
+                  <div className="space-y-1">
+                    {workspaceContexts.map((ctx) => (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteContext(ctx);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                        key={ctx.id}
+                        onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
+                        onDoubleClick={() => handleEditContext(ctx)}
+                        className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          activeTab?.type === 'context' && activeTab.id === ctx.id
+                            ? 'bg-zinc-100 text-zinc-900'
+                            : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                        }`}
                       >
-                        ×
+                        <span className="text-sm">{ctx.icon}</span>
+                        <span className="flex-1 text-left truncate">{ctx.name}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContext(ctx);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                        >
+                          ×
+                        </button>
                       </button>
-                    </button>
-                  ))}
-                  {workspaceContexts.length === 0 && (
-                    <p className="text-xs text-zinc-400 px-4 py-2">No contexts yet</p>
-                  )}
-                </div>
+                    ))}
+                    {workspaceContexts.length === 0 && (
+                      <p className="text-xs text-zinc-400 px-4 py-2">No contexts yet</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Objects Section */}
               <div className="px-3">
-                <div className="flex items-center justify-between mb-1.5 px-1">
-                  <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Objects</span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <button
+                    onClick={() => setIsObjectsExpanded(!isObjectsExpanded)}
+                    className="flex items-center gap-2 flex-1 text-left hover:bg-zinc-50 rounded-lg py-1 px-1 transition-colors"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={`text-zinc-400 transition-transform ${isObjectsExpanded ? 'rotate-90' : ''}`}
+                    >
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Objects</span>
+                    <span className="text-[10px] text-zinc-400">{workspaceObjects.length}</span>
+                  </button>
                   <button
                     onClick={() => setIsAddObjectOpen(true)}
                     className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 rounded-md hover:bg-zinc-100 transition-colors"
@@ -352,65 +408,66 @@ export default function WorkspacePage() {
                     </svg>
                   </button>
                 </div>
-                <div className="space-y-0.5">
-                  {workspaceObjects.map((obj) => {
-                    const objectItems = items.filter((i) => i.objectId === obj.id && i.workspaceId === subproject);
-                    const isExpanded = expandedObjects.has(obj.id);
-                    return (
-                      <div key={obj.id}>
-                        <button
-                          onClick={() => {
-                            setActiveTab({ type: 'object', id: obj.id });
-                            toggleObjectExpand(obj.id);
-                          }}
-                          onDoubleClick={() => handleEditObject(obj)}
-                          className={`group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-all ${
-                            activeTab?.type === 'object' && activeTab.id === obj.id
-                              ? 'bg-zinc-100 text-zinc-900'
-                              : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
-                          }`}
-                        >
-                          {/* Expand arrow */}
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className={`transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                {isObjectsExpanded && (
+                  <div className="space-y-0.5">
+                    {workspaceObjects.map((obj) => {
+                      const objectItems = items.filter((i) => i.objectId === obj.id && i.workspaceId === subproject);
+                      const isExpanded = expandedObjects.has(obj.id);
+                      return (
+                        <div key={obj.id}>
+                          <button
+                            onClick={() => {
+                              setActiveTab({ type: 'object', id: obj.id });
+                              toggleObjectExpand(obj.id);
+                            }}
+                            onDoubleClick={() => handleEditObject(obj)}
+                            className={`group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-all ${
+                              activeTab?.type === 'object' && activeTab.id === obj.id
+                                ? 'bg-zinc-100 text-zinc-900'
+                                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                            }`}
                           >
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
-                          <span className="text-sm">{obj.icon}</span>
-                          <span className="flex-1 text-left truncate">{obj.name}</span>
-                          <span className="text-[10px] text-zinc-400 tabular-nums">{objectItems.length}</span>
-                          {!obj.builtIn && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteObject(obj);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                            {/* Expand arrow */}
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className={`transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
                             >
-                              ×
-                            </button>
-                          )}
-                        </button>
-                        {/* Drilled items */}
-                        {isExpanded && objectItems.length > 0 && (
-                          <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5 space-y-0.5">
-                            {objectItems.map((item) => (
-                              <div
-                                key={item.id}
-                                className="flex items-center gap-2 px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 rounded-md cursor-default"
+                              <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                            <span className="text-sm">{obj.icon}</span>
+                            <span className="flex-1 text-left truncate">{obj.name}</span>
+                            <span className="text-[10px] text-zinc-400 tabular-nums">{objectItems.length}</span>
+                            {!obj.builtIn && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteObject(obj);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flex-shrink-0"></span>
-                                <span className="truncate">{item.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                                ×
+                              </button>
+                            )}
+                          </button>
+                          {/* Drilled items */}
+                          {isExpanded && objectItems.length > 0 && (
+                            <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5 space-y-0.5">
+                              {objectItems.map((item) => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center gap-2 px-2 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 rounded-md cursor-default"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flex-shrink-0"></span>
+                                  <span className="truncate">{item.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         {isExpanded && objectItems.length === 0 && (
                           <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5">
                             <p className="text-[11px] text-zinc-400 py-1.5 px-2">No items</p>
@@ -419,10 +476,11 @@ export default function WorkspacePage() {
                       </div>
                     );
                   })}
-                  {workspaceObjects.length === 0 && (
-                    <p className="text-xs text-zinc-400 px-3 py-2">No objects yet</p>
-                  )}
-                </div>
+                    {workspaceObjects.length === 0 && (
+                      <p className="text-xs text-zinc-400 px-3 py-2">No objects yet</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

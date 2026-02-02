@@ -112,9 +112,15 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     deleteProject: async (id) => {
+        const workspaceIds = get().workspaces
+            .filter((w) => w.projectId === id)
+            .map((w) => w.id);
         set((state) => ({
             projects: state.projects.filter((p) => p.id !== id),
             workspaces: state.workspaces.filter((w) => w.projectId !== id),
+            contexts: state.contexts.filter((c) => !workspaceIds.includes(c.workspaceId)),
+            objects: state.objects.filter((o) => !workspaceIds.includes(o.workspaceId)),
+            items: state.items.filter((i) => !workspaceIds.includes(i.workspaceId)),
         }));
         await get().saveData();
     },
@@ -137,6 +143,9 @@ export const useStore = create<AppState>((set, get) => ({
     deleteWorkspace: async (id) => {
         set((state) => ({
             workspaces: state.workspaces.filter((w) => w.id !== id),
+            contexts: state.contexts.filter((c) => c.workspaceId !== id),
+            objects: state.objects.filter((o) => o.workspaceId !== id),
+            items: state.items.filter((i) => i.workspaceId !== id),
         }));
         await get().saveData();
     },

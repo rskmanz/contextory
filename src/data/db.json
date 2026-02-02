@@ -143,9 +143,25 @@
       "icon": "🏠",
       "type": "board",
       "workspaceId": "big-query-data",
-      "viewStyle": "grid",
+      "viewStyle": "kanban",
       "data": {
-        "nodes": [],
+        "nodes": [
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "e8lolcq"
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "0p2st2c"
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "nez4042"
+          }
+        ],
         "edges": []
       }
     },
@@ -233,8 +249,8 @@
             "content": "New note",
             "parentId": null,
             "metadata": {
-              "x": 292,
-              "y": 265
+              "x": 194,
+              "y": 201
             },
             "id": "jc2sxrz"
           },
@@ -242,8 +258,8 @@
             "content": "New note",
             "parentId": null,
             "metadata": {
-              "x": 502,
-              "y": 258
+              "x": 437,
+              "y": 201
             },
             "id": "8fhxsgv"
           }
