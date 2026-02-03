@@ -7,6 +7,7 @@ interface BreadcrumbItem {
     label: string;
     href?: string;
     icon?: string;
+    onClick?: () => void;
     options?: { label: string; icon?: string; href: string }[];
 }
 
@@ -35,33 +36,52 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
                         )}
                         <div className="relative">
                             {item.options ? (
-                                <button
-                                    onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
-                                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all ${
-                                        isLast
-                                            ? 'text-zinc-900 font-semibold'
-                                            : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
-                                    }`}
-                                >
-                                    {item.icon && <span className="text-base">{item.icon}</span>}
-                                    <span>{item.label}</span>
-                                    <svg
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className={`ml-0.5 opacity-50 transition-transform ${openDropdown === index ? 'rotate-180' : ''}`}
+                                <div className="flex items-center">
+                                    <button
+                                        onClick={() => item.onClick?.()}
+                                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-l-lg transition-all ${
+                                            isLast
+                                                ? 'text-zinc-900 font-semibold'
+                                                : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
+                                        }`}
                                     >
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </button>
+                                        {item.icon && <span className="text-base">{item.icon}</span>}
+                                        <span>{item.label}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
+                                        className={`flex items-center px-1 py-1.5 rounded-r-lg transition-all ${
+                                            isLast
+                                                ? 'text-zinc-900'
+                                                : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100'
+                                        }`}
+                                    >
+                                        <svg
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className={`opacity-50 transition-transform ${openDropdown === index ? 'rotate-180' : ''}`}
+                                        >
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                </div>
                             ) : item.href ? (
                                 <button
                                     onClick={() => router.push(item.href!)}
+                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-all"
+                                >
+                                    {item.icon && <span className="text-base">{item.icon}</span>}
+                                    <span>{item.label}</span>
+                                </button>
+                            ) : item.onClick ? (
+                                <button
+                                    onClick={() => item.onClick?.()}
                                     className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-all"
                                 >
                                     {item.icon && <span className="text-base">{item.icon}</span>}

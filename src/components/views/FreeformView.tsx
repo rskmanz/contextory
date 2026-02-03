@@ -6,15 +6,36 @@ import { useStore } from '@/lib/store';
 
 interface FreeformViewProps {
   context: Context;
+  isItemContext?: boolean;
+  itemId?: string;
 }
 
 const NOTE_WIDTH = 200;
 const NOTE_MIN_HEIGHT = 100;
 
-export const FreeformView: React.FC<FreeformViewProps> = ({ context }) => {
-  const addNode = useStore((state) => state.addNode);
-  const updateNode = useStore((state) => state.updateNode);
-  const deleteNode = useStore((state) => state.deleteNode);
+export const FreeformView: React.FC<FreeformViewProps> = ({ context, isItemContext, itemId }) => {
+  // Context functions
+  const addContextNode = useStore((state) => state.addNode);
+  const updateContextNode = useStore((state) => state.updateNode);
+  const deleteContextNode = useStore((state) => state.deleteNode);
+
+  // Item functions
+  const addItemNode = useStore((state) => state.addItemNode);
+  const updateItemNode = useStore((state) => state.updateItemNode);
+  const deleteItemNode = useStore((state) => state.deleteItemNode);
+
+  // Use appropriate functions based on mode
+  const addNode = isItemContext && itemId
+    ? (node: { content: string; parentId: string | null; metadata?: Record<string, unknown> }) => addItemNode(itemId, node)
+    : (node: { content: string; parentId: string | null; metadata?: Record<string, unknown> }) => addContextNode(context.id, node);
+
+  const updateNode = isItemContext && itemId
+    ? (nodeId: string, updates: Partial<ContextNode>) => updateItemNode(itemId, nodeId, updates)
+    : (nodeId: string, updates: Partial<ContextNode>) => updateContextNode(context.id, nodeId, updates);
+
+  const deleteNode = isItemContext && itemId
+    ? (nodeId: string) => deleteItemNode(itemId, nodeId)
+    : (nodeId: string) => deleteContextNode(context.id, nodeId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
@@ -34,13 +55,13 @@ export const FreeformView: React.FC<FreeformViewProps> = ({ context }) => {
       const x = e.clientX - rect.left + (containerRef.current?.scrollLeft || 0);
       const y = e.clientY - rect.top + (containerRef.current?.scrollTop || 0);
 
-      await addNode(context.id, {
+      await addNode({
         content: 'New note',
         parentId: null,
         metadata: { x, y },
       });
     },
-    [context.id, addNode]
+    [addNode]
   );
 
   const handleDoubleClick = useCallback((node: ContextNode, e: React.MouseEvent) => {
@@ -51,18 +72,18 @@ export const FreeformView: React.FC<FreeformViewProps> = ({ context }) => {
 
   const handleEditSubmit = useCallback(async () => {
     if (editingNodeId && editContent.trim()) {
-      await updateNode(context.id, editingNodeId, { content: editContent.trim() });
+      await updateNode(editingNodeId, { content: editContent.trim() });
     }
     setEditingNodeId(null);
     setEditContent('');
-  }, [editingNodeId, editContent, context.id, updateNode]);
+  }, [editingNodeId, editContent, updateNode]);
 
   const handleDelete = useCallback(
     async (nodeId: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      await deleteNode(context.id, nodeId);
+      await deleteNode(nodeId);
     },
-    [context.id, deleteNode]
+    [deleteNode]
   );
 
   const handleDragStart = useCallback((nodeId: string, e: React.MouseEvent) => {
@@ -84,28 +105,16 @@ export const FreeformView: React.FC<FreeformViewProps> = ({ context }) => {
       const newX = Math.max(0, e.clientX - dragOffset.x);
       const newY = Math.max(0, e.clientY - dragOffset.y);
 
-      await updateNode(context.id, draggedNode, {
+      await updateNode(draggedNode, {
         metadata: { x: newX, y: newY },
       });
     },
-    [draggedNode, dragOffset, context.id, updateNode]
+    [draggedNode, dragOffset, updateNode]
   );
 
   const handleDragEnd = useCallback(() => {
     setDraggedNode(null);
   }, []);
-
-  const getNodeColor = (index: number) => {
-    const colors = [
-      'bg-yellow-100 border-yellow-300',
-      'bg-blue-100 border-blue-300',
-      'bg-green-100 border-green-300',
-      'bg-pink-100 border-pink-300',
-      'bg-purple-100 border-purple-300',
-      'bg-orange-100 border-orange-300',
-    ];
-    return colors[index % colors.length];
-  };
 
   return (
     <div
@@ -140,11 +149,11 @@ export const FreeformView: React.FC<FreeformViewProps> = ({ context }) => {
       )}
 
       {/* Notes */}
-      {nodes.map((node, index) => (
+      {nodes.map((node) => (
         <div
           key={node.id}
-          className={`note-card absolute rounded-xl border-2 shadow-md cursor-move transition-shadow hover:shadow-lg ${getNodeColor(index)} ${
-            draggedNode === node.id ? 'shadow-xl z-50' : ''
+          className={`note-card absolute rounded-xl border border-zinc-200 shadow-md bg-white cursor-move transition-shadow hover:shadow-lg ${
+            draggedNode === node.id ? 'shadow-xl z-50 border-zinc-400' : ''
           }`}
           style={{
             left: node.metadata?.x || 50,

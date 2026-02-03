@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, Workspace, Context, ObjectType, ObjectItem, ContextNode, ContextEdge } from '@/types';
+import { Project, Workspace, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, ChatMessage, AISettings, AIProvider } from '@/types';
 
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -13,6 +13,13 @@ interface AppState {
     items: ObjectItem[];
     isLoading: boolean;
     isLoaded: boolean;
+
+    // AI Chat State
+    chatMessages: Record<string, ChatMessage[]>; // keyed by workspaceId
+    aiSettings: AISettings;
+    isChatOpen: boolean;
+    isChatExpanded: boolean;
+    isChatLoading: boolean;
 
     // Load data from API
     loadData: () => Promise<void>;
@@ -52,9 +59,14 @@ interface AppState {
     updateItem: (id: string, updates: Partial<ObjectItem>) => Promise<void>;
     deleteItem: (id: string) => Promise<void>;
 
-    // Global Objects (Phase 4)
-    addGlobalObject: (projectId: string, object: Omit<ObjectType, 'id' | 'projectId' | 'workspaceId'>) => Promise<string>;
-    getGlobalObjects: (projectId: string) => ObjectType[];
+    // 3-Tier Scope Objects
+    addGlobalObject: (object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    getGlobalObjects: () => ObjectType[];
+    addProjectObject: (projectId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    getProjectObjects: (projectId: string) => ObjectType[];
+    addLocalObject: (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    getLocalObjects: (workspaceId: string) => ObjectType[];
+    getVisibleObjects: (projectId: string, workspaceId: string) => ObjectType[];
 
     // Sub-workspaces (Phase 4)
     createSubWorkspace: (parentItemId: string, projectId: string, name: string) => Promise<string>;
@@ -62,8 +74,21 @@ interface AppState {
 
     // Item contextData (Phase 4)
     updateItemContext: (itemId: string, nodes: ContextNode[]) => Promise<void>;
+    updateItemContextType: (itemId: string, type: import('@/types').ContextType, viewStyle: import('@/types').ViewStyle) => Promise<void>;
     addItemNode: (itemId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
+    updateItemNode: (itemId: string, nodeId: string, updates: Partial<ContextNode>) => Promise<void>;
     deleteItemNode: (itemId: string, nodeId: string) => Promise<void>;
+    addItemEdge: (itemId: string, edge: Omit<ContextEdge, 'id'>) => Promise<string>;
+    deleteItemEdge: (itemId: string, edgeId: string) => Promise<void>;
+
+    // AI Chat (Phase 5)
+    addChatMessage: (workspaceId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => string;
+    getChatMessages: (workspaceId: string) => ChatMessage[];
+    clearChatMessages: (workspaceId: string) => void;
+    setAISettings: (settings: Partial<AISettings>) => void;
+    setChatOpen: (isOpen: boolean) => void;
+    setChatExpanded: (isExpanded: boolean) => void;
+    setChatLoading: (isLoading: boolean) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -74,6 +99,16 @@ export const useStore = create<AppState>((set, get) => ({
     items: [],
     isLoading: false,
     isLoaded: false,
+
+    // AI Chat initial state
+    chatMessages: {},
+    aiSettings: {
+        provider: 'openai' as AIProvider,
+        model: 'gpt-4o',
+    },
+    isChatOpen: false,
+    isChatExpanded: false,
+    isChatLoading: false,
 
     loadData: async () => {
         if (get().isLoaded || get().isLoading) return;
@@ -348,22 +383,72 @@ export const useStore = create<AppState>((set, get) => ({
         await get().saveData();
     },
 
-    // Global Objects (Phase 4)
-    addGlobalObject: async (projectId, object) => {
+    // === 3-Tier Scope Object Operations ===
+
+    // Global Objects (scope: 'global') - visible across ALL projects
+    addGlobalObject: async (object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
         const id = generateId();
         const newObject: ObjectType = {
             ...object,
             id,
-            projectId,
-            workspaceId: null, // null = global object
+            scope: 'global',
+            projectId: null,
+            workspaceId: null,
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await get().saveData();
         return id;
     },
 
-    getGlobalObjects: (projectId) => {
-        return get().objects.filter((o) => o.projectId === projectId && o.workspaceId === null);
+    getGlobalObjects: () => {
+        return get().objects.filter((o) => o.scope === 'global');
+    },
+
+    // Project Objects (scope: 'project') - visible within a project
+    addProjectObject: async (projectId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
+        const id = generateId();
+        const newObject: ObjectType = {
+            ...object,
+            id,
+            scope: 'project',
+            projectId,
+            workspaceId: null,
+        };
+        set((state) => ({ objects: [...state.objects, newObject] }));
+        await get().saveData();
+        return id;
+    },
+
+    getProjectObjects: (projectId: string) => {
+        return get().objects.filter((o) => o.scope === 'project' && o.projectId === projectId);
+    },
+
+    // Local Objects (scope: 'local') - visible only in a specific workspace
+    addLocalObject: async (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
+        const id = generateId();
+        const newObject: ObjectType = {
+            ...object,
+            id,
+            scope: 'local',
+            projectId,
+            workspaceId,
+        };
+        set((state) => ({ objects: [...state.objects, newObject] }));
+        await get().saveData();
+        return id;
+    },
+
+    getLocalObjects: (workspaceId: string) => {
+        return get().objects.filter((o) => o.scope === 'local' && o.workspaceId === workspaceId);
+    },
+
+    // Get all visible objects for a workspace (global + project + local)
+    getVisibleObjects: (projectId: string, workspaceId: string) => {
+        return get().objects.filter((o) =>
+            o.scope === 'global' ||
+            (o.scope === 'project' && o.projectId === projectId) ||
+            (o.scope === 'local' && o.workspaceId === workspaceId)
+        );
     },
 
     // Sub-workspaces (Phase 4)
@@ -388,7 +473,28 @@ export const useStore = create<AppState>((set, get) => ({
     updateItemContext: async (itemId, nodes) => {
         set((state) => ({
             items: state.items.map((i) =>
-                i.id === itemId ? { ...i, contextData: { nodes } } : i
+                i.id === itemId
+                    ? { ...i, contextData: { ...i.contextData, nodes } }
+                    : i
+            ),
+        }));
+        await get().saveData();
+    },
+
+    updateItemContextType: async (itemId, type, viewStyle) => {
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? {
+                          ...i,
+                          contextData: {
+                              ...i.contextData,
+                              type,
+                              viewStyle,
+                              nodes: i.contextData?.nodes || [],
+                          },
+                      }
+                    : i
             ),
         }));
         await get().saveData();
@@ -403,6 +509,7 @@ export const useStore = create<AppState>((set, get) => ({
                     ? {
                           ...i,
                           contextData: {
+                              ...i.contextData,
                               nodes: [...(i.contextData?.nodes || []), newNode],
                           },
                       }
@@ -411,6 +518,25 @@ export const useStore = create<AppState>((set, get) => ({
         }));
         await get().saveData();
         return nodeId;
+    },
+
+    updateItemNode: async (itemId, nodeId, updates) => {
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? {
+                          ...i,
+                          contextData: {
+                              ...i.contextData,
+                              nodes: (i.contextData?.nodes || []).map((n) =>
+                                  n.id === nodeId ? { ...n, ...updates } : n
+                              ),
+                          },
+                      }
+                    : i
+            ),
+        }));
+        await get().saveData();
     },
 
     deleteItemNode: async (itemId, nodeId) => {
@@ -428,11 +554,123 @@ export const useStore = create<AppState>((set, get) => ({
                 return {
                     ...i,
                     contextData: {
+                        ...i.contextData,
                         nodes: nodes.filter((n) => !toDelete.has(n.id)),
                     },
                 };
             }),
         }));
         await get().saveData();
+    },
+
+    addItemEdge: async (itemId, edge) => {
+        const edgeId = generateId();
+        const newEdge: ContextEdge = { ...edge, id: edgeId };
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? {
+                          ...i,
+                          contextData: {
+                              ...i.contextData,
+                              nodes: i.contextData?.nodes || [],
+                              edges: [...(i.contextData?.edges || []), newEdge],
+                          },
+                      }
+                    : i
+            ),
+        }));
+        await get().saveData();
+        return edgeId;
+    },
+
+    deleteItemEdge: async (itemId, edgeId) => {
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? {
+                          ...i,
+                          contextData: {
+                              ...i.contextData,
+                              nodes: i.contextData?.nodes || [],
+                              edges: (i.contextData?.edges || []).filter((e) => e.id !== edgeId),
+                          },
+                      }
+                    : i
+            ),
+        }));
+        await get().saveData();
+    },
+
+    // AI Chat (Phase 5) - with localStorage persistence
+    addChatMessage: (workspaceId, message) => {
+        const id = generateId();
+        const newMessage: ChatMessage = {
+            ...message,
+            id,
+            timestamp: Date.now(),
+        };
+        set((state) => {
+            const updated = {
+                ...state.chatMessages,
+                [workspaceId]: [...(state.chatMessages[workspaceId] || []), newMessage],
+            };
+            // Persist to localStorage
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('context-os-chat', JSON.stringify(updated));
+            }
+            return { chatMessages: updated };
+        });
+        return id;
+    },
+
+    getChatMessages: (workspaceId) => {
+        // Load from localStorage on first access if empty
+        const state = get();
+        if (Object.keys(state.chatMessages).length === 0 && typeof window !== 'undefined') {
+            const saved = localStorage.getItem('context-os-chat');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    set({ chatMessages: parsed });
+                    return parsed[workspaceId] || [];
+                } catch {
+                    // Invalid JSON, ignore
+                }
+            }
+        }
+        return state.chatMessages[workspaceId] || [];
+    },
+
+    clearChatMessages: (workspaceId) => {
+        set((state) => {
+            const updated = {
+                ...state.chatMessages,
+                [workspaceId]: [],
+            };
+            // Persist to localStorage
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('context-os-chat', JSON.stringify(updated));
+            }
+            return { chatMessages: updated };
+        });
+    },
+
+    setAISettings: (settings) => {
+        set((state) => ({
+            aiSettings: { ...state.aiSettings, ...settings },
+        }));
+    },
+
+    setChatOpen: (isOpen) => {
+        set({ isChatOpen: isOpen });
+    },
+
+    setChatExpanded: (isExpanded) => {
+        set({ isChatExpanded: isExpanded });
+    },
+
+    setChatLoading: (isLoading) => {
+        set({ isChatLoading: isLoading });
     },
 }));

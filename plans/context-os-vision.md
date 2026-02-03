@@ -115,38 +115,38 @@ Project
 ## Data Structure
 
 ```typescript
-// Keep current UI fields
 interface Project {
   id: string;
   name: string;
   icon: string;
-  gradient: string;   // keep for UI
-  category: string;   // keep for grouping
+  gradient: string;
+  category: string;
 }
 
-// Keep current fields + add type + parentItemId
 interface Workspace {
   id: string;
   name: string;
   projectId: string;
-  parentItemId?: string;  // if set, this is a sub-workspace of an item (future)
-  category?: string;      // keep for UI
-  categoryIcon?: string;  // keep for UI
+  parentItemId?: string;  // sub-workspace linked from item (future)
+  category?: string;
+  categoryIcon?: string;
   type?: string;          // department, activity, client, etc.
 }
 
-// Flat array with projectId + workspaceId
+// 3-tier scope system
+type ObjectScope = 'global' | 'project' | 'local';
+
 interface ObjectType {
   id: string;
   name: string;
   icon: string;
-  projectId: string;              // always set
-  workspaceId: string | null;     // null = global, 'id' = local
-  category?: string;              // Work, People, Tools, etc.
+  scope: ObjectScope;
+  projectId: string | null;       // null for global
+  workspaceId: string | null;     // null for global/project
+  category?: string;
   builtIn: boolean;
 }
 
-// Tree structure for context data
 interface ContextNode {
   id: string;
   content: string;
@@ -161,60 +161,160 @@ interface ContextNode {
   };
 }
 
-// Item with markdownId + contextData
+interface ContextEdge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+}
+
+type ContextType = 'tree' | 'board' | 'canvas';
+type ViewStyle = 'mindmap' | 'list' | 'kanban' | 'grid' | 'flow' | 'freeform';
+
+interface Context {
+  id: string;
+  name: string;
+  icon: string;
+  type: ContextType;
+  viewStyle: ViewStyle;
+  workspaceId: string;
+  objectIds?: string[];
+  markdownId?: string;
+  data: {
+    nodes: ContextNode[];
+    edges?: ContextEdge[];
+  };
+}
+
 interface ObjectItem {
   id: string;
   name: string;
   objectId: string;
-  workspaceId: string | null;     // null = global object item
-  markdownId?: string;            // reference to .md file (optional)
-  contextData?: {                 // tree structure (optional)
+  workspaceId: string | null;
+  markdownId?: string;
+  contextData?: {
     nodes: ContextNode[];
   };
 }
-
-// MetaContext (replaces Context) - tree only, no edges
-interface MetaContext {
-  id: string;
-  name: string;
-  icon: string;
-  type: 'tree' | 'board' | 'canvas';  // data structure type
-  viewStyle: string;                   // mindmap, list, kanban, etc.
-  workspaceId: string;
-  objectIds?: string[];               // linked objects (optional)
-  markdownId?: string;                // reference to .md file (optional)
-  data: {
-    nodes: ContextNode[];             // tree structure only
-  };
-}
-
-// Markdown = Summary (separate file)
-// Stored as separate .md files, referenced by markdownId
 ```
+
+**Scope Visibility:**
+| Scope | projectId | workspaceId | Visible In |
+|-------|-----------|-------------|------------|
+| global | null | null | Everywhere |
+| project | set | null | All workspaces in project |
+| local | set | set | Only that workspace |
 
 **Query Examples:**
 ```typescript
-// All Tasks across project
-items.filter(i => i.objectId === 'tasks')
+// Global objects
+objects.filter(o => o.scope === 'global')
 
-// Tasks in Workspace A only
-items.filter(i => i.objectId === 'tasks' && i.workspaceId === 'a')
+// Project objects
+objects.filter(o => o.scope === 'project' && o.projectId === projectId)
 
-// Global Team members (visible everywhere)
-items.filter(i => i.objectId === 'teams' && i.workspaceId === null)
+// Local objects
+objects.filter(o => o.scope === 'local' && o.workspaceId === workspaceId)
 
-// Global objects in project
-objects.filter(o => o.projectId === 'proj-1' && o.workspaceId === null)
-
-// Local objects in workspace
-objects.filter(o => o.workspaceId === 'workspace-1')
-
-// Top-level workspaces (no parent item)
-workspaces.filter(w => !w.parentItemId)
+// All visible objects in a workspace
+objects.filter(o =>
+  o.scope === 'global' ||
+  (o.scope === 'project' && o.projectId === projectId) ||
+  (o.scope === 'local' && o.workspaceId === workspaceId)
+)
 
 // Sub-workspaces of an item (future)
-workspaces.filter(w => w.parentItemId === 'item-123')
+workspaces.filter(w => w.parentItemId === itemId)
 ```
+
+---
+
+## AI Skills (How to Use)
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_projects` | List all projects |
+| `list_workspaces` | List workspaces (optionally by projectId) |
+| `list_objects` | List objects (by scope/project/workspace) |
+| `list_items` | List items in an object |
+| `list_contexts` | List contexts in a workspace |
+| `get_item_context` | Get item's context nodes |
+| `create_project` | Create a project |
+| `create_workspace` | Create a workspace |
+| `create_object` | Create an object (global/project/local) |
+| `create_item` | Create an item |
+| `create_context` | Create a context (tree/board/canvas) |
+| `add_node` | Add node to context or item |
+| `update_*` | Update any entity |
+| `delete_*` | Delete any entity (requires confirmation) |
+
+### Example Commands
+
+**Reading data:**
+```
+"List all projects"
+"Show workspaces in project X"
+"What objects are in this workspace?"
+"Get the context tree for item Y"
+```
+
+**Creating data:**
+```
+"Create a project called Marketing"
+"Add a workspace called Q1 Campaign to Marketing"
+"Create a global object called Teams"
+"Add item Alice to Teams"
+"Create a tree context called Roadmap"
+```
+
+**Modifying data:**
+```
+"Rename project X to Y"
+"Add a node 'Requirements' to item Z"
+"Delete the old project" (will ask for confirmation)
+```
+
+### API Endpoints (for MCP Server)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects` | List projects |
+| POST | `/api/projects` | Create project |
+| GET/PUT/DELETE | `/api/projects/[id]` | Project CRUD |
+| GET | `/api/workspaces?projectId=X` | List workspaces |
+| POST | `/api/workspaces` | Create workspace |
+| GET/PUT/DELETE | `/api/workspaces/[id]` | Workspace CRUD |
+| GET | `/api/objects?scope=X&projectId=Y` | List objects |
+| POST | `/api/objects` | Create object |
+| GET/PUT/DELETE | `/api/objects/[id]` | Object CRUD |
+| GET | `/api/items?objectId=X` | List items |
+| POST | `/api/items` | Create item |
+| GET/PUT/DELETE | `/api/items/[id]` | Item CRUD |
+| GET/PUT/POST | `/api/items/[id]/nodes` | Item context nodes |
+| GET | `/api/contexts?workspaceId=X` | List contexts |
+| POST | `/api/contexts` | Create context |
+| GET/PUT/DELETE | `/api/contexts/[id]` | Context CRUD |
+
+### MCP Server Setup
+
+Already configured in `~/.claude.json`:
+```json
+{
+  "mcpServers": {
+    "context-os": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["C:/Users/User/InfoDashboard/info-dashboard/mcp-server/build/index.js"],
+      "env": {
+        "CONTEXT_OS_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
+
+**Skill:** Use `/context-os` command in Claude Code
 
 ---
 
@@ -223,7 +323,8 @@ workspaces.filter(w => w.parentItemId === 'item-123')
 | Phase | Status |
 |-------|--------|
 | 1. Foundation (hierarchy, views, drill-down) | ✅ Done |
-| 2. Enhanced Items (markdownId, contextData, projectId) | ⏳ Next |
-| 3. Context Views (meta context, item context) | ⏳ Planned |
-| 4. Recursive Workspaces (parentItemId, sub-workspaces) | ⏳ Planned |
-| 5. AI Integration (auto-generate, infer) | ⏳ Future |
+| 2. Enhanced Items (markdownId, contextData) | ✅ Done |
+| 3. 3-Tier Scope (global/project/local) | ✅ Done |
+| 4. AI Tool Calling (in-app chat) | ✅ Done |
+| 5. MCP Server (Claude Code integration) | ✅ Done |
+| 6. Recursive Workspaces (parentItemId) | ⏳ Future |

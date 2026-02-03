@@ -6,6 +6,8 @@ import { useStore } from '@/lib/store';
 
 interface KanbanViewProps {
   context: Context;
+  isItemContext?: boolean;
+  itemId?: string;
 }
 
 interface CardPosition {
@@ -15,12 +17,41 @@ interface CardPosition {
   height: number;
 }
 
-export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
-  const addNode = useStore((state) => state.addNode);
-  const updateNode = useStore((state) => state.updateNode);
-  const deleteNode = useStore((state) => state.deleteNode);
-  const addEdge = useStore((state) => state.addEdge);
-  const deleteEdge = useStore((state) => state.deleteEdge);
+export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, itemId }) => {
+  // Context functions
+  const addContextNode = useStore((state) => state.addNode);
+  const updateContextNode = useStore((state) => state.updateNode);
+  const deleteContextNode = useStore((state) => state.deleteNode);
+  const addContextEdge = useStore((state) => state.addEdge);
+  const deleteContextEdge = useStore((state) => state.deleteEdge);
+
+  // Item functions
+  const addItemNode = useStore((state) => state.addItemNode);
+  const updateItemNode = useStore((state) => state.updateItemNode);
+  const deleteItemNode = useStore((state) => state.deleteItemNode);
+  const addItemEdge = useStore((state) => state.addItemEdge);
+  const deleteItemEdge = useStore((state) => state.deleteItemEdge);
+
+  // Use appropriate functions based on mode
+  const addNode = isItemContext && itemId
+    ? (node: { content: string; parentId: string | null }) => addItemNode(itemId, node)
+    : (node: { content: string; parentId: string | null }) => addContextNode(context.id, node);
+
+  const updateNode = isItemContext && itemId
+    ? (nodeId: string, updates: Partial<ContextNode>) => updateItemNode(itemId, nodeId, updates)
+    : (nodeId: string, updates: Partial<ContextNode>) => updateContextNode(context.id, nodeId, updates);
+
+  const deleteNode = isItemContext && itemId
+    ? (nodeId: string) => deleteItemNode(itemId, nodeId)
+    : (nodeId: string) => deleteContextNode(context.id, nodeId);
+
+  const addEdge = isItemContext && itemId
+    ? (edge: { sourceId: string; targetId: string }) => addItemEdge(itemId, edge)
+    : (edge: { sourceId: string; targetId: string }) => addContextEdge(context.id, edge);
+
+  const deleteEdge = isItemContext && itemId
+    ? (edgeId: string) => deleteItemEdge(itemId, edgeId)
+    : (edgeId: string) => deleteContextEdge(context.id, edgeId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -73,7 +104,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
       window.removeEventListener('resize', updatePositions);
       clearTimeout(timer);
     };
-  }, [columns, cardsByColumn, context.id]);
+  }, [columns, cardsByColumn, context.id, isItemContext, itemId]);
 
   const handleDoubleClick = useCallback((node: ContextNode) => {
     setEditingNodeId(node.id);
@@ -82,11 +113,11 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
 
   const handleEditSubmit = useCallback(async () => {
     if (editingNodeId && editContent.trim()) {
-      await updateNode(context.id, editingNodeId, { content: editContent.trim() });
+      await updateNode(editingNodeId, { content: editContent.trim() });
     }
     setEditingNodeId(null);
     setEditContent('');
-  }, [editingNodeId, editContent, context.id, updateNode]);
+  }, [editingNodeId, editContent, updateNode]);
 
   const handleEditKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -101,27 +132,27 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
   );
 
   const handleAddColumn = useCallback(async () => {
-    await addNode(context.id, {
+    await addNode({
       content: 'New Column',
       parentId: null,
     });
-  }, [context.id, addNode]);
+  }, [addNode]);
 
   const handleAddCard = useCallback(
     async (columnId: string) => {
-      await addNode(context.id, {
+      await addNode({
         content: 'New card',
         parentId: columnId,
       });
     },
-    [context.id, addNode]
+    [addNode]
   );
 
   const handleDelete = useCallback(
     async (nodeId: string) => {
-      await deleteNode(context.id, nodeId);
+      await deleteNode(nodeId);
     },
-    [context.id, deleteNode]
+    [deleteNode]
   );
 
   const handleDragStart = (cardId: string) => {
@@ -134,7 +165,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
 
   const handleDrop = async (columnId: string) => {
     if (draggedCard) {
-      await updateNode(context.id, draggedCard, { parentId: columnId });
+      await updateNode(draggedCard, { parentId: columnId });
       setDraggedCard(null);
     }
   };
@@ -152,7 +183,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
               (edge.sourceId === nodeId && edge.targetId === edgeSource)
           );
           if (!exists) {
-            await addEdge(context.id, { sourceId: edgeSource, targetId: nodeId });
+            await addEdge({ sourceId: edgeSource, targetId: nodeId });
           }
           setEdgeSource(null);
         }
@@ -160,14 +191,14 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context }) => {
         setEdgeSource(null);
       }
     },
-    [edgeSource, edges, context.id, addEdge]
+    [edgeSource, edges, addEdge]
   );
 
   const handleEdgeClick = useCallback(
     async (edgeId: string) => {
-      await deleteEdge(context.id, edgeId);
+      await deleteEdge(edgeId);
     },
-    [context.id, deleteEdge]
+    [deleteEdge]
   );
 
   // Cancel edge mode on Escape

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { ObjectType } from '@/types';
+import { ObjectType, OBJECT_CATEGORY_SUGGESTIONS } from '@/types';
 
 interface EditObjectModalProps {
     isOpen: boolean;
@@ -15,6 +15,8 @@ const objectIcons = ['📁', '📋', '📊', '🎯', '💼', '🔧', '📝', '�
 export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClose, object }) => {
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('📁');
+    const [category, setCategory] = useState('');
+    const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
 
     const updateObject = useStore((state) => state.updateObject);
 
@@ -22,6 +24,7 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
         if (object) {
             setName(object.name);
             setIcon(object.icon);
+            setCategory(object.category || '');
         }
     }, [object]);
 
@@ -29,9 +32,13 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
         e.preventDefault();
         if (!name.trim() || !object) return;
 
-        await updateObject(object.id, { name, icon });
+        await updateObject(object.id, { name, icon, category: category.trim() || undefined });
         onClose();
     };
+
+    const filteredSuggestions = OBJECT_CATEGORY_SUGGESTIONS.filter(
+        (s) => s.toLowerCase().includes(category.toLowerCase()) && s.toLowerCase() !== category.toLowerCase()
+    );
 
     if (!isOpen || !object) return null;
 
@@ -74,6 +81,42 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="relative">
+                        <label className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
+                        <input
+                            type="text"
+                            value={category}
+                            onChange={(e) => {
+                                setCategory(e.target.value);
+                                setShowCategorySuggestions(true);
+                            }}
+                            onFocus={() => setShowCategorySuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 200)}
+                            className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            placeholder="e.g., Work, People, Tools..."
+                        />
+                        {showCategorySuggestions && filteredSuggestions.length > 0 && (
+                            <div className="absolute z-10 mt-1 w-full bg-white border border-zinc-200 rounded-lg shadow-lg max-h-40 overflow-auto">
+                                {filteredSuggestions.map((suggestion) => (
+                                    <button
+                                        key={suggestion}
+                                        type="button"
+                                        onClick={() => {
+                                            setCategory(suggestion);
+                                            setShowCategorySuggestions(false);
+                                        }}
+                                        className="w-full px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {!category && (
+                            <p className="text-xs text-zinc-400 mt-1">Optional - helps organize your objects</p>
+                        )}
                     </div>
 
                     <div className="flex gap-3 justify-end pt-4">

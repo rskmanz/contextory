@@ -62,6 +62,13 @@
       "icon": "🚀",
       "gradient": "bg-gradient-to-br from-amber-300 via-amber-400 to-orange-300",
       "category": "Main"
+    },
+    {
+      "id": "wa7wuu8",
+      "name": "Test Project",
+      "icon": "🧪",
+      "gradient": "from-blue-500 to-purple-500",
+      "category": "Testing"
     }
   ],
   "workspaces": [
@@ -134,81 +141,29 @@
       "projectId": "founder-university",
       "category": "Operations",
       "categoryIcon": "⚙️"
+    },
+    {
+      "name": "Fundraising Strategy",
+      "projectId": "delight-x",
+      "category": "Strategy & Planning",
+      "id": "jg7z9ce"
+    },
+    {
+      "id": "sk35ti7",
+      "name": "Test Workspace",
+      "projectId": "wa7wuu8",
+      "parentItemId": null,
+      "category": "Development",
+      "categoryIcon": "📁"
     }
   ],
   "contexts": [
-    {
-      "id": "home",
-      "name": "Home",
-      "icon": "🏠",
-      "type": "board",
-      "workspaceId": "big-query-data",
-      "viewStyle": "kanban",
-      "objectIds": [
-        "prompts",
-        "tasks"
-      ],
-      "markdownId": "context-home",
-      "data": {
-        "nodes": [
-          {
-            "content": "New Column",
-            "parentId": null,
-            "id": "e8lolcq"
-          },
-          {
-            "content": "New Column",
-            "parentId": null,
-            "id": "0p2st2c"
-          },
-          {
-            "content": "New Column",
-            "parentId": null,
-            "id": "nez4042"
-          }
-        ],
-        "edges": []
-      }
-    },
-    {
-      "id": "4pyw379",
-      "name": "test",
-      "icon": "🏠",
-      "type": "tree",
-      "workspaceId": "big-query-data",
-      "viewStyle": "mindmap",
-      "data": {
-        "nodes": [
-          {
-            "content": "New item",
-            "parentId": null,
-            "id": "8oif3pg"
-          },
-          {
-            "content": "New item",
-            "parentId": "8oif3pg",
-            "id": "co557mh"
-          },
-          {
-            "content": "New item",
-            "parentId": "co557mh",
-            "id": "g4tcpqj"
-          },
-          {
-            "content": "New node",
-            "parentId": "8oif3pg",
-            "id": "xszk7bx"
-          }
-        ],
-        "edges": []
-      }
-    },
     {
       "id": "4c1a4ao",
       "name": "test2",
       "icon": "🏠",
       "type": "board",
-      "viewStyle": "flow",
+      "viewStyle": "kanban",
       "workspaceId": "big-query-data",
       "data": {
         "nodes": [
@@ -219,12 +174,12 @@
           },
           {
             "content": "New card",
-            "parentId": "asi2yjm",
+            "parentId": "094ekjc",
             "id": "o2gmxcu"
           },
           {
             "content": "New card",
-            "parentId": "094ekjc",
+            "parentId": "7rwb2l6",
             "id": "3su9yvd"
           },
           {
@@ -254,28 +209,10 @@
             "content": "New note",
             "parentId": null,
             "metadata": {
-              "x": 404,
-              "y": 280.20000076293945
+              "x": 189,
+              "y": 89.33333206176758
             },
-            "id": "347r1li"
-          },
-          {
-            "content": "New note",
-            "parentId": null,
-            "metadata": {
-              "x": 163,
-              "y": 150.20000076293945
-            },
-            "id": "6njtx4v"
-          },
-          {
-            "content": "New note",
-            "parentId": null,
-            "metadata": {
-              "x": 553,
-              "y": 141.20000076293945
-            },
-            "id": "m97iuam"
+            "id": "7bn5a7w"
           }
         ],
         "edges": []
@@ -292,6 +229,135 @@
         "edges": []
       },
       "id": "6nc4cb6"
+    },
+    {
+      "id": "m3f8u4d",
+      "name": "Test Context",
+      "icon": "🎯",
+      "type": "tree",
+      "viewStyle": "mindmap",
+      "workspaceId": "sk35ti7",
+      "objectIds": [],
+      "markdownId": null,
+      "data": {
+        "nodes": []
+      }
+    },
+    {
+      "name": "test",
+      "icon": "📝",
+      "type": "tree",
+      "viewStyle": "mindmap",
+      "workspaceId": "mobile-app",
+      "data": {
+        "nodes": [
+          {
+            "content": "New node",
+            "parentId": null,
+            "id": "41rab5f"
+          },
+          {
+            "content": "New node",
+            "parentId": "41rab5f",
+            "id": "94izl5x"
+          },
+          {
+            "content": "New node",
+            "parentId": "94izl5x",
+            "id": "fhk3ctw"
+          },
+          {
+            "content": "New node",
+            "parentId": "94izl5x",
+            "id": "tfah8qk"
+          },
+          {
+            "content": "New node",
+            "parentId": "94izl5x",
+            "id": "ltd61js"
+          }
+        ],
+        "edges": []
+      },
+      "id": "i77ydmb"
+    },
+    {
+      "name": "test",
+      "icon": "📝",
+      "type": "board",
+      "viewStyle": "flow",
+      "workspaceId": "backend",
+      "data": {
+        "nodes": [
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "e13oyaf",
+            "metadata": {
+              "x": 574,
+              "y": 340
+            }
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "ict2nus",
+            "metadata": {
+              "x": 185,
+              "y": 311
+            }
+          },
+          {
+            "content": "New node",
+            "parentId": null,
+            "metadata": {
+              "x": 422.33331298828125,
+              "y": 179.88888549804688
+            },
+            "id": "rxsu9yx"
+          },
+          {
+            "0": "g",
+            "1": "c",
+            "2": "e",
+            "3": "d",
+            "4": "k",
+            "5": "e",
+            "6": "1",
+            "id": "6eagxb7"
+          }
+        ],
+        "edges": []
+      },
+      "id": "gcedke1"
+    },
+    {
+      "name": "test",
+      "icon": "📝",
+      "type": "tree",
+      "viewStyle": "mindmap",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [
+          {
+            "content": "New node",
+            "parentId": null,
+            "id": "lhvg4be"
+          },
+          {
+            "content": "New node",
+            "parentId": "lhvg4be",
+            "id": "6q96y2z"
+          },
+          {
+            "content": "New node",
+            "parentId": "6q96y2z",
+            "id": "qj4zvgd"
+          }
+        ],
+        "edges": []
+      },
+      "id": "cnxfo12"
     }
   ],
   "objects": [
@@ -299,6 +365,7 @@
       "id": "prompts",
       "name": "Prompts",
       "icon": "💬",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -307,6 +374,7 @@
       "id": "tools",
       "name": "Tools",
       "icon": "🔧",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -315,6 +383,7 @@
       "id": "files",
       "name": "Files",
       "icon": "📁",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -323,6 +392,7 @@
       "id": "tasks",
       "name": "Tasks",
       "icon": "✅",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -331,6 +401,7 @@
       "id": "agents",
       "name": "AI Agents",
       "icon": "🤖",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -339,6 +410,7 @@
       "id": "chat",
       "name": "Chat",
       "icon": "💬",
+      "scope": "local",
       "projectId": "rajob",
       "workspaceId": "big-query-data",
       "builtIn": true
@@ -347,6 +419,7 @@
       "id": "22ut322",
       "name": "test",
       "icon": "👤",
+      "scope": "local",
       "projectId": "salesforce",
       "workspaceId": "integration",
       "builtIn": false
@@ -355,6 +428,7 @@
       "id": "global-teams",
       "name": "Teams",
       "icon": "👥",
+      "scope": "project",
       "projectId": "rajob",
       "workspaceId": null,
       "category": "People",
@@ -364,9 +438,20 @@
       "id": "global-tools",
       "name": "Tools",
       "icon": "🔧",
+      "scope": "project",
       "projectId": "rajob",
       "workspaceId": null,
       "category": "Tools",
+      "builtIn": false
+    },
+    {
+      "id": "6bmty2p",
+      "name": "Test Object",
+      "icon": "📦",
+      "scope": "project",
+      "projectId": "wa7wuu8",
+      "workspaceId": null,
+      "category": "Features",
       "builtIn": false
     }
   ],
@@ -435,7 +520,21 @@
       "name": "New item",
       "objectId": "prompts",
       "workspaceId": "big-query-data",
-      "id": "4o4fkdm"
+      "id": "4o4fkdm",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "udsct6m",
+            "content": "New item",
+            "parentId": null
+          },
+          {
+            "id": "xya80xj",
+            "content": "New item",
+            "parentId": "udsct6m"
+          }
+        ]
+      }
     },
     {
       "id": "team-frontend",
@@ -508,13 +607,53 @@
       "name": "GitHub",
       "objectId": "global-tools",
       "workspaceId": null,
-      "markdownId": "tool-github"
+      "markdownId": "tool-github",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "84d5ryj",
+            "content": "New item",
+            "parentId": null
+          }
+        ]
+      }
     },
     {
       "id": "tool-figma",
       "name": "Figma",
       "objectId": "global-tools",
       "workspaceId": null
+    },
+    {
+      "id": "gzijmzv",
+      "name": "Test Item",
+      "objectId": "6bmty2p",
+      "workspaceId": "sk35ti7",
+      "markdownId": null,
+      "contextData": {
+        "nodes": [
+          {
+            "id": "root",
+            "content": "Test Item Overview",
+            "parentId": null
+          },
+          {
+            "id": "child1",
+            "content": "Feature A",
+            "parentId": "root"
+          },
+          {
+            "id": "child2",
+            "content": "Feature B",
+            "parentId": "root"
+          },
+          {
+            "id": "grandchild1",
+            "content": "Sub-feature A1",
+            "parentId": "child1"
+          }
+        ]
+      }
     }
   ]
 }

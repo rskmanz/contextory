@@ -1,34 +1,50 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
-import { ItemDetailPanel } from './ItemDetailPanel';
 
 interface ObjectGridViewProps {
   object: ObjectType;
   items: ObjectItem[];
   workspaceId: string;
+  onItemClick?: (itemId: string) => void;
 }
 
-export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, workspaceId }) => {
+export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, workspaceId, onItemClick }) => {
+  const router = useRouter();
+  const params = useParams();
+  const { project, subproject } = params as { project: string; subproject: string };
+
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const deleteItem = useStore((state) => state.deleteItem);
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   const handleAddItem = useCallback(async () => {
-    await addItem({
+    const id = await addItem({
       name: 'New item',
       objectId: object.id,
-      workspaceId,
+      workspaceId: object.workspaceId ?? workspaceId,
     });
-  }, [addItem, object.id, workspaceId]);
+    // Navigate to the new item
+    router.push(`/${project}/${subproject}/item/${id}`);
+  }, [addItem, object.id, object.workspaceId, workspaceId, router, project, subproject]);
 
-  const handleDoubleClick = useCallback((item: ObjectItem) => {
+  const handleItemClick = useCallback((itemId: string) => {
+    if (onItemClick) {
+      onItemClick(itemId);
+    } else {
+      router.push(`/${project}/${subproject}/item/${itemId}`);
+    }
+  }, [router, project, subproject, onItemClick]);
+
+  const handleDoubleClick = useCallback((item: ObjectItem, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingItemId(item.id);
     setEditName(item.name);
   }, []);
@@ -41,66 +57,34 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
     setEditName('');
   }, [editingItemId, editName, updateItem]);
 
-  const handleDelete = useCallback(
+  const requestDeleteItem = useCallback((itemId: string) => {
+    setDeletingItemId(itemId);
+  }, []);
+
+  const confirmDeleteItem = useCallback(
     async (itemId: string) => {
       await deleteItem(itemId);
-      if (selectedItemId === itemId) {
-        setSelectedItemId(null);
-      }
+      setDeletingItemId(null);
     },
-    [deleteItem, selectedItemId]
+    [deleteItem]
   );
 
+  const cancelDeleteItem = useCallback(() => {
+    setDeletingItemId(null);
+  }, []);
+
   return (
-    <div className="h-full overflow-auto p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{object.icon}</span>
-          <h2 className="text-xl font-semibold text-zinc-800">{object.name}</h2>
-          <span className="text-sm text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full">
-            {items.length} items
-          </span>
-        </div>
-        <button
-          onClick={handleAddItem}
-          className="px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
-        >
-          + Add {object.name.slice(0, -1) || 'Item'}
-        </button>
-      </div>
-
-      {/* Items Grid */}
-      {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
-          <span className="text-4xl mb-4">{object.icon}</span>
-          <p className="mb-4">No {object.name.toLowerCase()} yet</p>
-          <button
-            onClick={handleAddItem}
-            className="text-sm text-blue-500 hover:underline"
+    <div className="h-full overflow-auto p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="group relative bg-white border border-zinc-200 rounded-xl p-4 hover:shadow-md hover:border-zinc-300 cursor-pointer transition-all"
+            onClick={() => handleItemClick(item.id)}
+            onDoubleClick={(e) => handleDoubleClick(item, e)}
           >
-            Add your first item
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={`group relative bg-white rounded-xl border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
-                selectedItemId === item.id
-                  ? 'border-blue-400 shadow-md'
-                  : 'border-zinc-200 hover:border-zinc-300'
-              }`}
-              onClick={() => setSelectedItemId(item.id)}
-              onDoubleClick={() => handleDoubleClick(item)}
-            >
-              {/* Icon */}
-              <div className="w-12 h-12 rounded-lg bg-zinc-100 flex items-center justify-center text-xl mb-3">
-                {object.icon}
-              </div>
-
-              {/* Name */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-2xl">{object.icon}</span>
               {editingItemId === item.id ? (
                 <input
                   type="text"
@@ -114,37 +98,60 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
                       setEditName('');
                     }
                   }}
-                  className="w-full px-2 py-1 text-sm border border-blue-400 rounded outline-none"
+                  className="w-full px-2 py-1 text-sm text-center border border-blue-400 rounded outline-none"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <p className="text-sm font-medium text-zinc-800 truncate">{item.name}</p>
+                <span className="text-sm text-zinc-700 text-center truncate w-full">{item.name}</span>
               )}
-
-              {/* Delete button */}
+            </div>
+            {/* Delete confirmation or button */}
+            {deletingItemId === item.id ? (
+              <div className="absolute top-1 right-1 flex items-center gap-1 bg-white rounded-lg shadow-sm border border-zinc-200 px-2 py-1">
+                <span className="text-xs text-zinc-600">Delete?</span>
+                <button
+                  className="text-xs text-red-500 hover:text-red-700 font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmDeleteItem(item.id);
+                  }}
+                >
+                  Yes
+                </button>
+                <button
+                  className="text-xs text-zinc-500 hover:text-zinc-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelDeleteItem();
+                  }}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
               <button
-                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-zinc-300 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(item.id);
+                  requestDeleteItem(item.id);
                 }}
               >
-                ×
+                x
               </button>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        ))}
 
-      {/* Item Detail Panel */}
-      {selectedItemId && (
-        <ItemDetailPanel
-          item={items.find((i) => i.id === selectedItemId)!}
-          object={object}
-          onClose={() => setSelectedItemId(null)}
-        />
-      )}
+        {/* Add item card */}
+        <button
+          onClick={handleAddItem}
+          className="bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-xl p-4 hover:border-zinc-400 hover:bg-zinc-100 transition-all flex flex-col items-center justify-center gap-2 min-h-[100px]"
+        >
+          <span className="text-2xl text-zinc-400">+</span>
+          <span className="text-sm text-zinc-500">Add item</span>
+        </button>
+      </div>
     </div>
   );
 };

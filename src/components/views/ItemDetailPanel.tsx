@@ -14,7 +14,8 @@ interface TreeNode extends ContextNode {
   children: TreeNode[];
 }
 
-interface MindmapNode extends TreeNode {
+interface MindmapNode extends ContextNode {
+  children: MindmapNode[];
   x: number;
   y: number;
   width: number;
@@ -229,12 +230,12 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
 
   // Create sub-workspace from this item
   const handleCreateSubWorkspace = useCallback(async () => {
-    if (isCreatingWorkspace) return;
+    if (isCreatingWorkspace || !object.projectId) return;
     setIsCreatingWorkspace(true);
     try {
-      const workspaceId = await createSubWorkspace(item.id, object.projectId, `${item.name} Workspace`);
+      const newWorkspaceId = await createSubWorkspace(item.id, object.projectId, `${item.name} Workspace`);
       // Navigate to the new workspace (optional - user can manually navigate)
-      window.location.href = `/${object.projectId}/${workspaceId}`;
+      window.location.href = `/${object.projectId}/${newWorkspaceId}`;
     } finally {
       setIsCreatingWorkspace(false);
     }
@@ -495,7 +496,7 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
               >
                 Open Workspace →
               </a>
-            ) : (
+            ) : object.projectId ? (
               <button
                 onClick={handleCreateSubWorkspace}
                 disabled={isCreatingWorkspace}
@@ -503,7 +504,7 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
               >
                 {isCreatingWorkspace ? 'Creating...' : '+ Create Workspace'}
               </button>
-            )}
+            ) : null}
             <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 text-xl">
               ×
             </button>

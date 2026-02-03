@@ -6,6 +6,8 @@ import { useStore } from '@/lib/store';
 
 interface MindmapViewProps {
   context: Context;
+  isItemContext?: boolean;
+  itemId?: string;
 }
 
 interface TreeNode extends ContextNode {
@@ -21,10 +23,29 @@ const NODE_PADDING = 12;
 const LEVEL_GAP = 150;
 const SIBLING_GAP = 10;
 
-export const MindmapView: React.FC<MindmapViewProps> = ({ context }) => {
-  const addNode = useStore((state) => state.addNode);
-  const updateNode = useStore((state) => state.updateNode);
-  const deleteNode = useStore((state) => state.deleteNode);
+export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext, itemId }) => {
+  // Context node functions
+  const addContextNode = useStore((state) => state.addNode);
+  const updateContextNode = useStore((state) => state.updateNode);
+  const deleteContextNode = useStore((state) => state.deleteNode);
+
+  // Item node functions
+  const addItemNode = useStore((state) => state.addItemNode);
+  const updateItemNode = useStore((state) => state.updateItemNode);
+  const deleteItemNode = useStore((state) => state.deleteItemNode);
+
+  // Use appropriate functions based on mode
+  const addNode = isItemContext && itemId
+    ? (node: { content: string; parentId: string | null }) => addItemNode(itemId, node)
+    : (node: { content: string; parentId: string | null }) => addContextNode(context.id, node);
+
+  const updateNode = isItemContext && itemId
+    ? (nodeId: string, updates: { content: string }) => updateItemNode(itemId, nodeId, updates)
+    : (nodeId: string, updates: { content: string }) => updateContextNode(context.id, nodeId, updates);
+
+  const deleteNode = isItemContext && itemId
+    ? (nodeId: string) => deleteItemNode(itemId, nodeId)
+    : (nodeId: string) => deleteContextNode(context.id, nodeId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -106,28 +127,28 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context }) => {
 
   const handleAddChild = useCallback(
     async (parentId: string | null) => {
-      await addNode(context.id, {
+      await addNode({
         content: 'New node',
         parentId,
       });
     },
-    [context.id, addNode]
+    [addNode]
   );
 
   const handleEditSubmit = useCallback(async () => {
     if (editingNodeId && editContent.trim()) {
-      await updateNode(context.id, editingNodeId, { content: editContent.trim() });
+      await updateNode(editingNodeId, { content: editContent.trim() });
     }
     setEditingNodeId(null);
     setEditContent('');
-  }, [editingNodeId, editContent, context.id, updateNode]);
+  }, [editingNodeId, editContent, updateNode]);
 
   const handleDelete = useCallback(
     async (nodeId: string) => {
-      await deleteNode(context.id, nodeId);
+      await deleteNode(nodeId);
       if (selectedNodeId === nodeId) setSelectedNodeId(null);
     },
-    [context.id, deleteNode, selectedNodeId]
+    [deleteNode, selectedNodeId]
   );
 
   const renderConnections = useCallback((node: TreeNode): React.ReactNode => {

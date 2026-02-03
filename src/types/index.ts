@@ -78,12 +78,16 @@ export interface Context {
   };
 }
 
+// Object scope: determines visibility
+export type ObjectScope = 'global' | 'project' | 'local';
+
 export interface ObjectType {
   id: string;
   name: string;
   icon: string;
-  projectId: string;              // always set
-  workspaceId: string | null;     // null = global, 'id' = local
+  scope: ObjectScope;             // NEW: explicit scope
+  projectId: string | null;       // null for global, set for project/local
+  workspaceId: string | null;     // null for global/project, set for local
   category?: string;              // Work, People, Tools, etc.
   builtIn: boolean;
 }
@@ -94,13 +98,44 @@ export interface ObjectItem {
   objectId: string;
   workspaceId: string | null;     // null = global object item
   markdownId?: string;            // reference to .md file (optional)
-  contextData?: {                 // tree structure (optional)
+  contextData?: {                 // context structure (optional)
+    type?: ContextType;           // 'tree' | 'board' | 'canvas' (default: 'tree')
+    viewStyle?: ViewStyle;        // view style for the type (default: 'list')
     nodes: ContextNode[];
+    edges?: ContextEdge[];        // for board/canvas types
   };
 }
 
 // Category for grouping projects
 export type ProjectCategory = 'Side Projects' | 'VCs' | 'Main' | string;
+
+// AI Chat Types (Phase 5.1)
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  context?: {
+    projectId: string;
+    workspaceId: string;
+    itemId?: string;
+  };
+  suggestedNodes?: ContextNode[];
+}
+
+export type AIProvider = 'openai' | 'anthropic';
+
+export interface AISettings {
+  provider: AIProvider;
+  model: string;
+  apiKey?: string;
+}
+
+export interface ChatState {
+  messages: ChatMessage[];
+  isOpen: boolean;
+  isExpanded: boolean;
+}
 
 // Gradient options for projects
 export const GRADIENT_OPTIONS = [
@@ -138,3 +173,23 @@ export const OBJECT_CATEGORY_SUGGESTIONS = [
   'External',       // News, Trends, Competitors, Market Research
   'Assets',         // Products, Services, Brands, Campaigns
 ] as const;
+
+// AI Tool Call Types (for LangChain tool calling)
+export interface AIToolCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+export interface AIToolResult {
+  action: string;
+  requiresConfirmation?: boolean;
+  [key: string]: unknown;
+}
+
+// Pending tool call awaiting user confirmation
+export interface PendingToolCall {
+  toolCall: AIToolCall;
+  entityName: string;
+  entityType: 'project' | 'workspace' | 'object' | 'item' | 'context' | 'node';
+}
