@@ -29,12 +29,12 @@ const HORIZONTAL_GAP = 180;
 const VERTICAL_GAP = 16;
 const ROOT_MARGIN = 60;
 
-// Simple node colors matching GridView card style
+// Node colors matching FlowView data node card style
 const getNodeColors = (isSelected: boolean): string => {
   if (isSelected) {
-    return 'bg-white border-blue-400 shadow-md';
+    return 'bg-white border-blue-500 shadow-md ring-2 ring-blue-500';
   }
-  return 'bg-white border-zinc-200 hover:border-zinc-400 hover:shadow-md';
+  return 'bg-white border-zinc-200 shadow-sm hover:shadow-md';
 };
 
 // Connection line color
