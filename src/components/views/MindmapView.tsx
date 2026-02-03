@@ -287,6 +287,20 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
     return parent?.children || [];
   }, [tree, treeNodeMap]);
 
+  // Add sibling node
+  const handleAddSibling = useCallback(
+    async (nodeId: string) => {
+      const node = treeNodeMap.get(nodeId);
+      if (!node) return;
+      // Add sibling = add child to parent (or add root if no parent)
+      await addNode({
+        content: 'New node',
+        parentId: node.parentId,
+      });
+    },
+    [treeNodeMap, addNode]
+  );
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -297,19 +311,31 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
 
       switch (e.key) {
         case 'Tab':
-          // Add child to selected node
           e.preventDefault();
-          if (selectedNodeId) {
-            handleAddChild(selectedNodeId);
-          } else if (tree.length === 0) {
-            handleAddChild(null);
+          if (e.shiftKey) {
+            // Shift+Tab: Add sibling
+            if (selectedNodeId) {
+              handleAddSibling(selectedNodeId);
+            }
+          } else {
+            // Tab: Add child
+            if (selectedNodeId) {
+              handleAddChild(selectedNodeId);
+            } else if (tree.length === 0) {
+              handleAddChild(null);
+            }
           }
           break;
 
         case 'Enter':
-          // Edit selected node
           e.preventDefault();
-          if (selected) {
+          if (e.shiftKey) {
+            // Shift+Enter: Add sibling
+            if (selectedNodeId) {
+              handleAddSibling(selectedNodeId);
+            }
+          } else if (selected) {
+            // Enter: Edit selected node
             setEditingNodeId(selected.id);
             setEditContent(selected.content);
           }
@@ -378,7 +404,7 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, editingNodeId, tree, treeNodeMap, handleAddChild, handleDelete, findParent, findSiblings]);
+  }, [selectedNodeId, editingNodeId, tree, treeNodeMap, handleAddChild, handleAddSibling, handleDelete, findParent, findSiblings]);
 
   // Render curved connections
   const renderConnections = useCallback((node: TreeNode): React.ReactNode => {
@@ -598,10 +624,10 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
         <div className="font-medium text-zinc-700 mb-1">Shortcuts</div>
         <div className="space-y-0.5">
           <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Tab</kbd> Add child</div>
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Shift+Tab</kbd> Add sibling</div>
           <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Enter</kbd> Edit</div>
           <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Del</kbd> Delete</div>
           <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">←↑↓→</kbd> Navigate</div>
-          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Ctrl+Scroll</kbd> Zoom</div>
         </div>
       </div>
     </div>
