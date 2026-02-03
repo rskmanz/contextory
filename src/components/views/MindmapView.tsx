@@ -29,30 +29,16 @@ const HORIZONTAL_GAP = 180;
 const VERTICAL_GAP = 16;
 const ROOT_MARGIN = 60;
 
-// Depth-based colors for visual hierarchy
-const getNodeColors = (depth: number, isSelected: boolean, isRoot: boolean): string => {
+// Simple node colors matching GridView card style
+const getNodeColors = (isSelected: boolean): string => {
   if (isSelected) {
-    return 'bg-blue-100 border-blue-500 shadow-md';
+    return 'bg-white border-blue-400 shadow-md';
   }
-  if (isRoot) {
-    return 'bg-gradient-to-r from-blue-500 to-indigo-500 border-transparent text-white shadow-lg';
-  }
-  const colors = [
-    'bg-blue-50 border-blue-200 hover:border-blue-400',
-    'bg-emerald-50 border-emerald-200 hover:border-emerald-400',
-    'bg-amber-50 border-amber-200 hover:border-amber-400',
-    'bg-violet-50 border-violet-200 hover:border-violet-400',
-    'bg-rose-50 border-rose-200 hover:border-rose-400',
-    'bg-zinc-50 border-zinc-200 hover:border-zinc-400',
-  ];
-  return colors[Math.min(depth - 1, colors.length - 1)] || colors[colors.length - 1];
+  return 'bg-white border-zinc-200 hover:border-zinc-400 hover:shadow-md';
 };
 
-// Connection line colors based on depth
-const getConnectionColor = (depth: number): string => {
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#71717a'];
-  return colors[Math.min(depth, colors.length - 1)];
-};
+// Connection line color
+const CONNECTION_COLOR = '#d4d4d8'; // zinc-300
 
 export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext, itemId }) => {
   // Context node functions
@@ -270,7 +256,131 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
     [deleteNode, selectedNodeId]
   );
 
-  // Render curved connections with depth-based colors
+  // Find node by ID from tree
+  const findNodeById = useCallback((id: string): TreeNode | null => {
+    const search = (nodes: TreeNode[]): TreeNode | null => {
+      for (const node of nodes) {
+        if (node.id === id) return node;
+        const found = search(node.children);
+        if (found) return found;
+      }
+      return null;
+    };
+    return search(tree);
+  }, [tree]);
+
+  // Find parent node
+  const findParent = useCallback((nodeId: string): TreeNode | null => {
+    const node = treeNodeMap.get(nodeId);
+    if (!node?.parentId) return null;
+    return treeNodeMap.get(node.parentId) || null;
+  }, [treeNodeMap]);
+
+  // Find siblings
+  const findSiblings = useCallback((nodeId: string): TreeNode[] => {
+    const node = treeNodeMap.get(nodeId);
+    if (!node) return [];
+    if (!node.parentId) {
+      return tree; // Root nodes are siblings
+    }
+    const parent = treeNodeMap.get(node.parentId);
+    return parent?.children || [];
+  }, [tree, treeNodeMap]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if editing
+      if (editingNodeId) return;
+
+      const selected = selectedNodeId ? treeNodeMap.get(selectedNodeId) : null;
+
+      switch (e.key) {
+        case 'Tab':
+          // Add child to selected node
+          e.preventDefault();
+          if (selectedNodeId) {
+            handleAddChild(selectedNodeId);
+          } else if (tree.length === 0) {
+            handleAddChild(null);
+          }
+          break;
+
+        case 'Enter':
+          // Edit selected node
+          e.preventDefault();
+          if (selected) {
+            setEditingNodeId(selected.id);
+            setEditContent(selected.content);
+          }
+          break;
+
+        case 'Delete':
+        case 'Backspace':
+          // Delete selected node
+          if (selectedNodeId && !editingNodeId) {
+            e.preventDefault();
+            handleDelete(selectedNodeId);
+          }
+          break;
+
+        case 'Escape':
+          // Deselect
+          setSelectedNodeId(null);
+          break;
+
+        case 'ArrowRight':
+          // Move to first child
+          e.preventDefault();
+          if (selected && selected.children.length > 0) {
+            setSelectedNodeId(selected.children[0].id);
+          }
+          break;
+
+        case 'ArrowLeft':
+          // Move to parent
+          e.preventDefault();
+          if (selectedNodeId) {
+            const parent = findParent(selectedNodeId);
+            if (parent) {
+              setSelectedNodeId(parent.id);
+            }
+          }
+          break;
+
+        case 'ArrowDown':
+          // Move to next sibling
+          e.preventDefault();
+          if (selectedNodeId) {
+            const siblings = findSiblings(selectedNodeId);
+            const idx = siblings.findIndex((s) => s.id === selectedNodeId);
+            if (idx < siblings.length - 1) {
+              setSelectedNodeId(siblings[idx + 1].id);
+            }
+          } else if (tree.length > 0) {
+            setSelectedNodeId(tree[0].id);
+          }
+          break;
+
+        case 'ArrowUp':
+          // Move to previous sibling
+          e.preventDefault();
+          if (selectedNodeId) {
+            const siblings = findSiblings(selectedNodeId);
+            const idx = siblings.findIndex((s) => s.id === selectedNodeId);
+            if (idx > 0) {
+              setSelectedNodeId(siblings[idx - 1].id);
+            }
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodeId, editingNodeId, tree, treeNodeMap, handleAddChild, handleDelete, findParent, findSiblings]);
+
+  // Render curved connections
   const renderConnections = useCallback((node: TreeNode): React.ReactNode => {
     return node.children.map((child) => {
       const startX = node.x + node.width;
@@ -279,16 +389,13 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
       const endY = child.y + NODE_HEIGHT / 2;
       const midX = startX + (endX - startX) * 0.5;
 
-      const color = getConnectionColor(node.depth);
-
       return (
         <g key={`edge-${node.id}-${child.id}`}>
           <path
             d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
             fill="none"
-            stroke={color}
+            stroke={CONNECTION_COLOR}
             strokeWidth="2"
-            strokeOpacity="0.6"
           />
           {renderConnections(child)}
         </g>
@@ -296,21 +403,18 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
     });
   }, []);
 
-  // Render node with depth-based styling
+  // Render node with simple card style (matching GridView)
   const renderNode = useCallback(
     (node: TreeNode): React.ReactNode => {
       const isSelected = selectedNodeId === node.id;
       const isEditing = editingNodeId === node.id;
-      const isRoot = node.depth === 0;
-      const nodeColors = getNodeColors(node.depth, isSelected, isRoot);
+      const nodeColors = getNodeColors(isSelected);
 
       return (
         <g key={node.id}>
           <foreignObject x={node.x} y={node.y} width={node.width} height={NODE_HEIGHT}>
             <div
-              className={`h-full px-4 flex items-center justify-center rounded-xl border-2 cursor-pointer transition-all duration-150 ${nodeColors} ${
-                isRoot ? 'font-semibold text-sm' : 'text-sm'
-              }`}
+              className={`h-full px-3 flex items-center justify-center rounded-lg border cursor-pointer transition-all ${nodeColors}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedNodeId(node.id);
@@ -334,14 +438,12 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
                       setEditContent('');
                     }
                   }}
-                  className="w-full text-center outline-none bg-transparent"
+                  className="w-full text-sm text-center outline-none bg-transparent"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span className={`truncate ${isRoot ? 'text-white' : 'text-zinc-700'}`}>
-                  {node.content}
-                </span>
+                <span className="text-sm text-zinc-700 truncate">{node.content}</span>
               )}
             </div>
           </foreignObject>
@@ -350,13 +452,13 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
           {isSelected && !isEditing && (
             <>
               {/* Add child button */}
-              <foreignObject x={node.x + node.width + 6} y={node.y + 6} width={28} height={28}>
+              <foreignObject x={node.x + node.width + 4} y={node.y + 6} width={28} height={28}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddChild(node.id);
                   }}
-                  className="w-7 h-7 flex items-center justify-center bg-emerald-500 text-white rounded-full text-sm hover:bg-emerald-600 shadow-md transition-colors"
+                  className="w-7 h-7 flex items-center justify-center bg-zinc-900 text-white rounded-full text-sm hover:bg-zinc-700 shadow transition-colors"
                   title="Add child (Tab)"
                 >
                   +
@@ -364,13 +466,13 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
               </foreignObject>
 
               {/* Delete button */}
-              <foreignObject x={node.x + node.width + 6} y={node.y + NODE_HEIGHT - 6} width={28} height={28}>
+              <foreignObject x={node.x + node.width + 4} y={node.y + NODE_HEIGHT - 6} width={28} height={28}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(node.id);
                   }}
-                  className="w-7 h-7 flex items-center justify-center bg-red-500 text-white rounded-full text-xs hover:bg-red-600 shadow-md transition-colors"
+                  className="w-7 h-7 flex items-center justify-center bg-zinc-200 text-zinc-600 rounded-full text-xs hover:bg-red-500 hover:text-white shadow transition-colors"
                   title="Delete (Del)"
                 >
                   ×
@@ -391,7 +493,7 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
       {/* Canvas */}
       <div
         ref={containerRef}
-        className={`flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-zinc-100 ${
+        className={`flex-1 overflow-hidden bg-zinc-50 ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         onWheel={handleWheel}
@@ -403,19 +505,13 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
         {tree.length === 0 ? (
           <div className="h-full flex items-center justify-center text-zinc-400">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-200 flex items-center justify-center">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 2v4m0 12v4m10-10h-4M6 12H2" />
-                </svg>
-              </div>
-              <p className="text-lg font-medium text-zinc-600">Start your mindmap</p>
-              <p className="text-sm text-zinc-400 mt-1">Click below to add your first node</p>
+              <p className="text-sm">No nodes yet</p>
+              <p className="text-xs mt-1">Press <kbd className="px-1 bg-zinc-200 rounded text-[10px]">Tab</kbd> or click below</p>
               <button
                 onClick={() => handleAddChild(null)}
-                className="mt-4 px-6 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium shadow-lg shadow-blue-500/25"
+                className="mt-3 text-sm text-blue-500 hover:underline"
               >
-                Add root node
+                Add your first node
               </button>
             </div>
           </div>
@@ -436,41 +532,49 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
         )}
       </div>
 
-      {/* Zoom controls */}
+      {/* Zoom and layout controls */}
       {tree.length > 0 && (
-        <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-white rounded-xl shadow-lg border border-zinc-200 p-1">
-          <button
-            onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}
-            className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-            title="Zoom out"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-          <span className="w-14 text-center text-xs text-zinc-500 font-medium">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-            className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-            title="Zoom in"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-          <div className="w-px h-6 bg-zinc-200 mx-1" />
+        <div className="absolute bottom-4 right-4 flex items-center gap-2">
+          {/* Auto Layout button */}
           <button
             onClick={handleFitToView}
-            className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-            title="Fit to view"
+            className="px-3 py-2 bg-white text-zinc-700 rounded-lg shadow-lg border border-zinc-200 hover:bg-zinc-50 transition-colors text-xs font-medium flex items-center gap-1.5"
+            title="Auto layout - fit all nodes to view"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
             </svg>
+            Auto Layout
           </button>
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 bg-white rounded-lg shadow-lg border border-zinc-200 p-1">
+            <button
+              onClick={() => setZoom((z) => Math.max(0.25, z - 0.1))}
+              className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded transition-colors"
+              title="Zoom out (-)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <span className="w-12 text-center text-xs text-zinc-500 font-medium">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
+              className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:bg-zinc-100 rounded transition-colors"
+              title="Zoom in (+)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -489,9 +593,16 @@ export const MindmapView: React.FC<MindmapViewProps> = ({ context, isItemContext
         </button>
       )}
 
-      {/* Help tooltip */}
-      <div className="absolute top-4 right-4 text-xs text-zinc-400 bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-zinc-200">
-        Ctrl+Scroll to zoom • Drag to pan
+      {/* Keyboard shortcuts help */}
+      <div className="absolute top-4 right-4 text-xs text-zinc-500 bg-white/90 backdrop-blur px-3 py-2 rounded-lg border border-zinc-200 shadow-sm">
+        <div className="font-medium text-zinc-700 mb-1">Shortcuts</div>
+        <div className="space-y-0.5">
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Tab</kbd> Add child</div>
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Enter</kbd> Edit</div>
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Del</kbd> Delete</div>
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">←↑↓→</kbd> Navigate</div>
+          <div><kbd className="px-1 bg-zinc-100 rounded text-[10px]">Ctrl+Scroll</kbd> Zoom</div>
+        </div>
       </div>
     </div>
   );
