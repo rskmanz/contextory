@@ -10,6 +10,8 @@ import { KanbanView } from '@/components/views/KanbanView';
 import { GridView } from '@/components/views/GridView';
 import { FreeformView } from '@/components/views/FreeformView';
 import { FlowView } from '@/components/views/FlowView';
+import { TableView } from '@/components/views/TableView';
+import { GanttView } from '@/components/views/GanttView';
 import { FloatingChat } from '@/components/ai/FloatingChat';
 import { useStore } from '@/lib/store';
 import { Context, ContextType, VIEW_STYLES, ViewStyle, DEFAULT_VIEW_STYLE } from '@/types';
@@ -52,6 +54,8 @@ export default function ItemContextPage() {
     icon: currentObject.icon,
     type: currentItem.contextData?.type || 'tree',
     viewStyle: currentItem.contextData?.viewStyle || DEFAULT_VIEW_STYLE[currentItem.contextData?.type || 'tree'],
+    scope: 'local',
+    projectId: project,
     workspaceId: currentItem.workspaceId || subproject,
     data: {
       nodes: currentItem.contextData?.nodes || [],
@@ -97,6 +101,12 @@ export default function ItemContextPage() {
       }
       if (viewStyle === 'flow') {
         return <FlowView context={itemAsContext} isItemContext itemId={itemId} />;
+      }
+      if (viewStyle === 'table') {
+        return <TableView context={itemAsContext} isItemContext itemId={itemId} />;
+      }
+      if (viewStyle === 'gantt') {
+        return <GanttView context={itemAsContext} isItemContext itemId={itemId} />;
       }
       return <GridView context={itemAsContext} isItemContext itemId={itemId} />;
     }

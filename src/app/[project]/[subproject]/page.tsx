@@ -16,8 +16,11 @@ import { KanbanView } from '@/components/views/KanbanView';
 import { GridView } from '@/components/views/GridView';
 import { FreeformView } from '@/components/views/FreeformView';
 import { FlowView } from '@/components/views/FlowView';
+import { TableView } from '@/components/views/TableView';
+import { GanttView } from '@/components/views/GanttView';
 import { ObjectGridView } from '@/components/views/ObjectGridView';
 import { ContextMarkdownSidebar } from '@/components/views/ContextMarkdownSidebar';
+import { ItemMarkdownSidebar } from '@/components/views/ItemMarkdownSidebar';
 import { FloatingChat } from '@/components/ai/FloatingChat';
 import { useStore } from '@/lib/store';
 import { Context, ObjectType, ObjectItem, Workspace, VIEW_STYLES, ViewStyle, ObjectScope, ContextType, DEFAULT_VIEW_STYLE } from '@/types';
@@ -40,6 +43,7 @@ export default function WorkspacePage() {
   const deleteObject = useStore((state) => state.deleteObject);
   const deleteWorkspace = useStore((state) => state.deleteWorkspace);
   const updateItemContextType = useStore((state) => state.updateItemContextType);
+  const updateItem = useStore((state) => state.updateItem);
 
   const [activeTab, setActiveTab] = useState<ActiveTab | null>(null);
   const [isAddContextOpen, setIsAddContextOpen] = useState(false);
@@ -58,17 +62,26 @@ export default function WorkspacePage() {
   const [isGlobalObjectsExpanded, setIsGlobalObjectsExpanded] = useState(true);
   const [isObjectsExpanded, setIsObjectsExpanded] = useState(true);
   const [isMarkdownSidebarOpen, setIsMarkdownSidebarOpen] = useState(false);
+  const [isItemMarkdownSidebarOpen, setIsItemMarkdownSidebarOpen] = useState(false);
   const [isWorkspacesSidebarOpen, setIsWorkspacesSidebarOpen] = useState(true);
   const [isObjectsSidebarOpen, setIsObjectsSidebarOpen] = useState(true);
-  const [objectScopeTab, setObjectScopeTab] = useState<ObjectScope>('local');
   const [viewLevel, setViewLevel] = useState<'global' | 'project' | 'workspace'>('workspace');
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemName, setEditItemName] = useState('');
+  const [objectViewScope, setObjectViewScope] = useState<'project' | 'workspace'>('workspace');
+  const [contextViewScope, setContextViewScope] = useState<'project' | 'workspace'>('workspace');
 
   // Store functions for scope-based objects
   const getGlobalObjects = useStore((state) => state.getGlobalObjects);
   const getProjectObjects = useStore((state) => state.getProjectObjects);
   const getLocalObjects = useStore((state) => state.getLocalObjects);
+
+  // Store functions for scope-based contexts
+  const getGlobalContexts = useStore((state) => state.getGlobalContexts);
+  const getProjectContexts = useStore((state) => state.getProjectContexts);
+  const getLocalContexts = useStore((state) => state.getLocalContexts);
 
   useEffect(() => {
     loadData();
@@ -76,49 +89,61 @@ export default function WorkspacePage() {
 
   const currentProject = projects.find((p) => p.id === project);
   const currentWorkspace = workspaces.find((w) => w.id === subproject);
-  const workspaceContexts = contexts.filter((c) => c.workspaceId === subproject);
   const projectWorkspaces = workspaces.filter((w) => w.projectId === project);
+
+  // Get contexts by scope
+  const globalContexts = getGlobalContexts();
+  const projectContexts = getProjectContexts(project);
+  const localContexts = getLocalContexts(subproject);
+
+  // Display all contexts available at this workspace (combining all scopes)
+  const displayedContexts = [...localContexts, ...projectContexts, ...globalContexts];
+
+  // Filter contexts based on Project/Workspace toggle
+  const filteredContexts = contextViewScope === 'workspace'
+    ? displayedContexts.filter(ctx => ctx.scope === 'local' && ctx.workspaceId === subproject)
+    : displayedContexts.filter(ctx =>
+        ctx.scope === 'project' && ctx.projectId === project ||
+        ctx.scope === 'local' && ctx.projectId === project
+      );
 
   // Get objects by scope
   const globalObjects = getGlobalObjects();
   const projectObjects = getProjectObjects(project);
   const localObjects = getLocalObjects(subproject);
 
-  // Display objects based on selected scope tab and view level
+  // Display all objects available at this workspace (combining all scopes)
   const displayedObjects =
     viewLevel === 'global' ? globalObjects :
-    objectScopeTab === 'global' ? globalObjects :
-    objectScopeTab === 'project' ? projectObjects : localObjects;
+    viewLevel === 'project' ? [...projectObjects, ...globalObjects] :
+    [...localObjects, ...projectObjects, ...globalObjects];
 
-  // Reset objectScopeTab when viewLevel changes
-  useEffect(() => {
-    if (viewLevel === 'global') {
-      setObjectScopeTab('global');
-    } else if (viewLevel === 'project' && objectScopeTab === 'local') {
-      setObjectScopeTab('project');
-    }
-  }, [viewLevel, objectScopeTab]);
+  // Filter objects based on Project/Workspace toggle
+  const filteredObjects = objectViewScope === 'workspace'
+    ? displayedObjects.filter(obj =>
+        obj.availableInWorkspaces.includes('*') ||
+        obj.availableInWorkspaces.includes(subproject)
+      )
+    : displayedObjects.filter(obj =>
+        obj.availableInProjects.includes('*') ||
+        obj.availableInProjects.includes(project)
+      );
 
   // Auto-select first context or object
   useEffect(() => {
     if (!activeTab) {
-      if (workspaceContexts.length > 0) {
-        setActiveTab({ type: 'context', id: workspaceContexts[0].id });
+      if (localContexts.length > 0) {
+        setActiveTab({ type: 'context', id: localContexts[0].id });
       } else if (localObjects.length > 0) {
         setActiveTab({ type: 'object', id: localObjects[0].id });
       }
     }
-  }, [workspaceContexts, localObjects, activeTab]);
-
-  // Auto-close workspaces sidebar when viewing visualization
-  useEffect(() => {
-    if (activeTab) {
-      setIsWorkspacesSidebarOpen(false);
-    }
-  }, [activeTab]);
+  }, [localContexts, localObjects, activeTab]);
 
   const selectedContext = activeTab?.type === 'context'
-    ? workspaceContexts.find((c) => c.id === activeTab.id)
+    ? globalContexts.find((c) => c.id === activeTab.id) ||
+      projectContexts.find((c) => c.id === activeTab.id) ||
+      localContexts.find((c) => c.id === activeTab.id)
     : null;
 
   const selectedObject = activeTab?.type === 'object'
@@ -272,6 +297,12 @@ export default function WorkspacePage() {
         if (viewStyle === 'flow') {
           return <FlowView context={selectedContext} />;
         }
+        if (viewStyle === 'table') {
+          return <TableView context={selectedContext} />;
+        }
+        if (viewStyle === 'gantt') {
+          return <GanttView context={selectedContext} />;
+        }
         return <GridView context={selectedContext} />;
       }
 
@@ -289,6 +320,8 @@ export default function WorkspacePage() {
         type: itemType,
         viewStyle: itemViewStyle,
         icon: selectedItemObject?.icon || '📄',
+        scope: 'local',
+        projectId: project,
         workspaceId: selectedItem.workspaceId || subproject,
         data: {
           nodes: selectedItem.contextData?.nodes || [],
@@ -312,6 +345,12 @@ export default function WorkspacePage() {
         if (itemViewStyle === 'flow') {
           return <FlowView context={itemContext} isItemContext itemId={selectedItem.id} />;
         }
+        if (itemViewStyle === 'table') {
+          return <TableView context={itemContext} isItemContext itemId={selectedItem.id} />;
+        }
+        if (itemViewStyle === 'gantt') {
+          return <GanttView context={itemContext} isItemContext itemId={selectedItem.id} />;
+        }
         return <GridView context={itemContext} isItemContext itemId={selectedItem.id} />;
       }
 
@@ -320,9 +359,11 @@ export default function WorkspacePage() {
     }
 
     if (selectedObject) {
-      // For global objects (workspaceId === null), show all items
-      // For local objects, filter by workspace
-      const objectItems = selectedObject.workspaceId === null
+      // For global/all-workspace objects, show all items
+      // For workspace-specific objects, filter by workspace
+      const isGlobalOrAllWorkspaces = selectedObject.availableGlobal ||
+        selectedObject.availableInWorkspaces.includes('*');
+      const objectItems = isGlobalOrAllWorkspaces
         ? items.filter((i) => i.objectId === selectedObject.id)
         : items.filter((i) => i.objectId === selectedObject.id && i.workspaceId === subproject);
       return (
@@ -490,7 +531,7 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* Summary sidebar toggle */}
+            {/* Summary sidebar toggle for Context */}
             {selectedContext && (
               <button
                 onClick={() => setIsMarkdownSidebarOpen(!isMarkdownSidebarOpen)}
@@ -501,6 +542,20 @@ export default function WorkspacePage() {
                 }`}
               >
                 📝 Summary
+              </button>
+            )}
+
+            {/* Notes sidebar toggle for Item */}
+            {selectedItem && (
+              <button
+                onClick={() => setIsItemMarkdownSidebarOpen(!isItemMarkdownSidebarOpen)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  isItemMarkdownSidebarOpen
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                }`}
+              >
+                📝 Notes
               </button>
             )}
 
@@ -797,7 +852,7 @@ export default function WorkspacePage() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto py-3">
-              {/* Contexts Section (Workspace View) */}
+              {/* Contexts Section */}
               {viewLevel === 'workspace' && (
               <div className="px-3 mb-4">
                 <div className="flex items-center gap-2 mb-1.5">
@@ -817,7 +872,6 @@ export default function WorkspacePage() {
                       <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                     <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Contexts</span>
-                    <span className="text-[10px] text-zinc-400">{workspaceContexts.length}</span>
                   </button>
                   <button
                     onClick={() => setIsAddContextOpen(true)}
@@ -830,35 +884,64 @@ export default function WorkspacePage() {
                   </button>
                 </div>
                 {isContextsExpanded && (
-                  <div className="space-y-1">
-                    {workspaceContexts.map((ctx) => (
-                      <div
-                        key={ctx.id}
-                        onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
-                        onDoubleClick={() => handleEditContext(ctx)}
-                        className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                          activeTab?.type === 'context' && activeTab.id === ctx.id
-                            ? 'bg-zinc-100 text-zinc-900'
-                            : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                  <>
+                    {/* Project/Workspace Toggle */}
+                    <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setContextViewScope('project')}
+                        className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                          contextViewScope === 'project'
+                            ? 'bg-white text-zinc-900 shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-700'
                         }`}
                       >
-                        <span className="text-sm">{ctx.icon}</span>
-                        <span className="flex-1 text-left truncate">{ctx.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteContext(ctx);
-                          }}
-                          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    {workspaceContexts.length === 0 && (
-                      <p className="text-xs text-zinc-400 px-4 py-2">No contexts yet</p>
-                    )}
-                  </div>
+                        Project
+                      </button>
+                      <button
+                        onClick={() => setContextViewScope('workspace')}
+                        className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                          contextViewScope === 'workspace'
+                            ? 'bg-white text-zinc-900 shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-700'
+                        }`}
+                      >
+                        Workspace
+                      </button>
+                    </div>
+                    {/* Contexts List */}
+                    <div className="space-y-1">
+                      {filteredContexts.length === 0 ? (
+                        <p className="text-xs text-zinc-400 py-2 text-center">
+                          No contexts
+                        </p>
+                      ) : (
+                        filteredContexts.map((ctx) => (
+                          <div
+                            key={ctx.id}
+                            onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
+                            onDoubleClick={() => handleEditContext(ctx)}
+                            className={`group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                              activeTab?.type === 'context' && activeTab.id === ctx.id
+                                ? 'bg-zinc-100 text-zinc-900'
+                                : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
+                            }`}
+                          >
+                            <span className="text-sm">{ctx.icon}</span>
+                            <span className="flex-1 text-left truncate">{ctx.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteContext(ctx);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
               )}
@@ -897,83 +980,75 @@ export default function WorkspacePage() {
 
                 {isObjectsExpanded && (
                   <>
-                {/* Scope Switch Bar - show tabs based on view level */}
-                {viewLevel !== 'global' && (
-                <div className="flex bg-zinc-100 rounded-lg p-0.5 mb-2">
+                {/* Project/Workspace Toggle */}
+                <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
                   <button
-                    onClick={() => setObjectScopeTab('global')}
-                    className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
-                      objectScopeTab === 'global'
+                    onClick={() => setObjectViewScope('project')}
+                    className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                      objectViewScope === 'project'
                         ? 'bg-white text-zinc-900 shadow-sm'
                         : 'text-zinc-500 hover:text-zinc-700'
                     }`}
                   >
-                    🌐 Global
-                    <span className="ml-1 text-zinc-400">{globalObjects.length}</span>
+                    Project
                   </button>
                   <button
-                    onClick={() => setObjectScopeTab('project')}
-                    className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
-                      objectScopeTab === 'project'
+                    onClick={() => setObjectViewScope('workspace')}
+                    className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                      objectViewScope === 'workspace'
                         ? 'bg-white text-zinc-900 shadow-sm'
                         : 'text-zinc-500 hover:text-zinc-700'
                     }`}
                   >
-                    📁 Project
-                    <span className="ml-1 text-zinc-400">{projectObjects.length}</span>
+                    Workspace
                   </button>
-                  {viewLevel === 'workspace' && (
-                  <button
-                    onClick={() => setObjectScopeTab('local')}
-                    className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-all ${
-                      objectScopeTab === 'local'
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-700'
-                    }`}
-                  >
-                    📍 Workspace
-                    <span className="ml-1 text-zinc-400">{localObjects.length}</span>
-                  </button>
-                  )}
                 </div>
-                )}
-
                 {/* Objects List */}
                 <div className="space-y-0.5">
-                  {displayedObjects.length === 0 ? (
-                    <p className="text-xs text-zinc-400 py-2 text-center">No {objectScopeTab === 'local' ? 'workspace' : objectScopeTab} objects</p>
+                  {filteredObjects.length === 0 ? (
+                    <p className="text-xs text-zinc-400 py-2 text-center">No objects</p>
                   ) : (
-                    displayedObjects.map((obj) => {
+                    filteredObjects.map((obj) => {
                       const objectItems = items.filter((i) => i.objectId === obj.id);
                       const isExpanded = expandedObjects.has(obj.id);
-                      const scopeColor = objectScopeTab === 'global' ? 'blue' : objectScopeTab === 'project' ? 'purple' : 'zinc';
                       return (
                         <div key={obj.id}>
-                          <button
-                            onClick={() => {
-                              setActiveTab({ type: 'object', id: obj.id });
-                              toggleObjectExpand(obj.id);
-                            }}
-                            onDoubleClick={() => handleEditObject(obj)}
+                          <div
                             className={`group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium transition-all ${
                               activeTab?.type === 'object' && activeTab.id === obj.id
-                                ? `bg-${scopeColor}-50 text-${scopeColor}-900 border border-${scopeColor}-200`
+                                ? 'bg-zinc-100 text-zinc-900'
                                 : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50'
                             }`}
                           >
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className={`transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                            {/* Toggle button - only expands/collapses */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleObjectExpand(obj.id);
+                              }}
+                              className="flex-shrink-0 p-0.5 hover:bg-zinc-200 rounded transition-colors"
                             >
-                              <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
-                            <span className="text-sm">{obj.icon}</span>
-                            <span className="flex-1 text-left truncate">{obj.name}</span>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              >
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                              </svg>
+                            </button>
+                            {/* Object name - selects as active tab */}
+                            <div
+                              className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                              onClick={() => setActiveTab({ type: 'object', id: obj.id })}
+                              onDoubleClick={() => handleEditObject(obj)}
+                            >
+                              <span className="text-sm">{obj.icon}</span>
+                              <span className="flex-1 text-left truncate">{obj.name}</span>
+                            </div>
                             <span className="text-[10px] text-zinc-400 tabular-nums">{objectItems.length}</span>
                             {!obj.builtIn && (
                               <button
@@ -986,29 +1061,79 @@ export default function WorkspacePage() {
                                 ×
                               </button>
                             )}
-                          </button>
+                          </div>
                           {isExpanded && objectItems.length > 0 && (
-                            <div className={`ml-5 pl-2 border-l border-${scopeColor}-200 mt-0.5 space-y-0.5`}>
+                            <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5 space-y-0.5">
                               {objectItems.map((item) => (
                                 <div
                                   key={item.id}
+                                  draggable={editingItemId !== item.id}
+                                  onDragStart={(e) => {
+                                    if (editingItemId === item.id) {
+                                      e.preventDefault();
+                                      return;
+                                    }
+                                    e.dataTransfer.setData('application/json', JSON.stringify({
+                                      itemId: item.id,
+                                      itemName: item.name,
+                                      objectIcon: obj.icon,
+                                    }));
+                                    e.dataTransfer.effectAllowed = 'copy';
+                                  }}
                                   className={`flex items-center gap-2 px-2 py-1.5 text-xs rounded-md cursor-pointer ${
                                     activeTab?.type === 'item' && activeTab.id === item.id
-                                      ? `bg-${scopeColor}-100 text-${scopeColor}-900 font-medium`
-                                      : `text-zinc-500 hover:text-zinc-700 hover:bg-${scopeColor}-50`
+                                      ? 'bg-zinc-100 text-zinc-900 font-medium'
+                                      : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50'
                                   }`}
                                   onClick={() => {
-                                    setActiveTab({ type: 'item', id: item.id });
+                                    if (editingItemId !== item.id) {
+                                      setActiveTab({ type: 'item', id: item.id });
+                                    }
+                                  }}
+                                  onDoubleClick={() => {
+                                    setEditingItemId(item.id);
+                                    setEditItemName(item.name);
                                   }}
                                 >
-                                  <span className={`w-1.5 h-1.5 rounded-full bg-${scopeColor}-300 flex-shrink-0`}></span>
-                                  <span className="truncate">{item.name}</span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flex-shrink-0"></span>
+                                  {editingItemId === item.id ? (
+                                    <input
+                                      type="text"
+                                      value={editItemName}
+                                      onChange={(e) => setEditItemName(e.target.value)}
+                                      onBlur={async () => {
+                                        if (editItemName.trim() && editItemName !== item.name) {
+                                          await updateItem(item.id, { name: editItemName.trim() });
+                                        }
+                                        setEditingItemId(null);
+                                        setEditItemName('');
+                                      }}
+                                      onKeyDown={async (e) => {
+                                        if (e.key === 'Enter') {
+                                          if (editItemName.trim() && editItemName !== item.name) {
+                                            await updateItem(item.id, { name: editItemName.trim() });
+                                          }
+                                          setEditingItemId(null);
+                                          setEditItemName('');
+                                        }
+                                        if (e.key === 'Escape') {
+                                          setEditingItemId(null);
+                                          setEditItemName('');
+                                        }
+                                      }}
+                                      className="flex-1 bg-white border border-blue-400 rounded px-1 py-0.5 text-xs outline-none"
+                                      autoFocus
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <span className="truncate">{item.name}</span>
+                                  )}
                                 </div>
                               ))}
                             </div>
                           )}
                           {isExpanded && objectItems.length === 0 && (
-                            <div className={`ml-5 pl-2 border-l border-${scopeColor}-200 mt-0.5`}>
+                            <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5">
                               <p className="text-[11px] text-zinc-400 py-1.5 px-2">No items</p>
                             </div>
                           )}
@@ -1038,12 +1163,21 @@ export default function WorkspacePage() {
           <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 overflow-hidden bg-white">{renderView()}</div>
 
-            {/* Markdown Sidebar */}
+            {/* Markdown Sidebar for Context */}
             {selectedContext && (
               <ContextMarkdownSidebar
                 context={selectedContext}
                 isOpen={isMarkdownSidebarOpen}
                 onClose={() => setIsMarkdownSidebarOpen(false)}
+              />
+            )}
+
+            {/* Markdown Sidebar for Item */}
+            {selectedItem && (
+              <ItemMarkdownSidebar
+                item={selectedItem}
+                isOpen={isItemMarkdownSidebarOpen}
+                onClose={() => setIsItemMarkdownSidebarOpen(false)}
               />
             )}
           </div>
@@ -1054,7 +1188,10 @@ export default function WorkspacePage() {
       <AddContextModal
         isOpen={isAddContextOpen}
         onClose={() => setIsAddContextOpen(false)}
+        projectId={project}
         workspaceId={subproject}
+        defaultScope="local"
+        allowedScopes={['global', 'project', 'local']}
       />
 
       <EditContextModal
@@ -1071,7 +1208,7 @@ export default function WorkspacePage() {
         onClose={() => setIsAddObjectOpen(false)}
         projectId={project}
         workspaceId={subproject}
-        defaultScope={objectScopeTab}
+        defaultScope="local"
         allowedScopes={['global', 'project', 'local']}
       />
 

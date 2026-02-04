@@ -29,6 +29,10 @@ export interface ContextNode {
     collapsed?: boolean;
     x?: number;
     y?: number;
+    // Gantt chart fields
+    startDate?: string;   // ISO date string (YYYY-MM-DD)
+    endDate?: string;     // ISO date string (YYYY-MM-DD)
+    progress?: number;    // 0-100 percentage
     [key: string]: unknown;
   };
 }
@@ -40,12 +44,12 @@ export type ContextType = typeof CONTEXT_TYPES[number];
 // View styles per structure (switchable within same type)
 export const VIEW_STYLES = {
   tree: ['mindmap', 'list'] as const,
-  board: ['kanban', 'grid', 'flow'] as const,
+  board: ['kanban', 'grid', 'flow', 'table', 'gantt'] as const,
   canvas: ['freeform'] as const,
 } as const;
 
 export type TreeViewStyle = 'mindmap' | 'list';
-export type BoardViewStyle = 'kanban' | 'grid' | 'flow';
+export type BoardViewStyle = 'kanban' | 'grid' | 'flow' | 'table' | 'gantt';
 export type CanvasViewStyle = 'freeform';
 export type ViewStyle = TreeViewStyle | BoardViewStyle | CanvasViewStyle;
 
@@ -69,12 +73,15 @@ export interface Context {
   icon: string;
   type: ContextType;
   viewStyle: ViewStyle;
-  workspaceId: string;
+  scope: ObjectScope;             // 'global' | 'project' | 'local'
+  projectId: string | null;       // null for global, set for project/local
+  workspaceId: string | null;     // null for global/project, set for local
   objectIds?: string[];           // linked objects (optional)
   markdownId?: string;            // reference to .md file (optional)
   data: {
     nodes: ContextNode[];
     edges?: ContextEdge[];        // keeping for backward compatibility
+    tldrawSnapshot?: string;      // JSON stringified tldraw state for canvas view
   };
 }
 
@@ -85,12 +92,28 @@ export interface ObjectType {
   id: string;
   name: string;
   icon: string;
-  scope: ObjectScope;             // NEW: explicit scope
-  projectId: string | null;       // null for global, set for project/local
-  workspaceId: string | null;     // null for global/project, set for local
+  type?: string;                  // Object type for naming matching (e.g., 'task', 'note', 'person')
   category?: string;              // Work, People, Tools, etc.
   builtIn: boolean;
+  // Availability flags
+  availableGlobal: boolean;       // Available at root/home level (outside projects)
+  availableInProjects: string[];  // ['*'] = all, or specific project IDs
+  availableInWorkspaces: string[]; // ['*'] = all, or specific workspace IDs
 }
+
+// Common object types for naming matching
+export const OBJECT_TYPE_SUGGESTIONS = [
+  'task',
+  'note',
+  'person',
+  'meeting',
+  'document',
+  'idea',
+  'bug',
+  'feature',
+  'goal',
+  'question',
+] as const;
 
 export interface ObjectItem {
   id: string;
@@ -103,6 +126,7 @@ export interface ObjectItem {
     viewStyle?: ViewStyle;        // view style for the type (default: 'list')
     nodes: ContextNode[];
     edges?: ContextEdge[];        // for board/canvas types
+    tldrawSnapshot?: string;      // JSON stringified tldraw state for canvas view
   };
 }
 
@@ -159,6 +183,11 @@ export const CATEGORY_ICONS = {
   'Marketing': '📣',
   'Operations': '⚙️',
 } as const;
+
+// Pinned tabs for home view (stored in settings)
+export interface HomeSettings {
+  pinnedObjectTabs: string[];  // Object IDs to show as tabs
+}
 
 // Object category suggestions (not enforced - category can be any string)
 export const OBJECT_CATEGORY_SUGGESTIONS = [

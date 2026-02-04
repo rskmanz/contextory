@@ -1,659 +1,1065 @@
 {
   "projects": [
     {
-      "id": "rajob",
-      "name": "rajob",
-      "icon": "👾",
-      "gradient": "bg-gradient-to-br from-pink-400 via-rose-400 to-red-400",
-      "category": "Side Projects"
-    },
-    {
-      "id": "osushi",
-      "name": "Osushi",
-      "icon": "🍣",
-      "gradient": "bg-gradient-to-br from-orange-300 via-orange-400 to-amber-400",
-      "category": "Side Projects"
-    },
-    {
-      "id": "tsunagu",
-      "name": "Tsunagu",
-      "icon": "🎏",
-      "gradient": "bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-300",
-      "category": "Side Projects"
-    },
-    {
-      "id": "salesforce",
-      "name": "Salesforce",
-      "icon": "💡",
-      "gradient": "bg-gradient-to-br from-green-300 via-emerald-400 to-teal-400",
-      "category": "Side Projects"
-    },
-    {
-      "id": "founder-university",
-      "name": "Founder University",
-      "icon": "🔥",
-      "gradient": "bg-gradient-to-br from-cyan-300 via-cyan-400 to-sky-400",
-      "category": "VCs"
-    },
-    {
-      "id": "delight-x",
-      "name": "Delight X",
-      "icon": "🌌",
-      "gradient": "bg-gradient-to-br from-blue-300 via-blue-400 to-indigo-400",
-      "category": "VCs"
-    },
-    {
-      "id": "bayond",
-      "name": "Bayond",
-      "icon": "🌀",
-      "gradient": "bg-gradient-to-br from-pink-400 via-rose-400 to-red-400",
-      "category": "Main"
-    },
-    {
-      "id": "hanryo",
-      "name": "HanRyo",
-      "icon": "🐹",
-      "gradient": "bg-gradient-to-br from-orange-300 via-orange-400 to-amber-400",
-      "category": "Main"
-    },
-    {
-      "id": "clawdbot",
-      "name": "clawdbot",
+      "id": "vc-program-2024",
+      "name": "2024 VC Accelerator",
       "icon": "🚀",
-      "gradient": "bg-gradient-to-br from-amber-300 via-amber-400 to-orange-300",
-      "category": "Main"
+      "gradient": "bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-400",
+      "category": "VC Programs"
     },
     {
-      "id": "wa7wuu8",
-      "name": "Test Project",
-      "icon": "🧪",
-      "gradient": "from-blue-500 to-purple-500",
-      "category": "Testing"
+      "id": "saas-product",
+      "name": "TaskFlow (SaaS)",
+      "icon": "📱",
+      "gradient": "bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400",
+      "category": "SaaS"
     }
   ],
   "workspaces": [
     {
-      "id": "big-query-data",
-      "name": "Big Query Data",
-      "projectId": "rajob",
-      "category": "Data",
-      "categoryIcon": "📊"
+      "id": "online-program",
+      "name": "Online Program",
+      "projectId": "vc-program-2024",
+      "category": "Program",
+      "categoryIcon": "💻"
     },
     {
-      "id": "api-integration",
-      "name": "API Integration",
-      "projectId": "rajob",
+      "id": "offline-program",
+      "name": "Offline Program",
+      "projectId": "vc-program-2024",
+      "category": "Program",
+      "categoryIcon": "🏢"
+    },
+    {
+      "id": "investor-program",
+      "name": "Investor Relations",
+      "projectId": "vc-program-2024",
+      "category": "Program",
+      "categoryIcon": "💰"
+    },
+    {
+      "id": "startup-techstart",
+      "name": "TechStart (Startup A)",
+      "projectId": "vc-program-2024",
+      "category": "Startups",
+      "categoryIcon": "🎯"
+    },
+    {
+      "id": "startup-greenfuture",
+      "name": "GreenFuture (Startup B)",
+      "projectId": "vc-program-2024",
+      "category": "Startups",
+      "categoryIcon": "🌱"
+    },
+    {
+      "id": "startup-healthai",
+      "name": "HealthAI (Startup C)",
+      "projectId": "vc-program-2024",
+      "category": "Startups",
+      "categoryIcon": "🏥"
+    },
+    {
+      "id": "saas-product-dev",
+      "name": "Product Development",
+      "projectId": "saas-product",
       "category": "Development",
       "categoryIcon": "💻"
     },
     {
-      "id": "frontend",
-      "name": "Frontend",
-      "projectId": "osushi",
-      "category": "Development",
-      "categoryIcon": "💻"
+      "id": "saas-marketing",
+      "name": "Marketing",
+      "projectId": "saas-product",
+      "category": "Growth",
+      "categoryIcon": "📈"
     },
     {
-      "id": "backend",
-      "name": "Backend",
-      "projectId": "osushi",
-      "category": "Development",
-      "categoryIcon": "💻"
+      "id": "saas-sales",
+      "name": "Sales",
+      "projectId": "saas-product",
+      "category": "Growth",
+      "categoryIcon": "💼"
     },
     {
-      "id": "mobile-app",
-      "name": "Mobile App",
-      "projectId": "osushi",
-      "category": "Development",
-      "categoryIcon": "💻"
-    },
-    {
-      "id": "contract",
-      "name": "Contract",
-      "projectId": "tsunagu",
+      "id": "saas-customer-success",
+      "name": "Customer Success",
+      "projectId": "saas-product",
       "category": "Operations",
-      "categoryIcon": "⚙️"
+      "categoryIcon": "🤝"
     },
     {
-      "id": "design",
-      "name": "Design",
-      "projectId": "tsunagu",
-      "category": "Design",
-      "categoryIcon": "🎨"
-    },
-    {
-      "id": "integration",
-      "name": "Integration",
-      "projectId": "salesforce",
-      "category": "Development",
-      "categoryIcon": "💻"
-    },
-    {
-      "id": "pitch-deck",
-      "name": "Pitch Deck",
-      "projectId": "founder-university",
-      "category": "Marketing",
-      "categoryIcon": "📣"
-    },
-    {
-      "id": "weekly-report",
-      "name": "Weekly Report",
-      "projectId": "founder-university",
-      "category": "Operations",
-      "categoryIcon": "⚙️"
-    },
-    {
-      "name": "Fundraising Strategy",
-      "projectId": "delight-x",
-      "category": "Strategy & Planning",
-      "id": "jg7z9ce"
-    },
-    {
-      "id": "sk35ti7",
-      "name": "Test Workspace",
-      "projectId": "wa7wuu8",
-      "parentItemId": null,
-      "category": "Development",
-      "categoryIcon": "📁"
+      "id": "saas-fundraising",
+      "name": "Fundraising",
+      "projectId": "saas-product",
+      "category": "Strategy",
+      "categoryIcon": "💰"
     }
   ],
   "contexts": [
     {
-      "id": "4c1a4ao",
-      "name": "test2",
-      "icon": "🏠",
+      "id": "program-roadmap",
+      "name": "Program Roadmap",
+      "icon": "🗓️",
       "type": "board",
       "viewStyle": "kanban",
-      "workspaceId": "big-query-data",
+      "scope": "project",
+      "projectId": "vc-program-2024",
+      "workspaceId": null,
       "data": {
         "nodes": [
           {
-            "content": "New Column",
-            "parentId": null,
-            "id": "asi2yjm"
+            "id": "phase1",
+            "content": "Phase 1: Selection",
+            "parentId": null
           },
           {
-            "content": "New card",
-            "parentId": "094ekjc",
-            "id": "o2gmxcu"
+            "id": "phase2",
+            "content": "Phase 2: Mentoring",
+            "parentId": null
           },
           {
-            "content": "New card",
-            "parentId": "7rwb2l6",
-            "id": "3su9yvd"
+            "id": "phase3",
+            "content": "Phase 3: Demo Day",
+            "parentId": null
           },
           {
-            "content": "New Group",
-            "parentId": null,
-            "id": "094ekjc"
+            "id": "task1",
+            "content": "Application Review",
+            "parentId": "phase1"
           },
           {
-            "content": "New Group",
-            "parentId": null,
-            "id": "7rwb2l6"
-          }
-        ],
-        "edges": []
-      }
-    },
-    {
-      "id": "kl2ylb6",
-      "name": "test4",
-      "icon": "🏠",
-      "type": "canvas",
-      "viewStyle": "freeform",
-      "workspaceId": "big-query-data",
-      "data": {
-        "nodes": [
+            "id": "task2",
+            "content": "Interviews",
+            "parentId": "phase1"
+          },
           {
-            "content": "New note",
-            "parentId": null,
+            "id": "task3",
+            "content": "Final Selection",
+            "parentId": "phase1"
+          },
+          {
+            "id": "task4",
+            "content": "Weekly Meetings",
+            "parentId": "phase2"
+          },
+          {
+            "id": "task5",
+            "content": "Investor Matching",
+            "parentId": "phase2"
+          },
+          {
+            "id": "task6",
+            "content": "Pitch Practice",
+            "parentId": "phase3"
+          },
+          {
+            "id": "task7",
+            "content": "Final Presentation",
+            "parentId": "phase3",
             "metadata": {
-              "x": 189,
-              "y": 89.33333206176758
-            },
-            "id": "7bn5a7w"
+              "x": 101,
+              "y": 98
+            }
           }
         ],
         "edges": []
       }
     },
     {
-      "name": "test",
-      "icon": "📝",
-      "type": "board",
-      "viewStyle": "grid",
-      "workspaceId": "integration",
-      "data": {
-        "nodes": [],
-        "edges": []
-      },
-      "id": "6nc4cb6"
-    },
-    {
-      "id": "m3f8u4d",
-      "name": "Test Context",
-      "icon": "🎯",
+      "id": "techstart-ideamap",
+      "name": "Business Idea Map",
+      "icon": "💡",
       "type": "tree",
       "viewStyle": "mindmap",
-      "workspaceId": "sk35ti7",
-      "objectIds": [],
-      "markdownId": null,
-      "data": {
-        "nodes": []
-      }
-    },
-    {
-      "name": "test",
-      "icon": "📝",
-      "type": "tree",
-      "viewStyle": "mindmap",
-      "workspaceId": "mobile-app",
+      "scope": "local",
+      "projectId": "vc-program-2024",
+      "workspaceId": "startup-techstart",
       "data": {
         "nodes": [
           {
-            "content": "New node",
-            "parentId": null,
-            "id": "41rab5f"
+            "id": "root",
+            "content": "AI Hiring Platform",
+            "parentId": null
+          },
+          {
+            "id": "feature1",
+            "content": "Skill Matching",
+            "parentId": "root"
+          },
+          {
+            "id": "feature2",
+            "content": "AI Interview Assistant",
+            "parentId": "root"
+          },
+          {
+            "id": "feature3",
+            "content": "Candidate Analytics",
+            "parentId": "root"
           },
           {
             "content": "New node",
-            "parentId": "41rab5f",
-            "id": "94izl5x"
+            "parentId": "feature2",
+            "id": "uxu3h3d"
           },
           {
             "content": "New node",
-            "parentId": "94izl5x",
-            "id": "fhk3ctw"
-          },
-          {
-            "content": "New node",
-            "parentId": "94izl5x",
-            "id": "tfah8qk"
-          },
-          {
-            "content": "New node",
-            "parentId": "94izl5x",
-            "id": "ltd61js"
+            "parentId": "feature1",
+            "id": "t2pd3fg"
           }
         ],
         "edges": []
-      },
-      "id": "i77ydmb"
+      }
     },
     {
-      "name": "test",
-      "icon": "📝",
+      "id": "saas-product-roadmap",
+      "name": "Product Roadmap",
+      "icon": "🗺️",
+      "type": "board",
+      "viewStyle": "kanban",
+      "scope": "project",
+      "projectId": "saas-product",
+      "workspaceId": null,
+      "data": {
+        "nodes": [
+          {
+            "id": "q1",
+            "content": "Q1 2024",
+            "parentId": null
+          },
+          {
+            "id": "q2",
+            "content": "Q2 2024",
+            "parentId": null
+          },
+          {
+            "id": "q3",
+            "content": "Q3 2024",
+            "parentId": null
+          },
+          {
+            "id": "q4",
+            "content": "Q4 2024",
+            "parentId": null
+          },
+          {
+            "id": "f1",
+            "content": "MVP Launch",
+            "parentId": "q1"
+          },
+          {
+            "id": "f2",
+            "content": "Team Features",
+            "parentId": "q1"
+          },
+          {
+            "id": "f3",
+            "content": "API Release",
+            "parentId": "q2"
+          },
+          {
+            "id": "f4",
+            "content": "Slack Integration",
+            "parentId": "q2"
+          },
+          {
+            "id": "f5",
+            "content": "AI Analytics",
+            "parentId": "q3"
+          },
+          {
+            "id": "f6",
+            "content": "Enterprise Edition",
+            "parentId": "q4"
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "saas-feature-map",
+      "name": "Feature Map",
+      "icon": "🧩",
+      "type": "tree",
+      "viewStyle": "mindmap",
+      "scope": "local",
+      "projectId": "saas-product",
+      "workspaceId": "saas-product-dev",
+      "data": {
+        "nodes": [
+          {
+            "id": "root",
+            "content": "TaskFlow",
+            "parentId": null
+          },
+          {
+            "id": "core",
+            "content": "Core Features",
+            "parentId": "root"
+          },
+          {
+            "id": "integration",
+            "content": "Integrations",
+            "parentId": "root"
+          },
+          {
+            "id": "analytics",
+            "content": "Analytics",
+            "parentId": "root"
+          },
+          {
+            "id": "c1",
+            "content": "Task Management",
+            "parentId": "core"
+          },
+          {
+            "id": "c2",
+            "content": "Project Management",
+            "parentId": "core"
+          },
+          {
+            "id": "c3",
+            "content": "Team Management",
+            "parentId": "core"
+          },
+          {
+            "id": "i1",
+            "content": "Slack",
+            "parentId": "integration"
+          },
+          {
+            "id": "i2",
+            "content": "GitHub",
+            "parentId": "integration"
+          },
+          {
+            "id": "i3",
+            "content": "Zapier",
+            "parentId": "integration"
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "saas-funnel",
+      "name": "Sales Funnel",
+      "icon": "📊",
       "type": "board",
       "viewStyle": "flow",
-      "workspaceId": "backend",
+      "scope": "local",
+      "projectId": "saas-product",
+      "workspaceId": "saas-sales",
       "data": {
         "nodes": [
           {
-            "content": "New Column",
-            "parentId": null,
-            "id": "e13oyaf",
-            "metadata": {
-              "x": 574,
-              "y": 340
-            }
+            "id": "lead",
+            "content": "Leads",
+            "parentId": null
           },
           {
-            "content": "New Column",
-            "parentId": null,
-            "id": "ict2nus",
-            "metadata": {
-              "x": 185,
-              "y": 311
-            }
+            "id": "demo",
+            "content": "Demo",
+            "parentId": null
           },
           {
-            "content": "New node",
-            "parentId": null,
-            "metadata": {
-              "x": 422.33331298828125,
-              "y": 179.88888549804688
-            },
-            "id": "rxsu9yx"
+            "id": "trial",
+            "content": "Trial",
+            "parentId": null
           },
           {
-            "0": "g",
-            "1": "c",
-            "2": "e",
-            "3": "d",
-            "4": "k",
-            "5": "e",
-            "6": "1",
-            "id": "6eagxb7"
+            "id": "negotiation",
+            "content": "Negotiation",
+            "parentId": null
+          },
+          {
+            "id": "won",
+            "content": "Closed Won",
+            "parentId": null
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "negotiation",
+            "id": "1cxonkj"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "negotiation",
+            "id": "dvd8gpp"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "negotiation",
+            "id": "0bo0z2a"
           }
         ],
         "edges": []
-      },
-      "id": "gcedke1"
-    },
-    {
-      "name": "test",
-      "icon": "📝",
-      "type": "tree",
-      "viewStyle": "mindmap",
-      "workspaceId": "big-query-data",
-      "data": {
-        "nodes": [
-          {
-            "content": "New node",
-            "parentId": null,
-            "id": "lhvg4be"
-          },
-          {
-            "content": "New node",
-            "parentId": "lhvg4be",
-            "id": "6q96y2z"
-          },
-          {
-            "content": "New node",
-            "parentId": "6q96y2z",
-            "id": "qj4zvgd"
-          }
-        ],
-        "edges": []
-      },
-      "id": "cnxfo12"
+      }
     }
   ],
   "objects": [
     {
-      "id": "prompts",
-      "name": "Prompts",
-      "icon": "💬",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
+      "id": "investors",
+      "name": "Investors",
+      "icon": "💼",
+      "category": "People",
+      "builtIn": false,
+      "availableGlobal": true,
+      "availableInProjects": [
+        "vc-program-2024",
+        "saas-product"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
     },
     {
-      "id": "tools",
-      "name": "Tools",
-      "icon": "🔧",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
-    },
-    {
-      "id": "files",
-      "name": "Files",
-      "icon": "📁",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
+      "id": "entrepreneurs",
+      "name": "Entrepreneurs",
+      "icon": "👨‍💼",
+      "category": "People",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "vc-program-2024"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
     },
     {
       "id": "tasks",
       "name": "Tasks",
       "icon": "✅",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
+      "category": "Work",
+      "builtIn": true,
+      "availableGlobal": true,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
     },
     {
-      "id": "agents",
-      "name": "AI Agents",
-      "icon": "🤖",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
-    },
-    {
-      "id": "chat",
-      "name": "Chat",
-      "icon": "💬",
-      "scope": "local",
-      "projectId": "rajob",
-      "workspaceId": "big-query-data",
-      "builtIn": true
-    },
-    {
-      "id": "22ut322",
-      "name": "test",
-      "icon": "👤",
-      "scope": "local",
-      "projectId": "salesforce",
-      "workspaceId": "integration",
-      "builtIn": false
-    },
-    {
-      "id": "global-teams",
-      "name": "Teams",
-      "icon": "👥",
-      "scope": "project",
-      "projectId": "rajob",
-      "workspaceId": null,
-      "category": "People",
-      "builtIn": false
-    },
-    {
-      "id": "global-tools",
+      "id": "tools",
       "name": "Tools",
       "icon": "🔧",
-      "scope": "project",
-      "projectId": "rajob",
-      "workspaceId": null,
       "category": "Tools",
-      "builtIn": false
+      "builtIn": true,
+      "availableGlobal": true,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
     },
     {
-      "id": "6bmty2p",
-      "name": "Test Object",
-      "icon": "📦",
-      "scope": "project",
-      "projectId": "wa7wuu8",
-      "workspaceId": null,
-      "category": "Features",
-      "builtIn": false
+      "id": "internal-teams",
+      "name": "Teams",
+      "icon": "👥",
+      "category": "People",
+      "builtIn": false,
+      "availableGlobal": true,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": []
+    },
+    {
+      "id": "chat-channels",
+      "name": "Chat Channels",
+      "icon": "💬",
+      "category": "Communication",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
+    },
+    {
+      "id": "slides",
+      "name": "Slides",
+      "icon": "📊",
+      "category": "Content",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
+    },
+    {
+      "id": "meetings",
+      "name": "Meetings",
+      "icon": "📅",
+      "category": "Communication",
+      "builtIn": false,
+      "availableGlobal": true,
+      "availableInProjects": [
+        "*"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
+    },
+    {
+      "id": "features",
+      "name": "Features",
+      "icon": "🧩",
+      "category": "Work",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "saas-product"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
+    },
+    {
+      "id": "customers",
+      "name": "Customers",
+      "icon": "🏢",
+      "category": "People",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "saas-product"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
+    },
+    {
+      "id": "bugs",
+      "name": "Bugs",
+      "icon": "🐛",
+      "category": "Work",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "saas-product"
+      ],
+      "availableInWorkspaces": [
+        "saas-product-dev"
+      ]
+    },
+    {
+      "id": "metrics",
+      "name": "KPIs",
+      "icon": "📈",
+      "category": "Tracking",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [
+        "saas-product"
+      ],
+      "availableInWorkspaces": [
+        "*"
+      ]
     }
   ],
   "items": [
     {
-      "id": "prompt-1",
-      "name": "Summary Template",
-      "objectId": "prompts",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "prompt-2",
-      "name": "Analysis Prompt",
-      "objectId": "prompts",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "slack",
-      "name": "Slack",
-      "objectId": "tools",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "github",
-      "name": "GitHub",
-      "objectId": "tools",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "notion",
-      "name": "Notion",
-      "objectId": "tools",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "file-1",
-      "name": "design-v2.fig",
-      "objectId": "files",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "task-1",
-      "name": "Setup env",
-      "objectId": "tasks",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "agent-1",
-      "name": "Code Reviewer",
-      "objectId": "agents",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "id": "chat-1",
-      "name": "General",
-      "objectId": "chat",
-      "workspaceId": "big-query-data"
-    },
-    {
-      "name": "New item",
-      "objectId": "22ut322",
-      "workspaceId": "integration",
-      "id": "c9c4uf8"
-    },
-    {
-      "name": "New item",
-      "objectId": "prompts",
-      "workspaceId": "big-query-data",
-      "id": "4o4fkdm",
+      "id": "inv-smith",
+      "name": "John Smith (Angel Investor)",
+      "objectId": "investors",
+      "workspaceId": "investor-program",
       "contextData": {
         "nodes": [
           {
-            "id": "udsct6m",
-            "content": "New item",
+            "id": "n1",
+            "content": "Expertise",
             "parentId": null
           },
           {
-            "id": "xya80xj",
-            "content": "New item",
-            "parentId": "udsct6m"
+            "id": "n2",
+            "content": "AI/ML",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "SaaS",
+            "parentId": "n1"
+          },
+          {
+            "id": "n4",
+            "content": "Portfolio",
+            "parentId": null
+          },
+          {
+            "id": "n5",
+            "content": "20+ companies",
+            "parentId": "n4"
           }
         ]
       }
     },
     {
-      "id": "team-frontend",
-      "name": "Frontend Team",
-      "objectId": "global-teams",
+      "id": "inv-johnson",
+      "name": "Sarah Johnson (VC Partner)",
+      "objectId": "investors",
+      "workspaceId": "investor-program",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Expertise",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "Healthcare",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "CleanTech",
+            "parentId": "n1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "inv-chen",
+      "name": "Michael Chen (CVC)",
+      "objectId": "investors",
+      "workspaceId": "investor-program"
+    },
+    {
+      "id": "ent-kim",
+      "name": "Alex Kim (TechStart CEO)",
+      "objectId": "entrepreneurs",
+      "workspaceId": "startup-techstart",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Background",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "Google 5 years",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "Stanford MBA",
+            "parentId": "n1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ent-davis",
+      "name": "Emily Davis (GreenFuture CEO)",
+      "objectId": "entrepreneurs",
+      "workspaceId": "startup-greenfuture"
+    },
+    {
+      "id": "ent-lee",
+      "name": "David Lee (HealthAI CEO)",
+      "objectId": "entrepreneurs",
+      "workspaceId": "startup-healthai"
+    },
+    {
+      "id": "task-vc-1",
+      "name": "Complete Application Review",
+      "objectId": "tasks",
+      "workspaceId": "online-program"
+    },
+    {
+      "id": "task-vc-2",
+      "name": "Assign Mentors",
+      "objectId": "tasks",
+      "workspaceId": "online-program"
+    },
+    {
+      "id": "task-saas-1",
+      "name": "Implement User Auth",
+      "objectId": "tasks",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "task-saas-2",
+      "name": "Stripe Integration",
+      "objectId": "tasks",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "task-saas-3",
+      "name": "Create Landing Page",
+      "objectId": "tasks",
+      "workspaceId": "saas-marketing"
+    },
+    {
+      "id": "task-saas-4",
+      "name": "Content Marketing Plan",
+      "objectId": "tasks",
+      "workspaceId": "saas-marketing"
+    },
+    {
+      "id": "task-saas-5",
+      "name": "Update Pitch Deck",
+      "objectId": "tasks",
+      "workspaceId": "saas-fundraising"
+    },
+    {
+      "id": "tool-slack",
+      "name": "Slack",
+      "objectId": "tools",
+      "workspaceId": null
+    },
+    {
+      "id": "tool-notion",
+      "name": "Notion",
+      "objectId": "tools",
+      "workspaceId": null
+    },
+    {
+      "id": "tool-figma",
+      "name": "Figma",
+      "objectId": "tools",
+      "workspaceId": null
+    },
+    {
+      "id": "tool-github",
+      "name": "GitHub",
+      "objectId": "tools",
+      "workspaceId": null
+    },
+    {
+      "id": "tool-linear",
+      "name": "Linear",
+      "objectId": "tools",
+      "workspaceId": null
+    },
+    {
+      "id": "team-pm",
+      "name": "Program Management",
+      "objectId": "internal-teams",
       "workspaceId": null,
       "contextData": {
         "nodes": [
           {
             "id": "n1",
-            "content": "Skills",
-            "parentId": null
-          },
-          {
-            "id": "n2",
-            "content": "React",
-            "parentId": "n1"
-          },
-          {
-            "id": "n3",
-            "content": "TypeScript",
-            "parentId": "n1"
-          },
-          {
-            "id": "n4",
             "content": "Members",
             "parentId": null
           },
           {
-            "id": "n5",
-            "content": "Alice",
-            "parentId": "n4"
+            "id": "n2",
+            "content": "James (PM)",
+            "parentId": "n1"
           },
           {
-            "id": "n6",
-            "content": "Bob",
-            "parentId": "n4"
-          }
-        ]
-      },
-      "markdownId": "team-frontend"
-    },
-    {
-      "id": "team-backend",
-      "name": "Backend Team",
-      "objectId": "global-teams",
-      "workspaceId": null,
-      "contextData": {
-        "nodes": [
-          {
-            "id": "b1",
-            "content": "Skills",
-            "parentId": null
-          },
-          {
-            "id": "b2",
-            "content": "Node.js",
-            "parentId": "b1"
-          },
-          {
-            "id": "b3",
-            "content": "PostgreSQL",
-            "parentId": "b1"
+            "id": "n3",
+            "content": "Lisa (Assistant)",
+            "parentId": "n1"
           }
         ]
       }
     },
     {
-      "id": "tool-github",
-      "name": "GitHub",
-      "objectId": "global-tools",
+      "id": "team-engineering",
+      "name": "Engineering",
+      "objectId": "internal-teams",
       "workspaceId": null,
-      "markdownId": "tool-github",
       "contextData": {
         "nodes": [
           {
-            "id": "84d5ryj",
-            "content": "New item",
+            "id": "n1",
+            "content": "Members",
             "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "Tom (Tech Lead)",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "Anna (Frontend)",
+            "parentId": "n1"
+          },
+          {
+            "id": "n4",
+            "content": "Mark (Backend)",
+            "parentId": "n1"
           }
         ]
       }
     },
     {
-      "id": "tool-figma",
-      "name": "Figma",
-      "objectId": "global-tools",
+      "id": "team-growth",
+      "name": "Growth",
+      "objectId": "internal-teams",
       "workspaceId": null
     },
     {
-      "id": "gzijmzv",
-      "name": "Test Item",
-      "objectId": "6bmty2p",
-      "workspaceId": "sk35ti7",
-      "markdownId": null,
+      "id": "ch-general",
+      "name": "#general",
+      "objectId": "chat-channels",
+      "workspaceId": "online-program"
+    },
+    {
+      "id": "ch-saas-dev",
+      "name": "#dev",
+      "objectId": "chat-channels",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "ch-saas-sales",
+      "name": "#sales",
+      "objectId": "chat-channels",
+      "workspaceId": "saas-sales",
       "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": []
+      }
+    },
+    {
+      "id": "slide-program-intro",
+      "name": "Program Introduction",
+      "objectId": "slides",
+      "workspaceId": "online-program"
+    },
+    {
+      "id": "slide-pitch-deck",
+      "name": "Investor Pitch Deck",
+      "objectId": "slides",
+      "workspaceId": "saas-fundraising"
+    },
+    {
+      "id": "slide-sales-deck",
+      "name": "Sales Deck",
+      "objectId": "slides",
+      "workspaceId": "saas-sales"
+    },
+    {
+      "id": "mtg-kickoff",
+      "name": "Kickoff Meeting",
+      "objectId": "meetings",
+      "workspaceId": "online-program"
+    },
+    {
+      "id": "mtg-investor-intro",
+      "name": "Investor Introduction",
+      "objectId": "meetings",
+      "workspaceId": "investor-program"
+    },
+    {
+      "id": "mtg-sprint-planning",
+      "name": "Sprint Planning",
+      "objectId": "meetings",
+      "workspaceId": "saas-product-dev",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "list",
         "nodes": [
           {
-            "id": "root",
-            "content": "Test Item Overview",
-            "parentId": null
-          },
-          {
-            "id": "child1",
-            "content": "Feature A",
-            "parentId": "root"
-          },
-          {
-            "id": "child2",
-            "content": "Feature B",
-            "parentId": "root"
-          },
-          {
-            "id": "grandchild1",
-            "content": "Sub-feature A1",
-            "parentId": "child1"
+            "content": "New item",
+            "parentId": null,
+            "id": "gn5kisu"
           }
         ]
       }
+    },
+    {
+      "id": "mtg-standup",
+      "name": "Daily Standup",
+      "objectId": "meetings",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "mtg-investor-update",
+      "name": "Investor Update",
+      "objectId": "meetings",
+      "workspaceId": "saas-fundraising"
+    },
+    {
+      "id": "feature-auth",
+      "name": "User Authentication",
+      "objectId": "features",
+      "workspaceId": "saas-product-dev",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Requirements",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "Email/Password",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "Google OAuth",
+            "parentId": "n1"
+          },
+          {
+            "id": "n4",
+            "content": "2FA",
+            "parentId": "n1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "feature-team",
+      "name": "Team Management",
+      "objectId": "features",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "feature-api",
+      "name": "API",
+      "objectId": "features",
+      "workspaceId": "saas-product-dev",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          {
+            "content": "New node",
+            "parentId": null,
+            "id": "j2gkimf"
+          },
+          {
+            "content": "New node",
+            "parentId": "j2gkimf",
+            "id": "gstuwh5"
+          },
+          {
+            "content": "New node",
+            "parentId": "j2gkimf",
+            "id": "95p6e4m"
+          }
+        ]
+      }
+    },
+    {
+      "id": "customer-abc",
+      "name": "ABC Corp",
+      "objectId": "customers",
+      "workspaceId": "saas-sales",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Contact",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "Tom (IT Director)",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "Status",
+            "parentId": null
+          },
+          {
+            "id": "n4",
+            "content": "In Trial",
+            "parentId": "n3"
+          }
+        ],
+        "type": "tree",
+        "viewStyle": "mindmap"
+      }
+    },
+    {
+      "id": "customer-xyz",
+      "name": "XYZ Inc",
+      "objectId": "customers",
+      "workspaceId": "saas-sales"
+    },
+    {
+      "id": "customer-tech",
+      "name": "TechCo Industries",
+      "objectId": "customers",
+      "workspaceId": "saas-customer-success"
+    },
+    {
+      "id": "bug-1",
+      "name": "Login Error",
+      "objectId": "bugs",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "bug-2",
+      "name": "Notifications Not Delivered",
+      "objectId": "bugs",
+      "workspaceId": "saas-product-dev"
+    },
+    {
+      "id": "kpi-mrr",
+      "name": "MRR",
+      "objectId": "metrics",
+      "workspaceId": "saas-sales",
+      "contextData": {
+        "nodes": [
+          {
+            "id": "n1",
+            "content": "Target",
+            "parentId": null
+          },
+          {
+            "id": "n2",
+            "content": "$10,000/month",
+            "parentId": "n1"
+          },
+          {
+            "id": "n3",
+            "content": "Current",
+            "parentId": null
+          },
+          {
+            "id": "n4",
+            "content": "$4,500/month",
+            "parentId": "n3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kpi-churn",
+      "name": "Churn Rate",
+      "objectId": "metrics",
+      "workspaceId": "saas-customer-success"
+    },
+    {
+      "id": "kpi-nps",
+      "name": "NPS",
+      "objectId": "metrics",
+      "workspaceId": "saas-customer-success"
+    },
+    {
+      "id": "inv-saas-1",
+      "name": "ABC Ventures",
+      "objectId": "investors",
+      "workspaceId": "saas-fundraising"
+    },
+    {
+      "id": "inv-saas-2",
+      "name": "XYZ Capital",
+      "objectId": "investors",
+      "workspaceId": "saas-fundraising"
     }
+  ],
+  "pinnedObjectTabs": [
+    "tasks",
+    "meetings",
+    "customers"
   ]
 }
