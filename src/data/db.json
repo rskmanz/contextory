@@ -175,36 +175,59 @@
       "workspaceId": "startup-techstart",
       "data": {
         "nodes": [
-          {
-            "id": "root",
-            "content": "AI Hiring Platform",
-            "parentId": null
-          },
-          {
-            "id": "feature1",
-            "content": "Skill Matching",
-            "parentId": "root"
-          },
-          {
-            "id": "feature2",
-            "content": "AI Interview Assistant",
-            "parentId": "root"
-          },
-          {
-            "id": "feature3",
-            "content": "Candidate Analytics",
-            "parentId": "root"
-          },
-          {
-            "content": "New node",
-            "parentId": "feature2",
-            "id": "uxu3h3d"
-          },
-          {
-            "content": "New node",
-            "parentId": "feature1",
-            "id": "t2pd3fg"
-          }
+          { "id": "root", "content": "AI Hiring Platform", "parentId": null },
+          { "id": "feature1", "content": "Skill Matching", "parentId": "root" },
+          { "id": "feature2", "content": "AI Interview Assistant", "parentId": "root" },
+          { "id": "feature3", "content": "Candidate Analytics", "parentId": "root" },
+          { "id": "f1-1", "content": "Resume Parser", "parentId": "feature1" },
+          { "id": "f1-2", "content": "Skill Graph", "parentId": "feature1" },
+          { "id": "f2-1", "content": "Voice Analysis", "parentId": "feature2" },
+          { "id": "f2-2", "content": "Question Generator", "parentId": "feature2" },
+          { "id": "f3-1", "content": "Hiring Funnel", "parentId": "feature3" },
+          { "id": "f3-2", "content": "Time-to-Hire", "parentId": "feature3" }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "techstart-sprint",
+      "name": "Sprint Board",
+      "icon": "📋",
+      "type": "board",
+      "viewStyle": "kanban",
+      "scope": "local",
+      "projectId": "vc-program-2024",
+      "workspaceId": "startup-techstart",
+      "data": {
+        "nodes": [
+          { "id": "todo", "content": "To Do", "parentId": null },
+          { "id": "doing", "content": "In Progress", "parentId": null },
+          { "id": "done", "content": "Done", "parentId": null },
+          { "id": "t1", "content": "Finalize pitch deck", "parentId": "todo" },
+          { "id": "t2", "content": "Prepare demo", "parentId": "todo" },
+          { "id": "t3", "content": "Update financial model", "parentId": "doing" },
+          { "id": "t4", "content": "Investor research", "parentId": "doing" },
+          { "id": "t5", "content": "MVP development", "parentId": "done" },
+          { "id": "t6", "content": "Market analysis", "parentId": "done" }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "id": "techstart-schedule",
+      "name": "Meeting Schedule",
+      "icon": "📅",
+      "type": "board",
+      "viewStyle": "gantt",
+      "scope": "local",
+      "projectId": "vc-program-2024",
+      "workspaceId": "startup-techstart",
+      "data": {
+        "nodes": [
+          { "id": "m1", "content": "Mentor Session", "parentId": null, "metadata": { "startDate": "2025-01-15", "endDate": "2025-01-15", "progress": 100 } },
+          { "id": "m2", "content": "Investor Intro", "parentId": null, "metadata": { "startDate": "2025-01-20", "endDate": "2025-01-20", "progress": 0 } },
+          { "id": "m3", "content": "Demo Practice", "parentId": null, "metadata": { "startDate": "2025-01-25", "endDate": "2025-01-25", "progress": 0 } },
+          { "id": "m4", "content": "Demo Day", "parentId": null, "metadata": { "startDate": "2025-02-01", "endDate": "2025-02-01", "progress": 0 } }
         ],
         "edges": []
       }
@@ -408,11 +431,7 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "investor-program",
-        "startup-techstart",
-        "startup-greenfuture",
-        "startup-healthai",
-        "saas-fundraising"
+        "*"
       ]
     },
     {
@@ -422,14 +441,18 @@
       "category": "People",
       "builtIn": false,
       "availableGlobal": false,
-      "availableInProjects": [
-        "vc-program-2024"
-      ],
-      "availableInWorkspaces": [
-        "startup-techstart",
-        "startup-greenfuture",
-        "startup-healthai"
-      ]
+      "availableInProjects": ["vc-program-2024"],
+      "availableInWorkspaces": ["startup-techstart", "startup-greenfuture", "startup-healthai"]
+    },
+    {
+      "id": "startups",
+      "name": "Startups",
+      "icon": "🚀",
+      "category": "Companies",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": ["vc-program-2024"],
+      "availableInWorkspaces": ["online-program", "offline-program", "investor-program"]
     },
     {
       "id": "tasks",
@@ -482,9 +505,7 @@
         "*"
       ],
       "availableInWorkspaces": [
-        "online-program",
-        "saas-product-dev",
-        "saas-sales"
+        "*"
       ]
     },
     {
@@ -498,9 +519,7 @@
         "*"
       ],
       "availableInWorkspaces": [
-        "online-program",
-        "saas-fundraising",
-        "saas-sales"
+        "*"
       ]
     },
     {
@@ -528,7 +547,7 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "saas-product-dev"
+        "*"
       ]
     },
     {
@@ -542,8 +561,7 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "saas-sales",
-        "saas-customer-success"
+        "*"
       ]
     },
     {
@@ -571,9 +589,7 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "saas-sales",
-        "saas-customer-success",
-        "saas-fundraising"
+        "*"
       ]
     }
   ],
@@ -635,7 +651,9 @@
             "content": "CleanTech",
             "parentId": "n1"
           }
-        ]
+        ],
+        "type": "tree",
+        "viewStyle": "mindmap"
       }
     },
     {
@@ -650,22 +668,20 @@
       "objectId": "entrepreneurs",
       "workspaceId": "startup-techstart",
       "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
         "nodes": [
-          {
-            "id": "n1",
-            "content": "Background",
-            "parentId": null
-          },
-          {
-            "id": "n2",
-            "content": "Google 5 years",
-            "parentId": "n1"
-          },
-          {
-            "id": "n3",
-            "content": "Stanford MBA",
-            "parentId": "n1"
-          }
+          { "id": "n1", "content": "Background", "parentId": null },
+          { "id": "n2", "content": "Google 5 years (Senior PM)", "parentId": "n1" },
+          { "id": "n3", "content": "Stanford MBA 2020", "parentId": "n1" },
+          { "id": "n4", "content": "Skills", "parentId": null },
+          { "id": "n5", "content": "AI/ML", "parentId": "n4" },
+          { "id": "n6", "content": "Product Management", "parentId": "n4" },
+          { "id": "n7", "content": "Technical Architecture", "parentId": "n4" },
+          { "id": "n8", "content": "Notes", "parentId": null },
+          { "id": "n9", "content": "Strong technical founder", "parentId": "n8" },
+          { "id": "n10", "content": "Good market fit understanding", "parentId": "n8" },
+          { "id": "n11", "content": "Clear vision for B2B HR tech", "parentId": "n8" }
         ]
       }
     },
@@ -673,13 +689,215 @@
       "id": "ent-davis",
       "name": "Emily Davis (GreenFuture CEO)",
       "objectId": "entrepreneurs",
-      "workspaceId": "startup-greenfuture"
+      "workspaceId": "startup-greenfuture",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Background", "parentId": null },
+          { "id": "n2", "content": "Tesla 3 years (Sustainability)", "parentId": "n1" },
+          { "id": "n3", "content": "MIT Engineering", "parentId": "n1" },
+          { "id": "n4", "content": "Focus", "parentId": null },
+          { "id": "n5", "content": "Carbon Capture Tech", "parentId": "n4" }
+        ]
+      }
     },
     {
       "id": "ent-lee",
       "name": "David Lee (HealthAI CEO)",
       "objectId": "entrepreneurs",
-      "workspaceId": "startup-healthai"
+      "workspaceId": "startup-healthai",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Background", "parentId": null },
+          { "id": "n2", "content": "Johns Hopkins MD", "parentId": "n1" },
+          { "id": "n3", "content": "McKinsey Healthcare", "parentId": "n1" },
+          { "id": "n4", "content": "Focus", "parentId": null },
+          { "id": "n5", "content": "AI Diagnostics", "parentId": "n4" }
+        ]
+      }
+    },
+    {
+      "id": "inv-techstart-1",
+      "name": "John Smith (Angel)",
+      "objectId": "investors",
+      "workspaceId": "startup-techstart",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Interest", "parentId": null },
+          { "id": "n2", "content": "AI/HR Tech", "parentId": "n1" },
+          { "id": "n3", "content": "Check Size: $50-100K", "parentId": "n1" },
+          { "id": "n4", "content": "Status", "parentId": null },
+          { "id": "n5", "content": "Interested - Follow up", "parentId": "n4" }
+        ]
+      }
+    },
+    {
+      "id": "inv-techstart-2",
+      "name": "Sarah Johnson (VC)",
+      "objectId": "investors",
+      "workspaceId": "startup-techstart",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Interest", "parentId": null },
+          { "id": "n2", "content": "Series A Lead", "parentId": "n1" },
+          { "id": "n3", "content": "Check Size: $2-5M", "parentId": "n1" },
+          { "id": "n4", "content": "Status", "parentId": null },
+          { "id": "n5", "content": "Meeting scheduled", "parentId": "n4" }
+        ]
+      }
+    },
+    {
+      "id": "mtg-techstart-mentor",
+      "name": "Mentor Session",
+      "objectId": "meetings",
+      "workspaceId": "startup-techstart",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "list",
+        "nodes": [
+          { "id": "a1", "content": "Agenda", "parentId": null },
+          { "id": "a2", "content": "Review pitch deck", "parentId": "a1" },
+          { "id": "a3", "content": "Discuss fundraising strategy", "parentId": "a1" },
+          { "id": "a4", "content": "Q&A with mentor", "parentId": "a1" },
+          { "id": "b1", "content": "Action Items", "parentId": null },
+          { "id": "b2", "content": "Update financial model", "parentId": "b1" },
+          { "id": "b3", "content": "Schedule investor intro", "parentId": "b1" },
+          { "id": "b4", "content": "Revise slide 7-10", "parentId": "b1" },
+          { "id": "c1", "content": "Notes", "parentId": null },
+          { "id": "c2", "content": "Focus on enterprise sales first", "parentId": "c1" },
+          { "id": "c3", "content": "Defer consumer market to v2", "parentId": "c1" }
+        ]
+      }
+    },
+    {
+      "id": "mtg-techstart-investor",
+      "name": "Investor Intro",
+      "objectId": "meetings",
+      "workspaceId": "startup-techstart",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "list",
+        "nodes": [
+          { "id": "a1", "content": "Agenda", "parentId": null },
+          { "id": "a2", "content": "Company overview (10 min)", "parentId": "a1" },
+          { "id": "a3", "content": "Product demo (15 min)", "parentId": "a1" },
+          { "id": "a4", "content": "Financials & Ask (10 min)", "parentId": "a1" },
+          { "id": "a5", "content": "Q&A (10 min)", "parentId": "a1" }
+        ]
+      }
+    },
+    {
+      "id": "mtg-techstart-demo",
+      "name": "Demo Practice",
+      "objectId": "meetings",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "task-techstart-1",
+      "name": "Finalize pitch deck",
+      "objectId": "tasks",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "task-techstart-2",
+      "name": "Update financial model",
+      "objectId": "tasks",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "task-techstart-3",
+      "name": "Prepare product demo",
+      "objectId": "tasks",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "task-techstart-4",
+      "name": "Research target investors",
+      "objectId": "tasks",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "task-techstart-5",
+      "name": "Schedule follow-up meetings",
+      "objectId": "tasks",
+      "workspaceId": "startup-techstart"
+    },
+    {
+      "id": "startup-techstart-item",
+      "name": "TechStart",
+      "objectId": "startups",
+      "workspaceId": "online-program",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Company Info", "parentId": null },
+          { "id": "n2", "content": "AI Hiring Platform", "parentId": "n1" },
+          { "id": "n3", "content": "Founded: 2024", "parentId": "n1" },
+          { "id": "n4", "content": "Stage: Pre-Seed", "parentId": "n1" },
+          { "id": "n5", "content": "Team", "parentId": null },
+          { "id": "n6", "content": "Alex Kim (CEO)", "parentId": "n5" },
+          { "id": "n7", "content": "2 engineers", "parentId": "n5" },
+          { "id": "n8", "content": "Metrics", "parentId": null },
+          { "id": "n9", "content": "MVP Live", "parentId": "n8" },
+          { "id": "n10", "content": "5 pilot customers", "parentId": "n8" },
+          { "id": "n11", "content": "$10K MRR", "parentId": "n8" },
+          { "id": "n12", "content": "Fundraising", "parentId": null },
+          { "id": "n13", "content": "Seeking: $500K", "parentId": "n12" },
+          { "id": "n14", "content": "Valuation: $3M", "parentId": "n12" }
+        ]
+      }
+    },
+    {
+      "id": "startup-greenfuture-item",
+      "name": "GreenFuture",
+      "objectId": "startups",
+      "workspaceId": "online-program",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Company Info", "parentId": null },
+          { "id": "n2", "content": "Carbon Capture Tech", "parentId": "n1" },
+          { "id": "n3", "content": "Founded: 2023", "parentId": "n1" },
+          { "id": "n4", "content": "Stage: Seed", "parentId": "n1" },
+          { "id": "n5", "content": "Team", "parentId": null },
+          { "id": "n6", "content": "Emily Davis (CEO)", "parentId": "n5" },
+          { "id": "n7", "content": "3 scientists", "parentId": "n5" },
+          { "id": "n8", "content": "Metrics", "parentId": null },
+          { "id": "n9", "content": "2 patents pending", "parentId": "n8" },
+          { "id": "n10", "content": "1 enterprise pilot", "parentId": "n8" }
+        ]
+      }
+    },
+    {
+      "id": "startup-healthai-item",
+      "name": "HealthAI",
+      "objectId": "startups",
+      "workspaceId": "online-program",
+      "contextData": {
+        "type": "tree",
+        "viewStyle": "mindmap",
+        "nodes": [
+          { "id": "n1", "content": "Company Info", "parentId": null },
+          { "id": "n2", "content": "AI Diagnostics Platform", "parentId": "n1" },
+          { "id": "n3", "content": "Founded: 2024", "parentId": "n1" },
+          { "id": "n4", "content": "Stage: Pre-Seed", "parentId": "n1" },
+          { "id": "n5", "content": "Team", "parentId": null },
+          { "id": "n6", "content": "David Lee (CEO)", "parentId": "n5" },
+          { "id": "n7", "content": "1 ML engineer", "parentId": "n5" },
+          { "id": "n8", "content": "Metrics", "parentId": null },
+          { "id": "n9", "content": "FDA pathway identified", "parentId": "n8" },
+          { "id": "n10", "content": "3 hospital LOIs", "parentId": "n8" }
+        ]
+      }
     },
     {
       "id": "task-vc-1",
