@@ -1009,7 +1009,15 @@ export default function WorkspacePage() {
                     <p className="text-xs text-zinc-400 py-2 text-center">No objects</p>
                   ) : (
                     filteredObjects.map((obj) => {
-                      const objectItems = items.filter((i) => i.objectId === obj.id);
+                      const objectItems = items.filter((i) => {
+                        if (i.objectId !== obj.id) return false;
+                        if (objectViewScope === 'workspace') {
+                          return i.workspaceId === subproject;
+                        }
+                        // Project scope - show items from any workspace in this project
+                        const ws = workspaces.find(w => w.id === i.workspaceId);
+                        return ws?.projectId === project;
+                      });
                       const isExpanded = expandedObjects.has(obj.id);
                       return (
                         <div key={obj.id}>
