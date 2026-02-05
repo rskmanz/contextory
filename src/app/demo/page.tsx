@@ -49,11 +49,9 @@ export default function DemoPage() {
           </div>
           <div className="text-xs text-zinc-400 mb-1">Workspaces:</div>
           <div className="space-y-1 text-xs">
-            <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">💻 Online Program</div>
+            <div className="px-2 py-1 bg-blue-50 rounded text-blue-700 font-medium border border-blue-200">💻 Online Program ←</div>
+            <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">🏢 Offline Program</div>
             <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">💰 Investor Relations</div>
-            <div className="px-2 py-1 bg-blue-50 rounded text-blue-700 font-medium border border-blue-200">🎯 TechStart ←</div>
-            <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">🌱 GreenFuture</div>
-            <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">🏥 HealthAI</div>
           </div>
         </div>
 
@@ -64,25 +62,21 @@ export default function DemoPage() {
         <div className="flex-shrink-0 w-64 bg-white rounded-xl border border-blue-200 p-4">
           <div className="text-xs text-blue-500 mb-2">WORKSPACE</div>
           <div className="flex items-center gap-2 mb-3">
-            <span>🎯</span>
-            <div className="font-semibold text-sm">TechStart</div>
+            <span>💻</span>
+            <div className="font-semibold text-sm">Online Program</div>
           </div>
 
           {/* Contexts */}
           <div className="mb-3">
-            <div className="text-xs text-zinc-400 mb-1">Contexts (3)</div>
+            <div className="text-xs text-zinc-400 mb-1">Contexts (2)</div>
             <div className="space-y-1 text-xs">
               <div className="flex items-center gap-1 px-2 py-1 bg-zinc-50 rounded text-zinc-600">
-                <span>💡</span><span>Idea Map</span>
-                <span className="ml-auto text-zinc-400 text-[10px]">mindmap</span>
-              </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-zinc-50 rounded text-zinc-600">
-                <span>📋</span><span>Sprint</span>
-                <span className="ml-auto text-zinc-400 text-[10px]">kanban</span>
-              </div>
-              <div className="flex items-center gap-1 px-2 py-1 bg-zinc-50 rounded text-zinc-600">
-                <span>📅</span><span>Schedule</span>
+                <span>🗓️</span><span>Program Roadmap</span>
                 <span className="ml-auto text-zinc-400 text-[10px]">gantt</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1 bg-zinc-50 rounded text-zinc-600">
+                <span>📋</span><span>Application Board</span>
+                <span className="ml-auto text-zinc-400 text-[10px]">kanban</span>
               </div>
             </div>
           </div>
@@ -90,10 +84,10 @@ export default function DemoPage() {
           {/* Objects */}
           <div className="text-xs text-zinc-400 mb-1">Objects (4)</div>
           <div className="grid grid-cols-2 gap-1 text-xs">
-            <div className="px-1 py-1 bg-zinc-50 rounded text-center text-zinc-600">👨‍💼 People</div>
+            <div className="px-1 py-1 bg-blue-50 rounded text-center text-blue-700 border border-blue-200">🚀 Startups←</div>
             <div className="px-1 py-1 bg-zinc-50 rounded text-center text-zinc-600">💼 Investors</div>
             <div className="px-1 py-1 bg-zinc-50 rounded text-center text-zinc-600">✅ Tasks</div>
-            <div className="px-1 py-1 bg-blue-50 rounded text-center text-blue-700 border border-blue-200">📅 Meetings←</div>
+            <div className="px-1 py-1 bg-zinc-50 rounded text-center text-zinc-600">📅 Meetings</div>
           </div>
         </div>
 
@@ -102,63 +96,11 @@ export default function DemoPage() {
 
         {/* Column 4: Items */}
         <div className="flex-shrink-0 w-44 bg-white rounded-xl border border-zinc-200 p-4">
-          <div className="text-xs text-zinc-400 mb-2">ITEMS</div>
-          <div className="space-y-1 text-xs">
-            <div className="px-2 py-1.5 bg-blue-50 rounded border border-blue-200">
-              <div className="font-medium text-blue-700">Mentor Session ←</div>
-              <div className="text-blue-400 text-[10px]">Jan 15</div>
-            </div>
-            <div className="px-2 py-1.5 bg-zinc-50 rounded">
-              <div className="text-zinc-600">Investor Intro</div>
-              <div className="text-zinc-400 text-[10px]">Jan 20</div>
-            </div>
-            <div className="px-2 py-1.5 bg-zinc-50 rounded">
-              <div className="text-zinc-600">Demo Practice</div>
-              <div className="text-zinc-400 text-[10px]">Jan 25</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Arrow */}
-        <div className="flex-shrink-0 flex items-center text-zinc-300 text-2xl">→</div>
-
-        {/* Column 5: Item Context */}
-        <div className="flex-shrink-0 w-56 bg-white rounded-xl border border-blue-200 p-4">
-          <div className="text-xs text-blue-500 mb-2">ITEM CONTEXT</div>
-          <div className="flex items-center gap-2 mb-2">
-            <span>📅</span>
-            <div className="font-semibold text-sm">Mentor Session</div>
-          </div>
-          <div className="space-y-1 text-xs">
-            <div className="bg-zinc-50 p-1.5 rounded">
-              <div className="font-medium text-zinc-700">📝 Agenda</div>
-              <div className="text-zinc-500 text-[10px]">1. Pitch deck review</div>
-              <div className="text-zinc-500 text-[10px]">2. Fundraising</div>
-            </div>
-            <div className="bg-zinc-50 p-1.5 rounded">
-              <div className="font-medium text-zinc-700">✅ Actions</div>
-              <div className="text-zinc-500 text-[10px]">• Update model</div>
-            </div>
-            <div className="bg-zinc-50 p-1.5 rounded">
-              <div className="font-medium text-zinc-700">📄 Notes</div>
-              <div className="text-zinc-500 text-[10px] italic">"Enterprise first..."</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Second Row: Startup as Item with Context */}
-      <div className="mt-6 flex gap-4 overflow-x-auto pb-4">
-        <div className="flex-shrink-0 w-48"></div>
-        <div className="flex-shrink-0 flex items-center text-zinc-300 text-2xl"></div>
-
-        {/* Project has Startups as Items */}
-        <div className="flex-shrink-0 w-52 bg-white rounded-xl border border-zinc-200 p-4">
-          <div className="text-xs text-zinc-400 mb-2">OBJECT: Startups</div>
+          <div className="text-xs text-zinc-400 mb-2">ITEMS (Startups)</div>
           <div className="space-y-1 text-xs">
             <div className="px-2 py-1.5 bg-blue-50 rounded border border-blue-200">
               <div className="font-medium text-blue-700">🎯 TechStart ←</div>
-              <div className="text-blue-400 text-[10px]">AI Hiring Platform</div>
+              <div className="text-blue-400 text-[10px]">AI Hiring</div>
             </div>
             <div className="px-2 py-1.5 bg-zinc-50 rounded">
               <div className="text-zinc-600">🌱 GreenFuture</div>
@@ -174,9 +116,9 @@ export default function DemoPage() {
         {/* Arrow */}
         <div className="flex-shrink-0 flex items-center text-zinc-300 text-2xl">→</div>
 
-        {/* Startup Item Context */}
-        <div className="flex-shrink-0 w-64 bg-white rounded-xl border border-blue-200 p-4">
-          <div className="text-xs text-blue-500 mb-2">STARTUP CONTEXT</div>
+        {/* Column 5: Item Context */}
+        <div className="flex-shrink-0 w-56 bg-white rounded-xl border border-blue-200 p-4">
+          <div className="text-xs text-blue-500 mb-2">ITEM CONTEXT</div>
           <div className="flex items-center gap-2 mb-2">
             <span>🎯</span>
             <div className="font-semibold text-sm">TechStart</div>
@@ -185,11 +127,11 @@ export default function DemoPage() {
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Company</div>
               <div className="text-zinc-500 text-[10px]">Pre-Seed</div>
-              <div className="text-zinc-500 text-[10px]">Founded 2024</div>
+              <div className="text-zinc-500 text-[10px]">2024</div>
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Team</div>
-              <div className="text-zinc-500 text-[10px]">Alex Kim (CEO)</div>
+              <div className="text-zinc-500 text-[10px]">Alex Kim</div>
               <div className="text-zinc-500 text-[10px]">2 engineers</div>
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
@@ -199,26 +141,36 @@ export default function DemoPage() {
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Raise</div>
-              <div className="text-zinc-500 text-[10px]">$500K @ $3M</div>
+              <div className="text-zinc-500 text-[10px]">$500K</div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Arrow to Person */}
+      {/* Second Row: Drill into Person from Item Context */}
+      <div className="mt-4 flex gap-4 overflow-x-auto pb-4">
+        <div className="flex-shrink-0 w-48"></div>
+        <div className="flex-shrink-0 w-16"></div>
+        <div className="flex-shrink-0 w-52"></div>
+        <div className="flex-shrink-0 w-16"></div>
+        <div className="flex-shrink-0 w-64"></div>
+        <div className="flex-shrink-0 w-16"></div>
+        <div className="flex-shrink-0 w-44"></div>
+
+        {/* Arrow from Item Context */}
         <div className="flex-shrink-0 flex items-center text-zinc-300 text-2xl">→</div>
 
-        {/* Person Context */}
+        {/* Person Context (Alex Kim) */}
         <div className="flex-shrink-0 w-56 bg-white rounded-xl border border-zinc-200 p-4">
-          <div className="text-xs text-zinc-400 mb-2">PERSON CONTEXT</div>
+          <div className="text-xs text-zinc-400 mb-2">NESTED CONTEXT</div>
           <div className="flex items-center gap-2 mb-2">
             <span>👨‍💼</span>
-            <div className="font-semibold text-sm">Alex Kim</div>
+            <div className="font-semibold text-sm">Alex Kim (CEO)</div>
           </div>
           <div className="space-y-1 text-xs">
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Background</div>
-              <div className="text-zinc-500 text-[10px]">Google 5y (Sr PM)</div>
-              <div className="text-zinc-500 text-[10px]">Stanford MBA</div>
+              <div className="text-zinc-500 text-[10px]">Google 5y, Stanford MBA</div>
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Skills</div>
