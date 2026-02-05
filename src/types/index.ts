@@ -8,6 +8,15 @@ export interface Project {
   category: string;
 }
 
+// Resource attached to a workspace
+export interface Resource {
+  id: string;
+  name: string;
+  url?: string;
+  notes?: string;
+  icon?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -16,6 +25,7 @@ export interface Workspace {
   category?: string;
   categoryIcon?: string;
   type?: string;          // department, activity, client, etc.
+  resources?: Resource[];  // workspace-level resources
 }
 
 // Node within a context (tree structure)
@@ -71,8 +81,8 @@ export interface Context {
   id: string;
   name: string;
   icon: string;
-  type: ContextType;
-  viewStyle: ViewStyle;
+  type?: ContextType;
+  viewStyle?: ViewStyle;
   scope: ObjectScope;             // 'global' | 'project' | 'local'
   projectId: string | null;       // null for global, set for project/local
   workspaceId: string | null;     // null for global/project, set for local

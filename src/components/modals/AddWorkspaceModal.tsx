@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 
 interface AddWorkspaceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    projectId: string;
+    projectId?: string;  // Optional - if not provided, show project selector
 }
 
 const categoryIcons = ['📁', '📋', '📊', '🎯', '💼', '🔧', '📝', '🌟'];
@@ -15,17 +15,30 @@ export const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ isOpen, on
     const [name, setName] = useState('');
     const [category, setCategory] = useState('General');
     const [categoryIcon, setCategoryIcon] = useState('📁');
+    const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
 
     const addWorkspace = useStore((state) => state.addWorkspace);
+    const projects = useStore((state) => state.projects);
+
+    // Reset selectedProjectId when modal opens with a specific projectId
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedProjectId(projectId || '');
+        }
+    }, [isOpen, projectId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim()) return;
 
-        await addWorkspace({ name, projectId, category, categoryIcon });
+        const targetProjectId = projectId || selectedProjectId;
+        if (!targetProjectId) return;
+
+        await addWorkspace({ name, projectId: targetProjectId, category, categoryIcon });
         setName('');
         setCategory('General');
         setCategoryIcon('📁');
+        setSelectedProjectId(projectId || '');
         onClose();
     };
 
@@ -37,6 +50,25 @@ export const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ isOpen, on
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
                 <h2 className="text-xl font-bold text-zinc-900 mb-4">Add Workspace</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Project selector - only show when projectId not provided */}
+                    {!projectId && (
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-1">Project</label>
+                            <select
+                                value={selectedProjectId}
+                                onChange={(e) => setSelectedProjectId(e.target.value)}
+                                className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                            >
+                                <option value="">Select a project</option>
+                                {projects.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.icon} {p.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 mb-1">Name</label>
                         <input
@@ -86,7 +118,8 @@ export const AddWorkspaceModal: React.FC<AddWorkspaceModalProps> = ({ isOpen, on
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                            disabled={!name.trim() || (!projectId && !selectedProjectId)}
+                            className="px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Add Workspace
                         </button>

@@ -14,9 +14,9 @@ beforeEach(() => {
   });
 });
 
-describe('Store - 3-Tier Scope CRUD Functions', () => {
+describe('Store - Object Availability CRUD Functions', () => {
   describe('Global Objects', () => {
-    it('addGlobalObject creates object with scope=global, projectId=null, workspaceId=null', async () => {
+    it('addGlobalObject creates object with availableGlobal=true', async () => {
       const store = useStore.getState();
 
       const id = await store.addGlobalObject({
@@ -29,19 +29,19 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
       const createdObject = objects.find((o) => o.id === id);
 
       expect(createdObject).toBeDefined();
-      expect(createdObject?.scope).toBe('global');
-      expect(createdObject?.projectId).toBeNull();
-      expect(createdObject?.workspaceId).toBeNull();
+      expect(createdObject?.availableGlobal).toBe(true);
+      expect(createdObject?.availableInProjects).toEqual(['*']);
+      expect(createdObject?.availableInWorkspaces).toEqual(['*']);
       expect(createdObject?.name).toBe('Teams');
     });
 
-    it('getGlobalObjects returns only global scope objects', () => {
+    it('getGlobalObjects returns only availableGlobal=true objects', () => {
       useStore.setState({
         objects: [
-          { id: '1', name: 'Global Tasks', icon: '📋', scope: 'global', projectId: null, workspaceId: null, builtIn: false },
-          { id: '2', name: 'Project Notes', icon: '📝', scope: 'project', projectId: 'proj-1', workspaceId: null, builtIn: false },
-          { id: '3', name: 'Global Teams', icon: '👥', scope: 'global', projectId: null, workspaceId: null, builtIn: false },
-          { id: '4', name: 'Local Items', icon: '🎯', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false },
+          { id: '1', name: 'Global Tasks', icon: '📋', availableGlobal: true, availableInProjects: ['*'], availableInWorkspaces: ['*'], builtIn: false },
+          { id: '2', name: 'Project Notes', icon: '📝', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false },
+          { id: '3', name: 'Global Teams', icon: '👥', availableGlobal: true, availableInProjects: ['*'], availableInWorkspaces: ['*'], builtIn: false },
+          { id: '4', name: 'Local Items', icon: '🎯', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-1'], builtIn: false },
         ],
       });
 
@@ -54,7 +54,7 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
   });
 
   describe('Project Objects', () => {
-    it('addProjectObject creates object with scope=project', async () => {
+    it('addProjectObject creates object with availableInProjects=[projectId]', async () => {
       const store = useStore.getState();
 
       const id = await store.addProjectObject('proj-1', {
@@ -67,18 +67,18 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
       const createdObject = objects.find((o) => o.id === id);
 
       expect(createdObject).toBeDefined();
-      expect(createdObject?.scope).toBe('project');
-      expect(createdObject?.projectId).toBe('proj-1');
-      expect(createdObject?.workspaceId).toBeNull();
+      expect(createdObject?.availableGlobal).toBe(false);
+      expect(createdObject?.availableInProjects).toEqual(['proj-1']);
+      expect(createdObject?.availableInWorkspaces).toEqual([]);
     });
 
-    it('getProjectObjects returns only project scope objects for given project', () => {
+    it('getProjectObjects returns project-level objects for given project', () => {
       useStore.setState({
         objects: [
-          { id: '1', name: 'Global Tasks', icon: '📋', scope: 'global', projectId: null, workspaceId: null, builtIn: false },
-          { id: '2', name: 'Project Notes', icon: '📝', scope: 'project', projectId: 'proj-1', workspaceId: null, builtIn: false },
-          { id: '3', name: 'Project Features', icon: '⭐', scope: 'project', projectId: 'proj-1', workspaceId: null, builtIn: false },
-          { id: '4', name: 'Other Project', icon: '🎯', scope: 'project', projectId: 'proj-2', workspaceId: null, builtIn: false },
+          { id: '1', name: 'Global Tasks', icon: '📋', availableGlobal: true, availableInProjects: ['*'], availableInWorkspaces: ['*'], builtIn: false },
+          { id: '2', name: 'Project Notes', icon: '📝', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false },
+          { id: '3', name: 'Project Features', icon: '⭐', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false },
+          { id: '4', name: 'Other Project', icon: '🎯', availableGlobal: false, availableInProjects: ['proj-2'], availableInWorkspaces: [], builtIn: false },
         ],
       });
 
@@ -91,7 +91,7 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
   });
 
   describe('Local Objects', () => {
-    it('addLocalObject creates object with scope=local', async () => {
+    it('addLocalObject creates object with availableInWorkspaces=[workspaceId]', async () => {
       const store = useStore.getState();
 
       const id = await store.addLocalObject('proj-1', 'ws-1', {
@@ -104,19 +104,19 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
       const createdObject = objects.find((o) => o.id === id);
 
       expect(createdObject).toBeDefined();
-      expect(createdObject?.scope).toBe('local');
-      expect(createdObject?.projectId).toBe('proj-1');
-      expect(createdObject?.workspaceId).toBe('ws-1');
+      expect(createdObject?.availableGlobal).toBe(false);
+      expect(createdObject?.availableInProjects).toEqual([]);
+      expect(createdObject?.availableInWorkspaces).toEqual(['ws-1']);
     });
 
-    it('getLocalObjects returns only local scope objects for given workspace', () => {
+    it('getLocalObjects returns workspace-level objects for given workspace', () => {
       useStore.setState({
         objects: [
-          { id: '1', name: 'Global Tasks', icon: '📋', scope: 'global', projectId: null, workspaceId: null, builtIn: false },
-          { id: '2', name: 'Project Notes', icon: '📝', scope: 'project', projectId: 'proj-1', workspaceId: null, builtIn: false },
-          { id: '3', name: 'Local Tasks', icon: '✅', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false },
-          { id: '4', name: 'Local Notes', icon: '📓', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false },
-          { id: '5', name: 'Other WS', icon: '🎯', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-2', builtIn: false },
+          { id: '1', name: 'Global Tasks', icon: '📋', availableGlobal: true, availableInProjects: ['*'], availableInWorkspaces: ['*'], builtIn: false },
+          { id: '2', name: 'Project Notes', icon: '📝', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false },
+          { id: '3', name: 'Local Tasks', icon: '✅', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-1'], builtIn: false },
+          { id: '4', name: 'Local Notes', icon: '📓', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-1'], builtIn: false },
+          { id: '5', name: 'Other WS', icon: '🎯', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-2'], builtIn: false },
         ],
       });
 
@@ -129,14 +129,14 @@ describe('Store - 3-Tier Scope CRUD Functions', () => {
   });
 
   describe('Visible Objects', () => {
-    it('getVisibleObjects returns global + project + local objects for a workspace', () => {
+    it('getVisibleObjects returns objects available in workspace', () => {
       useStore.setState({
         objects: [
-          { id: '1', name: 'Global Tasks', icon: '🌐', scope: 'global', projectId: null, workspaceId: null, builtIn: false },
-          { id: '2', name: 'Project Notes', icon: '📁', scope: 'project', projectId: 'proj-1', workspaceId: null, builtIn: false },
-          { id: '3', name: 'Local Items', icon: '📍', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false },
-          { id: '4', name: 'Other Project', icon: '📁', scope: 'project', projectId: 'proj-2', workspaceId: null, builtIn: false },
-          { id: '5', name: 'Other Workspace', icon: '📍', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-2', builtIn: false },
+          { id: '1', name: 'Global Tasks', icon: '🌐', availableGlobal: true, availableInProjects: ['*'], availableInWorkspaces: ['*'], builtIn: false },
+          { id: '2', name: 'Project Notes', icon: '📁', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false },
+          { id: '3', name: 'Local Items', icon: '📍', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-1'], builtIn: false },
+          { id: '4', name: 'Other Project', icon: '📁', availableGlobal: false, availableInProjects: ['proj-2'], availableInWorkspaces: [], builtIn: false },
+          { id: '5', name: 'Other Workspace', icon: '📍', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-2'], builtIn: false },
         ],
       });
 
@@ -284,6 +284,8 @@ describe('Store - Context CRUD Functions', () => {
         icon: '🗺️',
         type: 'tree',
         viewStyle: 'mindmap',
+        scope: 'local',
+        projectId: 'proj-1',
         workspaceId: 'ws-1',
         objectIds: ['obj-1', 'obj-2'],
         markdownId: 'roadmap-md',
@@ -306,6 +308,8 @@ describe('Store - Context CRUD Functions', () => {
             icon: '📝',
             type: 'tree',
             viewStyle: 'list',
+            scope: 'local',
+            projectId: 'proj-1',
             workspaceId: 'ws-1',
             data: { nodes: [] },
           },
@@ -328,8 +332,8 @@ describe('Store - Context CRUD Functions', () => {
     it('deleteContext removes context', async () => {
       useStore.setState({
         contexts: [
-          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', workspaceId: 'ws-1', data: { nodes: [] } },
-          { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
         ],
       });
 
@@ -352,6 +356,8 @@ describe('Store - Context CRUD Functions', () => {
             icon: '📝',
             type: 'tree',
             viewStyle: 'list',
+            scope: 'local',
+            projectId: 'proj-1',
             workspaceId: 'ws-1',
             data: { nodes: [{ id: 'n1', content: 'Root', parentId: null }] },
           },
@@ -419,9 +425,9 @@ describe('Store - Basic CRUD Functions', () => {
       useStore.setState({
         projects: [{ id: 'proj-1', name: 'Project', icon: '📁', gradient: '', category: '' }],
         workspaces: [{ id: 'ws-1', name: 'Workspace', projectId: 'proj-1' }],
-        objects: [{ id: 'obj-1', name: 'Object', icon: '📋', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false }],
+        objects: [{ id: 'obj-1', name: 'Object', icon: '📋', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false }],
         items: [{ id: 'item-1', name: 'Item', objectId: 'obj-1', workspaceId: 'ws-1' }],
-        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'list', workspaceId: 'ws-1', data: { nodes: [] } }],
+        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'list', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } }],
       });
 
       const store = useStore.getState();
@@ -457,21 +463,21 @@ describe('Store - Basic CRUD Functions', () => {
       const id = await store.addObject({
         name: 'Tasks',
         icon: '📋',
-        scope: 'local',
-        projectId: 'proj-1',
-        workspaceId: 'ws-1',
+        availableGlobal: false,
+        availableInProjects: [],
+        availableInWorkspaces: ['ws-1'],
         builtIn: false,
       });
 
       const objects = useStore.getState().objects;
       expect(objects).toHaveLength(1);
       expect(objects[0].name).toBe('Tasks');
-      expect(objects[0].scope).toBe('local');
+      expect(objects[0].availableInWorkspaces).toEqual(['ws-1']);
     });
 
     it('deleteObject removes object and its items', async () => {
       useStore.setState({
-        objects: [{ id: 'obj-1', name: 'Object', icon: '📋', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', builtIn: false }],
+        objects: [{ id: 'obj-1', name: 'Object', icon: '📋', availableGlobal: false, availableInProjects: [], availableInWorkspaces: ['ws-1'], builtIn: false }],
         items: [
           { id: 'item-1', name: 'Item 1', objectId: 'obj-1', workspaceId: 'ws-1' },
           { id: 'item-2', name: 'Item 2', objectId: 'obj-1', workspaceId: 'ws-1' },

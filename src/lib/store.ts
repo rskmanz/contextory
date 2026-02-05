@@ -11,6 +11,7 @@ interface AppState {
     contexts: Context[];
     objects: ObjectType[];
     items: ObjectItem[];
+    pinnedObjectTabs: string[];  // Object IDs pinned as home tabs
     isLoading: boolean;
     isLoaded: boolean;
 
@@ -39,6 +40,9 @@ interface AppState {
     addContext: (context: Omit<Context, 'id'>) => Promise<string>;
     updateContext: (id: string, updates: Partial<Context>) => Promise<void>;
     deleteContext: (id: string) => Promise<void>;
+    getGlobalContexts: () => Context[];
+    getProjectContexts: (projectId: string) => Context[];
+    getLocalContexts: (workspaceId: string) => Context[];
 
     // Context Nodes
     addNode: (contextId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
@@ -58,13 +62,14 @@ interface AppState {
     addItem: (item: Omit<ObjectItem, 'id'>) => Promise<string>;
     updateItem: (id: string, updates: Partial<ObjectItem>) => Promise<void>;
     deleteItem: (id: string) => Promise<void>;
+    copyItem: (itemId: string, workspaceId: string) => Promise<string | null>;
 
-    // 3-Tier Scope Objects
-    addGlobalObject: (object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    // Object Availability Operations
+    addGlobalObject: (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
     getGlobalObjects: () => ObjectType[];
-    addProjectObject: (projectId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    addProjectObject: (projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
     getProjectObjects: (projectId: string) => ObjectType[];
-    addLocalObject: (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => Promise<string>;
+    addLocalObject: (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
     getLocalObjects: (workspaceId: string) => ObjectType[];
     getVisibleObjects: (projectId: string, workspaceId: string) => ObjectType[];
 
@@ -89,6 +94,11 @@ interface AppState {
     setChatOpen: (isOpen: boolean) => void;
     setChatExpanded: (isExpanded: boolean) => void;
     setChatLoading: (isLoading: boolean) => void;
+
+    // Pinned Object Tabs
+    pinObjectTab: (objectId: string) => Promise<void>;
+    unpinObjectTab: (objectId: string) => Promise<void>;
+    reorderPinnedTabs: (objectIds: string[]) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -97,6 +107,7 @@ export const useStore = create<AppState>((set, get) => ({
     contexts: [],
     objects: [],
     items: [],
+    pinnedObjectTabs: [],
     isLoading: false,
     isLoaded: false,
 
@@ -116,12 +127,61 @@ export const useStore = create<AppState>((set, get) => ({
         try {
             const res = await fetch('/api/data');
             const data = await res.json();
+
+            // Migrate old object format to new format
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const migratedObjects = (data.objects || []).map((o: any) => {
+                // Already migrated
+                if ('availableGlobal' in o) return o;
+
+                // Migrate from old scope-based format
+                if (o.scope === 'global') {
+                    return {
+                        id: o.id,
+                        name: o.name,
+                        icon: o.icon,
+                        type: o.type,
+                        category: o.category,
+                        builtIn: o.builtIn,
+                        availableGlobal: true,
+                        availableInProjects: o.availableInProjects || ['*'],
+                        availableInWorkspaces: o.availableInWorkspaces || ['*'],
+                    };
+                } else if (o.scope === 'project') {
+                    return {
+                        id: o.id,
+                        name: o.name,
+                        icon: o.icon,
+                        type: o.type,
+                        category: o.category,
+                        builtIn: o.builtIn,
+                        availableGlobal: false,
+                        availableInProjects: o.projectId ? [o.projectId] : [],
+                        availableInWorkspaces: [],
+                    };
+                } else {
+                    // scope === 'local'
+                    return {
+                        id: o.id,
+                        name: o.name,
+                        icon: o.icon,
+                        type: o.type,
+                        category: o.category,
+                        builtIn: o.builtIn,
+                        availableGlobal: false,
+                        availableInProjects: [],
+                        availableInWorkspaces: o.workspaceId ? [o.workspaceId] : [],
+                    };
+                }
+            });
+
             set({
                 projects: data.projects || [],
                 workspaces: data.workspaces || [],
                 contexts: data.contexts || [],
-                objects: data.objects || [],
+                objects: migratedObjects,
                 items: data.items || [],
+                pinnedObjectTabs: data.pinnedObjectTabs || [],
                 isLoaded: true,
                 isLoading: false,
             });
@@ -132,12 +192,12 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     saveData: async () => {
-        const { projects, workspaces, contexts, objects, items } = get();
+        const { projects, workspaces, contexts, objects, items, pinnedObjectTabs } = get();
         try {
             await fetch('/api/data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projects, workspaces, contexts, objects, items }),
+                body: JSON.stringify({ projects, workspaces, contexts, objects, items, pinnedObjectTabs }),
             });
         } catch (error) {
             console.error('Failed to save data:', error);
@@ -163,16 +223,24 @@ export const useStore = create<AppState>((set, get) => ({
         const workspaceIds = get().workspaces
             .filter((w) => w.projectId === id)
             .map((w) => w.id);
-        const objectIds = get().objects
-            .filter((o) => o.projectId === id)
-            .map((o) => o.id);
+        // Find objects that are ONLY available in this project (not global or other projects)
+        const objectsToDelete = get().objects.filter((o) =>
+            !o.availableGlobal &&
+            o.availableInProjects.length === 1 &&
+            o.availableInProjects[0] === id &&
+            o.availableInWorkspaces.length === 0
+        );
+        const objectIds = objectsToDelete.map((o) => o.id);
         set((state) => ({
             projects: state.projects.filter((p) => p.id !== id),
             workspaces: state.workspaces.filter((w) => w.projectId !== id),
-            contexts: state.contexts.filter((c) => !workspaceIds.includes(c.workspaceId)),
-            // Delete all objects belonging to this project (both global and local)
-            objects: state.objects.filter((o) => o.projectId !== id),
-            // Delete all items belonging to objects in this project
+            // Delete contexts: project-level OR local contexts in project's workspaces
+            contexts: state.contexts.filter((c) =>
+                c.projectId !== id && (c.workspaceId === null || !workspaceIds.includes(c.workspaceId))
+            ),
+            // Delete objects that were ONLY available in this project
+            objects: state.objects.filter((o) => !objectIds.includes(o.id)),
+            // Delete all items belonging to deleted objects
             items: state.items.filter((i) => !objectIds.includes(i.objectId)),
         }));
         await get().saveData();
@@ -194,15 +262,20 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     deleteWorkspace: async (id) => {
-        // Get local objects in this workspace (not global objects)
-        const localObjectIds = get().objects
-            .filter((o) => o.workspaceId === id)
-            .map((o) => o.id);
+        // Find objects that are ONLY available in this workspace
+        const objectsToDelete = get().objects.filter((o) =>
+            !o.availableGlobal &&
+            o.availableInProjects.length === 0 &&
+            o.availableInWorkspaces.length === 1 &&
+            o.availableInWorkspaces[0] === id
+        );
+        const localObjectIds = objectsToDelete.map((o) => o.id);
         set((state) => ({
             workspaces: state.workspaces.filter((w) => w.id !== id),
+            // Only delete local contexts (workspaceId matches)
             contexts: state.contexts.filter((c) => c.workspaceId !== id),
-            // Only delete local objects (workspaceId matches), not global objects
-            objects: state.objects.filter((o) => o.workspaceId !== id),
+            // Delete objects that were ONLY available in this workspace
+            objects: state.objects.filter((o) => !localObjectIds.includes(o.id)),
             // Delete items: local object items OR items with this workspaceId
             items: state.items.filter((i) =>
                 !localObjectIds.includes(i.objectId) && i.workspaceId !== id
@@ -236,6 +309,18 @@ export const useStore = create<AppState>((set, get) => ({
             contexts: state.contexts.filter((c) => c.id !== id),
         }));
         await get().saveData();
+    },
+
+    getGlobalContexts: () => {
+        return get().contexts.filter((c) => c.scope === 'global');
+    },
+
+    getProjectContexts: (projectId: string) => {
+        return get().contexts.filter((c) => c.scope === 'project' && c.projectId === projectId);
+    },
+
+    getLocalContexts: (workspaceId: string) => {
+        return get().contexts.filter((c) => c.scope === 'local' && c.workspaceId === workspaceId);
     },
 
     // Context Nodes
@@ -383,17 +468,37 @@ export const useStore = create<AppState>((set, get) => ({
         await get().saveData();
     },
 
-    // === 3-Tier Scope Object Operations ===
+    copyItem: async (itemId, workspaceId) => {
+        const item = get().items.find(i => i.id === itemId);
+        if (!item) return null;
 
-    // Global Objects (scope: 'global') - visible across ALL projects
-    addGlobalObject: async (object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
+        const newId = generateId();
+        const newItem: ObjectItem = {
+            ...item,
+            id: newId,
+            workspaceId,
+            contextData: item.contextData ? {
+                ...item.contextData,
+                nodes: item.contextData.nodes?.map(n => ({ ...n, id: generateId() })) || [],
+            } : undefined,
+        };
+
+        set((state) => ({ items: [...state.items, newItem] }));
+        await get().saveData();
+        return newId;
+    },
+
+    // === Object Availability Operations ===
+
+    // Global Objects - available at root/home level
+    addGlobalObject: async (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'> & { availableInProjects?: string[]; availableInWorkspaces?: string[] }) => {
         const id = generateId();
         const newObject: ObjectType = {
             ...object,
             id,
-            scope: 'global',
-            projectId: null,
-            workspaceId: null,
+            availableGlobal: true,
+            availableInProjects: object.availableInProjects || ['*'],
+            availableInWorkspaces: object.availableInWorkspaces || ['*'],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await get().saveData();
@@ -401,18 +506,18 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     getGlobalObjects: () => {
-        return get().objects.filter((o) => o.scope === 'global');
+        return get().objects.filter((o) => o.availableGlobal);
     },
 
-    // Project Objects (scope: 'project') - visible within a project
-    addProjectObject: async (projectId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
+    // Project Objects - available in specific project(s)
+    addProjectObject: async (projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
         const id = generateId();
         const newObject: ObjectType = {
             ...object,
             id,
-            scope: 'project',
-            projectId,
-            workspaceId: null,
+            availableGlobal: false,
+            availableInProjects: [projectId],
+            availableInWorkspaces: [],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await get().saveData();
@@ -420,18 +525,21 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     getProjectObjects: (projectId: string) => {
-        return get().objects.filter((o) => o.scope === 'project' && o.projectId === projectId);
+        return get().objects.filter((o) =>
+            !o.availableGlobal &&
+            (o.availableInProjects.includes('*') || o.availableInProjects.includes(projectId))
+        );
     },
 
-    // Local Objects (scope: 'local') - visible only in a specific workspace
-    addLocalObject: async (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'scope' | 'projectId' | 'workspaceId'>) => {
+    // Local Objects - available in specific workspace(s)
+    addLocalObject: async (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
         const id = generateId();
         const newObject: ObjectType = {
             ...object,
             id,
-            scope: 'local',
-            projectId,
-            workspaceId,
+            availableGlobal: false,
+            availableInProjects: [],
+            availableInWorkspaces: [workspaceId],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await get().saveData();
@@ -439,15 +547,21 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     getLocalObjects: (workspaceId: string) => {
-        return get().objects.filter((o) => o.scope === 'local' && o.workspaceId === workspaceId);
+        return get().objects.filter((o) =>
+            !o.availableGlobal &&
+            o.availableInProjects.length === 0 &&
+            (o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(workspaceId))
+        );
     },
 
     // Get all visible objects for a workspace (global + project + local)
     getVisibleObjects: (projectId: string, workspaceId: string) => {
         return get().objects.filter((o) =>
-            o.scope === 'global' ||
-            (o.scope === 'project' && o.projectId === projectId) ||
-            (o.scope === 'local' && o.workspaceId === workspaceId)
+            o.availableGlobal ||
+            o.availableInProjects.includes('*') ||
+            o.availableInProjects.includes(projectId) ||
+            o.availableInWorkspaces.includes('*') ||
+            o.availableInWorkspaces.includes(workspaceId)
         );
     },
 
@@ -672,5 +786,27 @@ export const useStore = create<AppState>((set, get) => ({
 
     setChatLoading: (isLoading) => {
         set({ isChatLoading: isLoading });
+    },
+
+    // Pinned Object Tabs
+    pinObjectTab: async (objectId) => {
+        set((state) => ({
+            pinnedObjectTabs: state.pinnedObjectTabs.includes(objectId)
+                ? state.pinnedObjectTabs
+                : [...state.pinnedObjectTabs, objectId],
+        }));
+        await get().saveData();
+    },
+
+    unpinObjectTab: async (objectId) => {
+        set((state) => ({
+            pinnedObjectTabs: state.pinnedObjectTabs.filter((id) => id !== objectId),
+        }));
+        await get().saveData();
+    },
+
+    reorderPinnedTabs: async (objectIds) => {
+        set({ pinnedObjectTabs: objectIds });
+        await get().saveData();
     },
 }));

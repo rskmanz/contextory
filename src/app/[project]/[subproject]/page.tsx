@@ -20,8 +20,8 @@ import { TableView } from '@/components/views/TableView';
 import { GanttView } from '@/components/views/GanttView';
 import { ObjectGridView } from '@/components/views/ObjectGridView';
 import { ContextMarkdownSidebar } from '@/components/views/ContextMarkdownSidebar';
-import { ItemMarkdownSidebar } from '@/components/views/ItemMarkdownSidebar';
-import { FloatingChat } from '@/components/ai/FloatingChat';
+import { MarkdownView } from '@/components/views/MarkdownView';
+import { RightSidebar } from '@/components/views/RightSidebar';
 import { useStore } from '@/lib/store';
 import { Context, ObjectType, ObjectItem, Workspace, VIEW_STYLES, ViewStyle, ObjectScope, ContextType, DEFAULT_VIEW_STYLE } from '@/types';
 
@@ -38,10 +38,13 @@ export default function WorkspacePage() {
   const items = useStore((state) => state.items);
   const loadData = useStore((state) => state.loadData);
   const isLoaded = useStore((state) => state.isLoaded);
+  const addContext = useStore((state) => state.addContext);
   const updateContext = useStore((state) => state.updateContext);
   const deleteContext = useStore((state) => state.deleteContext);
   const deleteObject = useStore((state) => state.deleteObject);
   const deleteWorkspace = useStore((state) => state.deleteWorkspace);
+  const deleteItem = useStore((state) => state.deleteItem);
+  const updateObject = useStore((state) => state.updateObject);
   const updateItemContextType = useStore((state) => state.updateItemContextType);
   const updateItem = useStore((state) => state.updateItem);
 
@@ -53,7 +56,7 @@ export default function WorkspacePage() {
   const [isEditObjectOpen, setIsEditObjectOpen] = useState(false);
   const [editingObject, setEditingObject] = useState<ObjectType | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [deletingItem, setDeletingItem] = useState<{ type: 'context' | 'object' | 'workspace'; item: Context | ObjectType | Workspace } | null>(null);
+  const [deletingItem, setDeletingItem] = useState<{ type: 'context' | 'object' | 'workspace' | 'item'; item: Context | ObjectType | Workspace | ObjectItem } | null>(null);
   const [isEditWorkspaceOpen, setIsEditWorkspaceOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [expandedObjects, setExpandedObjects] = useState<Set<string>>(new Set());
@@ -62,7 +65,6 @@ export default function WorkspacePage() {
   const [isGlobalObjectsExpanded, setIsGlobalObjectsExpanded] = useState(true);
   const [isObjectsExpanded, setIsObjectsExpanded] = useState(true);
   const [isMarkdownSidebarOpen, setIsMarkdownSidebarOpen] = useState(false);
-  const [isItemMarkdownSidebarOpen, setIsItemMarkdownSidebarOpen] = useState(false);
   const [isWorkspacesSidebarOpen, setIsWorkspacesSidebarOpen] = useState(true);
   const [isObjectsSidebarOpen, setIsObjectsSidebarOpen] = useState(true);
   const [viewLevel, setViewLevel] = useState<'global' | 'project' | 'workspace'>('workspace');
@@ -177,10 +179,38 @@ export default function WorkspacePage() {
     setIsEditObjectOpen(true);
   };
 
-  const handleDeleteObject = (obj: ObjectType) => {
-    if (obj.builtIn) return;
-    setDeletingItem({ type: 'object', item: obj });
-    setIsDeleteConfirmOpen(true);
+  const handleRemoveObjectFromWorkspace = async (obj: ObjectType) => {
+    // Remove this workspace from availability
+    const updatedWorkspaces = obj.availableInWorkspaces.filter(
+      wsId => wsId !== subproject && wsId !== '*'
+    );
+
+    // Remove this project from availability
+    const updatedProjects = obj.availableInProjects.filter(
+      pId => pId !== project && pId !== '*'
+    );
+
+    // Check if this is the last availability - if so, delete permanently (but never delete builtIn objects)
+    const hasNoAvailability =
+      updatedWorkspaces.length === 0 &&
+      updatedProjects.length === 0 &&
+      !obj.availableGlobal;
+
+    if (hasNoAvailability) {
+      // Permanently delete the object
+      await deleteObject(obj.id);
+    } else {
+      // Just update the availability
+      await updateObject(obj.id, {
+        availableInWorkspaces: updatedWorkspaces,
+        availableInProjects: updatedProjects
+      });
+    }
+
+    // If this object was active, clear the active tab
+    if (activeTab?.type === 'object' && activeTab.id === obj.id) {
+      setActiveTab(null);
+    }
   };
 
   const toggleObjectExpand = (objId: string) => {
@@ -227,6 +257,11 @@ export default function WorkspacePage() {
       } else {
         window.location.href = '/';
       }
+    } else if (deletingItem.type === 'item') {
+      await deleteItem(deletingItem.item.id);
+      if (activeTab?.type === 'item' && activeTab.id === deletingItem.item.id) {
+        setActiveTab(null);
+      }
     }
     setDeletingItem(null);
   };
@@ -247,7 +282,7 @@ export default function WorkspacePage() {
   };
 
   const getAvailableStyles = () => {
-    if (selectedContext) {
+    if (selectedContext && selectedContext.type) {
       return VIEW_STYLES[selectedContext.type] as readonly string[];
     }
     if (selectedItem) {
@@ -277,9 +312,64 @@ export default function WorkspacePage() {
     return 'tree';
   };
 
+  // Quick create context without modal
+  const handleQuickCreateContext = async () => {
+    const id = await addContext({
+      name: 'Untitled',
+      icon: '📝',
+      scope: 'local',
+      projectId: project,
+      workspaceId: subproject,
+      data: { nodes: [], edges: [] },
+    });
+    setActiveTab({ type: 'context', id });
+  };
+
+  // Handle visualization type selection
+  const handleSelectVisualization = async (viewStyle: ViewStyle, type: ContextType) => {
+    if (selectedContext) {
+      await updateContext(selectedContext.id, { viewStyle, type });
+    }
+  };
+
+  // Visualization options for grid
+  const visualizationOptions = [
+    { viewStyle: 'mindmap' as ViewStyle, type: 'tree' as ContextType, icon: '🗺️', label: 'Mindmap', description: 'Visual hierarchy' },
+    { viewStyle: 'list' as ViewStyle, type: 'tree' as ContextType, icon: '📝', label: 'List', description: 'Nested outline' },
+    { viewStyle: 'kanban' as ViewStyle, type: 'board' as ContextType, icon: '📋', label: 'Kanban', description: 'Cards in columns' },
+    { viewStyle: 'flow' as ViewStyle, type: 'board' as ContextType, icon: '📊', label: 'Flow', description: 'Connected nodes' },
+    { viewStyle: 'grid' as ViewStyle, type: 'board' as ContextType, icon: '⊞', label: 'Grid', description: 'Card layout' },
+    { viewStyle: 'table' as ViewStyle, type: 'board' as ContextType, icon: '📑', label: 'Table', description: 'Rows and columns' },
+    { viewStyle: 'gantt' as ViewStyle, type: 'board' as ContextType, icon: '📅', label: 'Gantt', description: 'Timeline view' },
+    { viewStyle: 'freeform' as ViewStyle, type: 'canvas' as ContextType, icon: '🎨', label: 'Canvas', description: 'Free positioning' },
+  ];
+
   const renderView = () => {
     if (selectedContext) {
       const { type, viewStyle } = selectedContext;
+
+      // Show visualization selector if no viewStyle set
+      if (!viewStyle) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
+            <h2 className="text-xl font-semibold text-zinc-800 mb-2">Choose a visualization</h2>
+            <p className="text-zinc-500 mb-8">How do you want to organize this context?</p>
+            <div className="grid grid-cols-4 gap-4 max-w-2xl">
+              {visualizationOptions.map((opt) => (
+                <button
+                  key={opt.viewStyle}
+                  onClick={() => handleSelectVisualization(opt.viewStyle, opt.type)}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all"
+                >
+                  <span className="text-3xl">{opt.icon}</span>
+                  <span className="font-medium text-zinc-800">{opt.label}</span>
+                  <span className="text-xs text-zinc-500 text-center">{opt.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
       // Tree views
       if (type === 'tree') {
@@ -311,51 +401,8 @@ export default function WorkspacePage() {
     }
 
     if (selectedItem) {
-      // Create a context-like object for item context views
-      const itemType = selectedItem.contextData?.type || 'tree';
-      const itemViewStyle = selectedItem.contextData?.viewStyle || DEFAULT_VIEW_STYLE[itemType];
-      const itemContext: Context = {
-        id: `item-context-${selectedItem.id}`,
-        name: selectedItem.name,
-        type: itemType,
-        viewStyle: itemViewStyle,
-        icon: selectedItemObject?.icon || '📄',
-        scope: 'local',
-        projectId: project,
-        workspaceId: selectedItem.workspaceId || subproject,
-        data: {
-          nodes: selectedItem.contextData?.nodes || [],
-          edges: selectedItem.contextData?.edges || [],
-        },
-      };
-
-      // Tree views
-      if (itemType === 'tree') {
-        if (itemViewStyle === 'mindmap') {
-          return <MindmapView context={itemContext} isItemContext itemId={selectedItem.id} />;
-        }
-        return <ListView context={itemContext} isItemContext itemId={selectedItem.id} />;
-      }
-
-      // Board views
-      if (itemType === 'board') {
-        if (itemViewStyle === 'kanban') {
-          return <KanbanView context={itemContext} isItemContext itemId={selectedItem.id} />;
-        }
-        if (itemViewStyle === 'flow') {
-          return <FlowView context={itemContext} isItemContext itemId={selectedItem.id} />;
-        }
-        if (itemViewStyle === 'table') {
-          return <TableView context={itemContext} isItemContext itemId={selectedItem.id} />;
-        }
-        if (itemViewStyle === 'gantt') {
-          return <GanttView context={itemContext} isItemContext itemId={selectedItem.id} />;
-        }
-        return <GridView context={itemContext} isItemContext itemId={selectedItem.id} />;
-      }
-
-      // Canvas view
-      return <FreeformView context={itemContext} isItemContext itemId={selectedItem.id} />;
+      // Items show markdown only
+      return <MarkdownView item={selectedItem} />;
     }
 
     if (selectedObject) {
@@ -376,17 +423,82 @@ export default function WorkspacePage() {
       );
     }
 
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400">
-        <div className="text-center">
-          <p className="mb-4">Select a context or object from the sidebar</p>
-          <button
-            onClick={() => setIsAddContextOpen(true)}
-            className="px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
-          >
-            Create your first context
-          </button>
+    // Dashboard view - show all contexts and objects as cards
+    const allContexts = [...globalContexts, ...projectContexts, ...localContexts];
+    const allObjects = [...globalObjects, ...projectObjects, ...localObjects];
+
+    if (allContexts.length === 0 && allObjects.length === 0) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-zinc-400">
+          <div className="text-center">
+            <p className="mb-4">No contexts or objects yet</p>
+            <button
+              onClick={handleQuickCreateContext}
+              className="px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
+            >
+              Create your first context
+            </button>
+          </div>
         </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 overflow-auto p-6">
+        {/* Contexts Grid */}
+        {allContexts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-zinc-800">Contexts</h2>
+              <button
+                onClick={handleQuickCreateContext}
+                className="text-sm text-zinc-500 hover:text-zinc-700 flex items-center gap-1"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {allContexts.map((ctx) => (
+                <button
+                  key={ctx.id}
+                  onClick={() => setActiveTab({ type: 'context', id: ctx.id })}
+                  className="flex flex-col items-start p-4 bg-white border border-zinc-200 rounded-xl hover:border-zinc-400 hover:shadow-sm transition-all text-left"
+                >
+                  <span className="text-2xl mb-2">{ctx.icon}</span>
+                  <span className="font-medium text-zinc-800">{ctx.name}</span>
+                  <span className="text-xs text-zinc-500 capitalize">{ctx.viewStyle || 'Not set'}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Objects Grid */}
+        {allObjects.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-800 mb-4">Objects</h2>
+            <div className="grid grid-cols-3 gap-4">
+              {allObjects.map((obj) => {
+                const objectItems = items.filter((i) => i.objectId === obj.id);
+                return (
+                  <button
+                    key={obj.id}
+                    onClick={() => setActiveTab({ type: 'object', id: obj.id })}
+                    className="flex flex-col items-start p-4 bg-white border border-zinc-200 rounded-xl hover:border-zinc-400 hover:shadow-sm transition-all text-left"
+                  >
+                    <span className="text-2xl mb-2">{obj.icon}</span>
+                    <span className="font-medium text-zinc-800">{obj.name}</span>
+                    <span className="text-xs text-zinc-500">{objectItems.length} items</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -493,44 +605,6 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* Context type switcher for items */}
-            {selectedItem && (
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
-                {(['tree', 'board', 'canvas'] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => handleItemContextTypeChange(type, DEFAULT_VIEW_STYLE[type])}
-                    className={`px-2 py-1 text-xs font-medium rounded transition-colors capitalize ${
-                      getCurrentContextType() === type
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-600 hover:bg-white/50'
-                    }`}
-                  >
-                    {type === 'tree' ? '🌳' : type === 'board' ? '📋' : '🎨'}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* View style switcher */}
-            {(selectedContext || selectedItem) && getAvailableStyles().length > 1 && (
-              <div className="flex items-center gap-1 bg-zinc-100 rounded-lg p-1">
-                {getAvailableStyles().map((style) => (
-                  <button
-                    key={style}
-                    onClick={() => handleViewStyleChange(style as ViewStyle)}
-                    className={`px-3 py-1 text-xs font-medium rounded transition-colors capitalize ${
-                      getCurrentViewStyle() === style
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-600 hover:bg-white/50'
-                    }`}
-                  >
-                    {style}
-                  </button>
-                ))}
-              </div>
-            )}
-
             {/* Summary sidebar toggle for Context */}
             {selectedContext && (
               <button
@@ -545,19 +619,6 @@ export default function WorkspacePage() {
               </button>
             )}
 
-            {/* Notes sidebar toggle for Item */}
-            {selectedItem && (
-              <button
-                onClick={() => setIsItemMarkdownSidebarOpen(!isItemMarkdownSidebarOpen)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  isItemMarkdownSidebarOpen
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                }`}
-              >
-                📝 Notes
-              </button>
-            )}
 
             {/* Settings */}
             <Link
@@ -874,7 +935,7 @@ export default function WorkspacePage() {
                     <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Contexts</span>
                   </button>
                   <button
-                    onClick={() => setIsAddContextOpen(true)}
+                    onClick={handleQuickCreateContext}
                     className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-zinc-600 rounded-md hover:bg-zinc-100 transition-colors"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1058,17 +1119,16 @@ export default function WorkspacePage() {
                               <span className="flex-1 text-left truncate">{obj.name}</span>
                             </div>
                             <span className="text-[10px] text-zinc-400 tabular-nums">{objectItems.length}</span>
-                            {!obj.builtIn && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteObject(obj);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
-                              >
-                                ×
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveObjectFromWorkspace(obj);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors"
+                              title="Remove from this workspace"
+                            >
+                              ×
+                            </button>
                           </div>
                           {isExpanded && objectItems.length > 0 && (
                             <div className="ml-5 pl-2 border-l border-zinc-200 mt-0.5 space-y-0.5">
@@ -1088,7 +1148,7 @@ export default function WorkspacePage() {
                                     }));
                                     e.dataTransfer.effectAllowed = 'copy';
                                   }}
-                                  className={`flex items-center gap-2 px-2 py-1.5 text-xs rounded-md cursor-pointer ${
+                                  className={`group flex items-center gap-2 px-2 py-1.5 text-xs rounded-md cursor-pointer ${
                                     activeTab?.type === 'item' && activeTab.id === item.id
                                       ? 'bg-zinc-100 text-zinc-900 font-medium'
                                       : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50'
@@ -1134,7 +1194,19 @@ export default function WorkspacePage() {
                                       onClick={(e) => e.stopPropagation()}
                                     />
                                   ) : (
-                                    <span className="truncate">{item.name}</span>
+                                    <>
+                                      <span className="truncate flex-1">{item.name}</span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeletingItem({ type: 'item', item });
+                                          setIsDeleteConfirmOpen(true);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+                                      >
+                                        ×
+                                      </button>
+                                    </>
                                   )}
                                 </div>
                               ))}
@@ -1169,9 +1241,7 @@ export default function WorkspacePage() {
 
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 overflow-hidden bg-white">{renderView()}</div>
-
-            {/* Markdown Sidebar for Context */}
+            {/* Markdown Sidebar for Context (LEFT) */}
             {selectedContext && (
               <ContextMarkdownSidebar
                 context={selectedContext}
@@ -1180,12 +1250,16 @@ export default function WorkspacePage() {
               />
             )}
 
-            {/* Markdown Sidebar for Item */}
-            {selectedItem && (
-              <ItemMarkdownSidebar
-                item={selectedItem}
-                isOpen={isItemMarkdownSidebarOpen}
-                onClose={() => setIsItemMarkdownSidebarOpen(false)}
+            <div className="flex-1 overflow-hidden bg-white">{renderView()}</div>
+
+            {/* Right Sidebar - Resources + AI Chat */}
+            {currentWorkspace && (
+              <RightSidebar
+                workspace={currentWorkspace}
+                project={currentProject}
+                context={selectedContext || undefined}
+                object={selectedObject || undefined}
+                item={selectedItem || undefined}
               />
             )}
           </div>
@@ -1248,6 +1322,7 @@ export default function WorkspacePage() {
         title={
           deletingItem?.type === 'context' ? 'Delete Context' :
           deletingItem?.type === 'workspace' ? 'Delete Workspace' :
+          deletingItem?.type === 'item' ? 'Delete Item' :
           'Delete Object'
         }
         message={
@@ -1255,18 +1330,12 @@ export default function WorkspacePage() {
             ? `Are you sure you want to delete "${(deletingItem.item as Context).name}"? This will delete all nodes and connections.`
             : deletingItem?.type === 'workspace'
             ? `Are you sure you want to delete "${(deletingItem.item as Workspace).name}"? This will delete all contexts and objects in this workspace.`
+            : deletingItem?.type === 'item'
+            ? `Are you sure you want to delete "${(deletingItem.item as ObjectItem).name}"?`
             : `Are you sure you want to delete "${(deletingItem?.item as ObjectType)?.name}"? This will delete all items in this object.`
         }
       />
 
-      {/* Floating AI Chat */}
-      <FloatingChat
-        project={currentProject}
-        workspace={currentWorkspace}
-        context={selectedContext || undefined}
-        object={selectedObject || selectedItemObject || undefined}
-        item={selectedItem || undefined}
-      />
     </div>
   );
 }

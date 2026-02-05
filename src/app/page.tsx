@@ -9,6 +9,9 @@ import { AddProjectModal } from '@/components/modals/AddProjectModal';
 import { EditProjectModal } from '@/components/modals/EditProjectModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { AddObjectModal } from '@/components/modals/AddObjectModal';
+import { AddWorkspaceModal } from '@/components/modals/AddWorkspaceModal';
+import { EditWorkspaceModal } from '@/components/modals/EditWorkspaceModal';
+import { Workspace } from '@/types';
 import { EditObjectModal } from '@/components/modals/EditObjectModal';
 import { FilterDropdown, ObjectFilterTabs, ObjectItem, ContextItem, ScopeColumnsView, GroupByTabs, GroupedView } from '@/components/home';
 import type { GroupByOption } from '@/components/home';
@@ -27,6 +30,10 @@ export default function Home() {
   const [availabilityExpanded, setAvailabilityExpanded] = useState(false);
   const [globalDropdownOpen, setGlobalDropdownOpen] = useState(false);
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [isAddWorkspaceOpen, setIsAddWorkspaceOpen] = useState(false);
+  const [addWorkspaceProjectId, setAddWorkspaceProjectId] = useState<string | null>(null);
+  const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+  const [deletingWorkspace, setDeletingWorkspace] = useState<Workspace | null>(null);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -57,6 +64,7 @@ export default function Home() {
   const loadData = useStore((state) => state.loadData);
   const isLoaded = useStore((state) => state.isLoaded);
   const deleteProject = useStore((state) => state.deleteProject);
+  const deleteWorkspace = useStore((state) => state.deleteWorkspace);
   const updateProject = useStore((state) => state.updateProject);
   const deleteObject = useStore((state) => state.deleteObject);
   const pinnedObjectTabs = useStore((state) => state.pinnedObjectTabs);
@@ -305,7 +313,8 @@ export default function Home() {
 
       if (groupBy.includes('category')) {
         // Contexts don't have category, use type instead
-        parts.push(ctx.type.charAt(0).toUpperCase() + ctx.type.slice(1));
+        const ctxType = ctx.type || 'tree';
+        parts.push(ctxType.charAt(0).toUpperCase() + ctxType.slice(1));
       }
 
       return parts.length > 0 ? parts.join(' / ') : 'All';
@@ -763,6 +772,18 @@ export default function Home() {
                                   projectId={project.id}
                                   onEdit={() => handleEditProject(project)}
                                   onDelete={() => handleDeleteProject(project)}
+                                  onAddWorkspace={() => {
+                                    setAddWorkspaceProjectId(project.id);
+                                    setIsAddWorkspaceOpen(true);
+                                  }}
+                                  onEditWorkspace={(ws) => {
+                                    const fullWs = workspaces.find(w => w.id === ws.id);
+                                    if (fullWs) setEditingWorkspace(fullWs);
+                                  }}
+                                  onDeleteWorkspace={(ws) => {
+                                    const fullWs = workspaces.find(w => w.id === ws.id);
+                                    if (fullWs) setDeletingWorkspace(fullWs);
+                                  }}
                                   draggable
                                   onDragStart={(e) => {
                                     e.dataTransfer.setData('projectId', project.id);
@@ -791,6 +812,18 @@ export default function Home() {
                             projectId={project.id}
                             onEdit={() => handleEditProject(project)}
                             onDelete={() => handleDeleteProject(project)}
+                            onAddWorkspace={() => {
+                              setAddWorkspaceProjectId(project.id);
+                              setIsAddWorkspaceOpen(true);
+                            }}
+                            onEditWorkspace={(ws) => {
+                              const fullWs = workspaces.find(w => w.id === ws.id);
+                              if (fullWs) setEditingWorkspace(fullWs);
+                            }}
+                            onDeleteWorkspace={(ws) => {
+                              const fullWs = workspaces.find(w => w.id === ws.id);
+                              if (fullWs) setDeletingWorkspace(fullWs);
+                            }}
                             draggable
                             onDragStart={(e) => {
                               e.dataTransfer.setData('projectId', project.id);
@@ -1317,6 +1350,35 @@ export default function Home() {
         onConfirm={confirmDeleteObject}
         title="Delete Object"
         message={`Are you sure you want to delete "${deletingObject?.name}"? This will also delete all items of this type.`}
+      />
+
+      {/* Workspace Modals */}
+      <AddWorkspaceModal
+        isOpen={isAddWorkspaceOpen}
+        onClose={() => {
+          setIsAddWorkspaceOpen(false);
+          setAddWorkspaceProjectId(null);
+        }}
+        projectId={addWorkspaceProjectId || undefined}
+      />
+
+      <EditWorkspaceModal
+        isOpen={!!editingWorkspace}
+        onClose={() => setEditingWorkspace(null)}
+        workspace={editingWorkspace}
+      />
+
+      <DeleteConfirmModal
+        isOpen={!!deletingWorkspace}
+        onClose={() => setDeletingWorkspace(null)}
+        onConfirm={async () => {
+          if (deletingWorkspace) {
+            await deleteWorkspace(deletingWorkspace.id);
+            setDeletingWorkspace(null);
+          }
+        }}
+        title="Delete Workspace"
+        message={`Are you sure you want to delete "${deletingWorkspace?.name}"? This will also delete all items in this workspace.`}
       />
     </div>
   );

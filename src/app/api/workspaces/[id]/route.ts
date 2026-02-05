@@ -62,9 +62,15 @@ export async function DELETE(
     }
 
     db.workspaces.splice(index, 1);
-    // Also delete related contexts and local objects
+    // Also delete related contexts
     db.contexts = db.contexts.filter((c) => c.workspaceId !== id);
-    db.objects = db.objects.filter((o) => o.workspaceId !== id);
+    // Delete objects that are ONLY available in this workspace
+    db.objects = db.objects.filter((o) =>
+      o.availableGlobal ||
+      o.availableInProjects.length > 0 ||
+      o.availableInWorkspaces.length !== 1 ||
+      o.availableInWorkspaces[0] !== id
+    );
 
     await writeDB(db);
 

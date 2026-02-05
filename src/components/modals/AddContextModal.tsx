@@ -2,12 +2,15 @@
 
 import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { CONTEXT_TYPES, ContextType, DEFAULT_VIEW_STYLE } from '@/types';
+import { CONTEXT_TYPES, ContextType, DEFAULT_VIEW_STYLE, ObjectScope } from '@/types';
 
 interface AddContextModalProps {
   isOpen: boolean;
   onClose: () => void;
+  projectId: string;
   workspaceId: string;
+  defaultScope?: ObjectScope;
+  allowedScopes?: ObjectScope[];
 }
 
 const TYPE_INFO: Record<ContextType, { label: string; icon: string; description: string }> = {
@@ -21,13 +24,17 @@ const ICON_OPTIONS = ['📝', '📊', '🎯', '💡', '🔧', '📁', '🗂️',
 export const AddContextModal: React.FC<AddContextModalProps> = ({
   isOpen,
   onClose,
+  projectId,
   workspaceId,
+  defaultScope = 'local',
+  allowedScopes = ['global', 'project', 'local'],
 }) => {
   const addContext = useStore((state) => state.addContext);
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📝');
   const [type, setType] = useState<ContextType>('tree');
+  const [scope, setScope] = useState<ObjectScope>(defaultScope);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,12 +48,15 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
         icon,
         type,
         viewStyle: DEFAULT_VIEW_STYLE[type],
-        workspaceId,
+        scope,
+        projectId: scope === 'global' ? null : projectId,
+        workspaceId: scope === 'local' ? workspaceId : null,
         data: { nodes: [], edges: [] },
       });
       setName('');
       setIcon('📝');
       setType('tree');
+      setScope(defaultScope);
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -120,6 +130,59 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Scope */}
+          {allowedScopes.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-2">Scope</label>
+              <div className="flex bg-zinc-100 rounded-lg p-1">
+                {allowedScopes.includes('global') && (
+                  <button
+                    type="button"
+                    onClick={() => setScope('global')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      scope === 'global'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                  >
+                    🌐 Global
+                  </button>
+                )}
+                {allowedScopes.includes('project') && (
+                  <button
+                    type="button"
+                    onClick={() => setScope('project')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      scope === 'project'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                  >
+                    📁 Project
+                  </button>
+                )}
+                {allowedScopes.includes('local') && (
+                  <button
+                    type="button"
+                    onClick={() => setScope('local')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      scope === 'local'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                  >
+                    📍 Workspace
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-zinc-400 mt-1">
+                {scope === 'global' && 'Available in all workspaces'}
+                {scope === 'project' && 'Available in all workspaces of this project'}
+                {scope === 'local' && 'Available only in this workspace'}
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">

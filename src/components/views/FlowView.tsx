@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Context, ContextNode } from '@/types';
 import { useStore } from '@/lib/store';
 
@@ -10,33 +10,18 @@ interface FlowViewProps {
   itemId?: string;
 }
 
-const NODE_WIDTH = 160;
-const NODE_HEIGHT = 60;
-
-interface NodePosition {
-  x: number;
-  y: number;
-}
-
 export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, itemId }) => {
-  // Context functions
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
   const deleteContextNode = useStore((state) => state.deleteNode);
-  const addContextEdge = useStore((state) => state.addEdge);
-  const deleteContextEdge = useStore((state) => state.deleteEdge);
 
-  // Item functions
   const addItemNode = useStore((state) => state.addItemNode);
   const updateItemNode = useStore((state) => state.updateItemNode);
   const deleteItemNode = useStore((state) => state.deleteItemNode);
-  const addItemEdge = useStore((state) => state.addItemEdge);
-  const deleteItemEdge = useStore((state) => state.deleteItemEdge);
 
-  // Use appropriate functions based on mode
   const addNode = isItemContext && itemId
-    ? (node: { content: string; parentId: string | null; metadata?: Record<string, unknown> }) => addItemNode(itemId, node)
-    : (node: { content: string; parentId: string | null; metadata?: Record<string, unknown> }) => addContextNode(context.id, node);
+    ? (node: { content: string; parentId: string | null }) => addItemNode(itemId, node)
+    : (node: { content: string; parentId: string | null }) => addContextNode(context.id, node);
 
   const updateNode = isItemContext && itemId
     ? (nodeId: string, updates: Partial<ContextNode>) => updateItemNode(itemId, nodeId, updates)
@@ -46,59 +31,22 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
     ? (nodeId: string) => deleteItemNode(itemId, nodeId)
     : (nodeId: string) => deleteContextNode(context.id, nodeId);
 
-  const addEdge = isItemContext && itemId
-    ? (edge: { sourceId: string; targetId: string }) => addItemEdge(itemId, edge)
-    : (edge: { sourceId: string; targetId: string }) => addContextEdge(context.id, edge);
-
-  const deleteEdge = isItemContext && itemId
-    ? (edgeId: string) => deleteItemEdge(itemId, edgeId)
-    : (edgeId: string) => deleteContextEdge(context.id, edgeId);
-
-  const containerRef = useRef<HTMLDivElement>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
-  const [draggedNode, setDraggedNode] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [edgeSource, setEdgeSource] = useState<string | null>(null);
-  const [nodePositions, setNodePositions] = useState<Map<string, NodePosition>>(new Map());
-  const [connectMode, setConnectMode] = useState(false);
 
   const nodes = context.data?.nodes || [];
-  const edges = context.data?.edges || [];
+  const mainSteps = nodes.filter((n) => !n.parentId);
+  const getSubSteps = (parentId: string) => nodes.filter((n) => n.parentId === parentId);
 
-  // Calculate node positions for edge rendering
-  useEffect(() => {
-    const positions = new Map<string, NodePosition>();
-    nodes.forEach((node) => {
-      positions.set(node.id, {
-        x: (node.metadata?.x as number) || 100,
-        y: (node.metadata?.y as number) || 100,
-      });
-    });
-    setNodePositions(positions);
-  }, [nodes]);
+  const handleAddStep = useCallback(async () => {
+    await addNode({ content: 'New Step', parentId: null });
+  }, [addNode]);
 
-  const handleAddNode = useCallback(
-    async (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest('.flow-node')) return;
+  const handleAddSubStep = useCallback(async (parentId: string) => {
+    await addNode({ content: 'Sub-step', parentId });
+  }, [addNode]);
 
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = e.clientX - rect.left + (containerRef.current?.scrollLeft || 0);
-      const y = e.clientY - rect.top + (containerRef.current?.scrollTop || 0);
-
-      await addNode({
-        content: 'New node',
-        parentId: null,
-        metadata: { x, y },
-      });
-    },
-    [addNode]
-  );
-
-  const handleDoubleClick = useCallback((node: ContextNode, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const startEditing = useCallback((node: ContextNode) => {
     setEditingNodeId(node.id);
     setEditContent(node.content);
   }, []);
@@ -111,270 +59,192 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
     setEditContent('');
   }, [editingNodeId, editContent, updateNode]);
 
-  const handleDelete = useCallback(
-    async (nodeId: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      await deleteNode(nodeId);
-    },
-    [deleteNode]
-  );
-
-  const handleDragStart = useCallback((nodeId: string, e: React.MouseEvent) => {
+  const handleDelete = useCallback(async (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const node = nodes.find((n) => n.id === nodeId);
-    if (!node) return;
-
-    setDraggedNode(nodeId);
-    setDragOffset({
-      x: e.clientX - ((node.metadata?.x as number) || 0),
-      y: e.clientY - ((node.metadata?.y as number) || 0),
-    });
-  }, [nodes]);
-
-  const handleDrag = useCallback(
-    async (e: React.MouseEvent) => {
-      if (!draggedNode) return;
-
-      const newX = Math.max(0, e.clientX - dragOffset.x);
-      const newY = Math.max(0, e.clientY - dragOffset.y);
-
-      await updateNode(draggedNode, {
-        metadata: { x: newX, y: newY },
-      });
-    },
-    [draggedNode, dragOffset, updateNode]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDraggedNode(null);
-  }, []);
-
-  // Add node at center of viewport (for toolbar button)
-  const handleAddNodeCenter = useCallback(async () => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const x = (containerRef.current?.scrollLeft || 0) + rect.width / 2 - NODE_WIDTH / 2;
-    const y = (containerRef.current?.scrollTop || 0) + rect.height / 2 - NODE_HEIGHT / 2;
-
-    await addNode({
-      content: 'New node',
-      parentId: null,
-      metadata: { x, y },
-    });
-  }, [addNode]);
-
-  // Edge handling - shift+click or connect mode
-  const handleNodeClick = useCallback(
-    async (e: React.MouseEvent, nodeId: string) => {
-      if (e.shiftKey || connectMode) {
-        e.stopPropagation();
-        if (!edgeSource) {
-          setEdgeSource(nodeId);
-        } else if (edgeSource !== nodeId) {
-          const exists = edges.some(
-            (edge) =>
-              (edge.sourceId === edgeSource && edge.targetId === nodeId) ||
-              (edge.sourceId === nodeId && edge.targetId === edgeSource)
-          );
-          if (!exists) {
-            await addEdge({ sourceId: edgeSource, targetId: nodeId });
-          }
-          setEdgeSource(null);
-        }
-      } else {
-        setEdgeSource(null);
-      }
-    },
-    [edgeSource, edges, addEdge, connectMode]
-  );
-
-  const handleEdgeClick = useCallback(
-    async (edgeId: string) => {
-      await deleteEdge(edgeId);
-    },
-    [deleteEdge]
-  );
-
-  // Cancel edge mode on Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (edgeSource) setEdgeSource(null);
-        if (connectMode) setConnectMode(false);
-        if (editingNodeId) {
-          setEditingNodeId(null);
-          setEditContent('');
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [edgeSource, editingNodeId, connectMode]);
-
-  // Render edges as bezier curves
-  const renderEdges = useMemo(() => {
-    return edges.map((edge) => {
-      const source = nodePositions.get(edge.sourceId);
-      const target = nodePositions.get(edge.targetId);
-      if (!source || !target) return null;
-
-      // Calculate center points of nodes
-      const sx = source.x + NODE_WIDTH / 2;
-      const sy = source.y + NODE_HEIGHT / 2;
-      const tx = target.x + NODE_WIDTH / 2;
-      const ty = target.y + NODE_HEIGHT / 2;
-
-      // Control points for bezier curve
-      const midX = (sx + tx) / 2;
-
-      return (
-        <g key={edge.id} className="cursor-pointer" onClick={() => handleEdgeClick(edge.id)}>
-          <path
-            d={`M ${sx} ${sy} C ${midX} ${sy}, ${midX} ${ty}, ${tx} ${ty}`}
-            fill="none"
-            stroke="#a1a1aa"
-            strokeWidth="2"
-            className="hover:stroke-red-500 transition-colors"
-          />
-          {/* Arrow at target */}
-          <circle cx={tx} cy={ty} r="4" fill="#a1a1aa" className="hover:fill-red-500" />
-        </g>
-      );
-    });
-  }, [edges, nodePositions, handleEdgeClick]);
+    await deleteNode(nodeId);
+  }, [deleteNode]);
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full overflow-auto bg-zinc-50 relative cursor-crosshair"
-      style={{ minHeight: '100%', minWidth: '100%' }}
-      onDoubleClick={handleAddNode}
-      onMouseMove={handleDrag}
-      onMouseUp={handleDragEnd}
-      onMouseLeave={handleDragEnd}
-    >
-      {/* Grid pattern background */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, #e4e4e7 1px, transparent 1px),
-            linear-gradient(to bottom, #e4e4e7 1px, transparent 1px)
-          `,
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      {/* Toolbar */}
-      <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
-        <button
-          onClick={handleAddNodeCenter}
-          className="px-3 py-1.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 shadow-sm transition-colors flex items-center gap-1.5"
-        >
-          <span className="text-lg leading-none">+</span>
-          Add Node
-        </button>
-        <button
-          onClick={() => {
-            setConnectMode(!connectMode);
-            if (connectMode) setEdgeSource(null);
-          }}
-          className={`px-3 py-1.5 text-sm font-medium rounded-lg shadow-sm transition-colors flex items-center gap-1.5 ${
-            connectMode
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50'
-          }`}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="5" cy="12" r="3"></circle>
-            <circle cx="19" cy="12" r="3"></circle>
-            <line x1="8" y1="12" x2="16" y2="12"></line>
-          </svg>
-          Connect
-        </button>
-      </div>
-
-      {/* SVG layer for edges */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 5 }}>
-        <g className="pointer-events-auto">{renderEdges}</g>
-      </svg>
-
-      {/* Edge mode indicator */}
-      {(edgeSource || connectMode) && (
-        <div className="fixed top-4 right-4 bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm z-50 shadow-lg">
-          {edgeSource
-            ? 'Click another node to connect (Esc to cancel)'
-            : 'Click a node to start connecting (Esc to exit)'}
-        </div>
-      )}
-
-      {/* Instructions */}
-      {nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-zinc-400 pointer-events-none">
-          <div className="text-center">
-            <p className="text-lg">Click &quot;Add Node&quot; or double-click to add a node</p>
-            <p className="text-sm mt-2">Use &quot;Connect&quot; button or Shift+click to link nodes</p>
+    <div className="h-full overflow-auto bg-gradient-to-br from-slate-50 to-zinc-100 p-8 flex flex-col">
+      {/* Empty state */}
+      {mainSteps.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
+          <div className="w-16 h-16 rounded-full bg-zinc-200 flex items-center justify-center mb-4">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M4 12h16M12 5l7 7-7 7" />
+            </svg>
           </div>
-        </div>
-      )}
-
-      {/* Nodes */}
-      {nodes.map((node) => {
-        const isEdgeSource = edgeSource === node.id;
-        const x = (node.metadata?.x as number) || 100;
-        const y = (node.metadata?.y as number) || 100;
-
-        return (
-          <div
-            key={node.id}
-            className={`flow-node absolute rounded-lg border shadow-sm bg-white cursor-move transition-all hover:shadow-md ${
-              draggedNode === node.id ? 'shadow-lg z-50 border-zinc-400' : 'border-zinc-200'
-            } ${isEdgeSource ? 'ring-2 ring-blue-500 border-blue-500' : ''}`}
-            style={{
-              left: x,
-              top: y,
-              width: NODE_WIDTH,
-              minHeight: NODE_HEIGHT,
-            }}
-            onMouseDown={(e) => handleDragStart(node.id, e)}
-            onDoubleClick={(e) => handleDoubleClick(node, e)}
-            onClick={(e) => handleNodeClick(e, node.id)}
+          <p className="text-lg font-medium text-zinc-500 mb-2">No steps yet</p>
+          <p className="text-sm text-zinc-400 mb-4">Create your first step to get started</p>
+          <button
+            onClick={handleAddStep}
+            className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2 shadow-sm"
           >
-            {/* Delete button */}
-            <button
-              className="absolute -top-2 -right-2 w-5 h-5 bg-white rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:border-red-300 shadow-sm z-10 text-xs"
-              onClick={(e) => handleDelete(node.id, e)}
-            >
-              x
-            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add First Step
+          </button>
+        </div>
+      )}
 
-            {/* Content */}
-            <div className="p-2 flex items-center justify-center h-full min-h-[60px]">
-              {editingNodeId === node.id ? (
-                <input
-                  type="text"
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  onBlur={handleEditSubmit}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleEditSubmit();
-                    if (e.key === 'Escape') {
-                      setEditingNodeId(null);
-                      setEditContent('');
-                    }
-                  }}
-                  className="w-full text-sm text-center bg-transparent outline-none border-b border-blue-400"
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <p className="text-sm text-zinc-700 text-center break-words">{node.content}</p>
-              )}
+      {/* Flow steps */}
+      {mainSteps.length > 0 && (
+        <div className="flex-1 flex items-center justify-center overflow-x-auto py-8">
+          <div className="flex items-start gap-2">
+            {mainSteps.map((step, index) => {
+              const subSteps = getSubSteps(step.id);
+              const isEditing = editingNodeId === step.id;
+
+              return (
+                <React.Fragment key={step.id}>
+                  {/* Step card */}
+                  <div className="flex flex-col items-center">
+                    {/* Main step */}
+                    <div
+                      className={`w-48 bg-white rounded-xl shadow-sm border-2 transition-all cursor-pointer ${
+                        isEditing ? 'border-blue-400 shadow-md' : 'border-transparent hover:border-zinc-200 hover:shadow-md'
+                      }`}
+                      onClick={() => !isEditing && startEditing(step)}
+                    >
+                      {/* Header with number */}
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-100">
+                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">
+                          {index + 1}
+                        </div>
+                        <span className="text-[10px] uppercase tracking-wide text-zinc-400 font-medium">Step</span>
+                        <button
+                          className="ml-auto p-1 text-zinc-300 hover:text-red-500 rounded transition-colors"
+                          onClick={(e) => handleDelete(step.id, e)}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-3">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            onBlur={handleEditSubmit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleEditSubmit();
+                              if (e.key === 'Escape') {
+                                setEditingNodeId(null);
+                                setEditContent('');
+                              }
+                            }}
+                            className="w-full text-sm font-medium bg-blue-50 rounded px-2 py-1 outline-none border border-blue-200"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-zinc-700">{step.content}</p>
+                        )}
+                      </div>
+
+                      {/* Add sub-step */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddSubStep(step.id);
+                        }}
+                        className="w-full py-2 text-xs text-zinc-400 hover:text-blue-500 hover:bg-blue-50 border-t border-zinc-100 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Add detail
+                      </button>
+                    </div>
+
+                    {/* Sub-steps */}
+                    {subSteps.length > 0 && (
+                      <div className="mt-3 w-full space-y-2">
+                        <div className="flex justify-center">
+                          <div className="w-px h-4 bg-zinc-300" />
+                        </div>
+                        {subSteps.map((sub) => {
+                          const isSubEditing = editingNodeId === sub.id;
+                          return (
+                            <div
+                              key={sub.id}
+                              className={`bg-zinc-50 border rounded-lg px-3 py-2 text-xs cursor-pointer transition-all ${
+                                isSubEditing ? 'border-blue-400 bg-white' : 'border-zinc-200 hover:border-zinc-300 hover:bg-white'
+                              }`}
+                              onClick={() => !isSubEditing && startEditing(sub)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                                {isSubEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editContent}
+                                    onChange={(e) => setEditContent(e.target.value)}
+                                    onBlur={handleEditSubmit}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSubmit();
+                                      if (e.key === 'Escape') {
+                                        setEditingNodeId(null);
+                                        setEditContent('');
+                                      }
+                                    }}
+                                    className="flex-1 bg-blue-50 rounded px-1.5 py-0.5 outline-none border border-blue-200 text-xs"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <span className="flex-1 text-zinc-600">{sub.content}</span>
+                                )}
+                                <button
+                                  className="p-0.5 text-zinc-300 hover:text-red-500 rounded transition-colors"
+                                  onClick={(e) => handleDelete(sub.id, e)}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Arrow connector */}
+                  {index < mainSteps.length - 1 && (
+                    <div className="flex items-center self-start mt-12 px-1">
+                      <svg width="32" height="24" viewBox="0 0 32 24" fill="none" className="text-zinc-300">
+                        <path d="M0 12h28M22 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+
+            {/* Add new step button at end */}
+            <div className="flex items-center self-start mt-12 px-1">
+              <svg width="24" height="24" viewBox="0 0 32 24" fill="none" className="text-zinc-200">
+                <path d="M0 12h20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" />
+              </svg>
             </div>
+            <button
+              onClick={handleAddStep}
+              className="self-start mt-6 w-12 h-12 rounded-xl border-2 border-dashed border-zinc-300 text-zinc-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
           </div>
-        );
-      })}
+        </div>
+      )}
     </div>
   );
 };

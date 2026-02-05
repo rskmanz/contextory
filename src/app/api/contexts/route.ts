@@ -27,8 +27,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const db = await readDB();
 
-    if (!body.workspaceId) {
-      return NextResponse.json(error('workspaceId is required'), { status: 400 });
+    // Validate based on scope
+    const scope = body.scope || 'local';
+    if (scope === 'local' && !body.workspaceId) {
+      return NextResponse.json(error('workspaceId is required for local contexts'), { status: 400 });
+    }
+    if ((scope === 'local' || scope === 'project') && !body.projectId) {
+      return NextResponse.json(error('projectId is required for project/local contexts'), { status: 400 });
     }
 
     const newContext = {
@@ -37,7 +42,9 @@ export async function POST(request: Request) {
       icon: body.icon || '🗺️',
       type: body.type || 'tree',
       viewStyle: body.viewStyle || 'mindmap',
-      workspaceId: body.workspaceId,
+      scope: scope,
+      projectId: scope === 'global' ? null : body.projectId,
+      workspaceId: scope === 'local' ? body.workspaceId : null,
       objectIds: body.objectIds || [],
       markdownId: body.markdownId || null,
       data: body.data || { nodes: [] },

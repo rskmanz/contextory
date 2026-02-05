@@ -1,6 +1,6 @@
 # Context OS
 
-> **Shape contexts of your work with AI.**
+> **Co-creating contexts of your work with AI.**
 
 ---
 
@@ -8,7 +8,7 @@
 
 Context is everywhere, but it's **hard to capture**.
 
-- Every project, team, task, industry has different context
+- Every project has different context, with different people, tasks, tools, teams, meetings, milestones, sprints, bugs, etc.
 - Without clear context: humans don't know what to ask AI, AI doesn't know what you have
 
 ---
@@ -28,12 +28,14 @@ Project → Workspace → Object → Item → Details
 AI suggests what you need:
 
 **Meta Contexts:**
+
 | Context | Shows |
 |---------|-------|
 | Product Roadmap | Features + Milestones + Teams |
 | System Architecture | Tech Stack + APIs + Services |
 
 **Objects (lists):**
+
 | Object | Items |
 |--------|-------|
 | Features | Login, Dashboard, API |
@@ -43,6 +45,7 @@ AI suggests what you need:
 | Meetings | Kickoff, Sprint Planning, Retro |
 
 **Item Contexts:**
+
 | Click on... | See... |
 |-------------|--------|
 | "Login" | Requirements, tasks, who builds it |
@@ -85,10 +88,12 @@ Project
 ```
 
 **Two layers:**
+
 - **Global (Project)** → Objects shared across all workspaces
 - **Local (Workspace)** → Objects specific to that workspace
 
 **Recursive Workspaces (Future):**
+
 - Any Item can spawn its own Workspace via `parentItemId`
 - Example: Meeting "Kickoff" → Workspace with Topics, Decisions, Actions
 - Example: Task "Build Auth" → Workspace with Sub-tasks, Notes, Docs
@@ -198,6 +203,7 @@ interface ObjectItem {
 ```
 
 **Scope Visibility:**
+
 | Scope | projectId | workspaceId | Visible In |
 |-------|-----------|-------------|------------|
 | global | null | null | Everywhere |
@@ -205,6 +211,7 @@ interface ObjectItem {
 | local | set | set | Only that workspace |
 
 **Query Examples:**
+
 ```typescript
 // Global objects
 objects.filter(o => o.scope === 'global')
@@ -252,6 +259,7 @@ workspaces.filter(w => w.parentItemId === itemId)
 ### Example Commands
 
 **Reading data:**
+
 ```
 "List all projects"
 "Show workspaces in project X"
@@ -260,6 +268,7 @@ workspaces.filter(w => w.parentItemId === itemId)
 ```
 
 **Creating data:**
+
 ```
 "Create a project called Marketing"
 "Add a workspace called Q1 Campaign to Marketing"
@@ -269,6 +278,7 @@ workspaces.filter(w => w.parentItemId === itemId)
 ```
 
 **Modifying data:**
+
 ```
 "Rename project X to Y"
 "Add a node 'Requirements' to item Z"
@@ -299,6 +309,7 @@ workspaces.filter(w => w.parentItemId === itemId)
 ### MCP Server Setup
 
 Already configured in `~/.claude.json`:
+
 ```json
 {
   "mcpServers": {

@@ -7,6 +7,7 @@ interface AddProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     defaultCategory?: string;
+    existingCategories?: string[];
 }
 
 const gradients = [
@@ -20,13 +21,18 @@ const gradients = [
 
 const icons = ['📊', '🚀', '💼', '🎯', '📈', '🔧', '💡', '🌟'];
 
-export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClose, defaultCategory = 'Side Projects' }) => {
+export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClose, defaultCategory = 'Main', existingCategories = [] }) => {
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('📊');
     const [gradient, setGradient] = useState(gradients[0]);
     const [category, setCategory] = useState(defaultCategory);
+    const [isNewCategory, setIsNewCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
 
     const addProject = useStore((state) => state.addProject);
+
+    // Use existing categories or fall back to default
+    const categories = existingCategories.length > 0 ? existingCategories : ['Main', 'Side Projects', 'VCs'];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,15 +97,61 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClos
 
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                        >
-                            <option>Side Projects</option>
-                            <option>VCs</option>
-                            <option>Main</option>
-                        </select>
+                        {isNewCategory ? (
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                                    placeholder="New category name"
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (newCategoryName.trim()) {
+                                            setCategory(newCategoryName.trim());
+                                        }
+                                        setIsNewCategory(false);
+                                        setNewCategoryName('');
+                                    }}
+                                    className="px-3 py-2 text-sm bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                                >
+                                    Add
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsNewCategory(false);
+                                        setNewCategoryName('');
+                                    }}
+                                    className="px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                                >
+                                    {categories.map((cat) => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNewCategory(true)}
+                                    className="px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 rounded-lg border border-zinc-200"
+                                    title="Add new category"
+                                >
+                                    + New
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex gap-3 justify-end pt-4">

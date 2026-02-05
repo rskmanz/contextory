@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
+import { CopyItemModal } from '@/components/modals/CopyItemModal';
 
 interface ObjectGridViewProps {
   object: ObjectType;
@@ -24,16 +25,17 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [copyingItem, setCopyingItem] = useState<ObjectItem | null>(null);
 
   const handleAddItem = useCallback(async () => {
     const id = await addItem({
       name: 'New item',
       objectId: object.id,
-      workspaceId: object.workspaceId ?? workspaceId,
+      workspaceId,
     });
     // Navigate to the new item
     router.push(`/${project}/${subproject}/item/${id}`);
-  }, [addItem, object.id, object.workspaceId, workspaceId, router, project, subproject]);
+  }, [addItem, object.id, workspaceId, router, project, subproject]);
 
   const handleItemClick = useCallback((itemId: string) => {
     if (onItemClick) {
@@ -106,7 +108,7 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
                 <span className="text-sm text-zinc-700 text-center truncate w-full">{item.name}</span>
               )}
             </div>
-            {/* Delete confirmation or button */}
+            {/* Action buttons */}
             {deletingItemId === item.id ? (
               <div className="absolute top-1 right-1 flex items-center gap-1 bg-white rounded-lg shadow-sm border border-zinc-200 px-2 py-1">
                 <span className="text-xs text-zinc-600">Delete?</span>
@@ -130,15 +132,31 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
                 </button>
               </div>
             ) : (
-              <button
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  requestDeleteItem(item.id);
-                }}
-              >
-                x
-              </button>
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                <button
+                  className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-blue-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCopyingItem(item);
+                  }}
+                  title="Copy to..."
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                    <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
+                  </svg>
+                </button>
+                <button
+                  className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    requestDeleteItem(item.id);
+                  }}
+                  title="Delete"
+                >
+                  x
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -152,6 +170,13 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
           <span className="text-sm text-zinc-500">Add item</span>
         </button>
       </div>
+
+      {/* Copy Item Modal */}
+      <CopyItemModal
+        isOpen={!!copyingItem}
+        onClose={() => setCopyingItem(null)}
+        item={copyingItem}
+      />
     </div>
   );
 };

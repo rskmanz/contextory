@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { ObjectItem, ObjectType, ContextNode } from '@/types';
+import { ObjectItem, ObjectType, ContextNode, ItemViewLayout } from '@/types';
 import { useStore } from '@/lib/store';
 
 interface ItemDetailPanelProps {
@@ -48,9 +48,16 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [viewMode, setViewMode] = useState<ContextViewMode>('tree');
   const [selectedMindmapNode, setSelectedMindmapNode] = useState<string | null>(null);
+  const [viewLayout, setViewLayout] = useState<ItemViewLayout>(item.viewLayout || 'visualization');
+  const [activeTab, setActiveTab] = useState<'markdown' | 'visualization'>('visualization');
+  const [isEditingMarkdown, setIsEditingMarkdown] = useState(false);
 
   // Check if item already has a sub-workspace
   const existingSubWorkspace = workspaces.find((w) => w.parentItemId === item.id);
+
+  // Get projectId from the workspace the item belongs to
+  const itemWorkspace = workspaces.find((w) => w.id === item.workspaceId);
+  const projectId = itemWorkspace?.projectId || null;
 
   // Load markdown if markdownId exists
   useEffect(() => {
@@ -62,6 +69,35 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
         .finally(() => setIsLoadingMarkdown(false));
     }
   }, [item.markdownId]);
+
+  // Initialize layout from item
+  useEffect(() => {
+    if (item.viewLayout) {
+      setViewLayout(item.viewLayout);
+    }
+  }, [item.viewLayout]);
+
+  // Layout change handler
+  const handleLayoutChange = async (layout: ItemViewLayout) => {
+    setViewLayout(layout);
+    await updateItem(item.id, { viewLayout: layout });
+  };
+
+  // Simple markdown renderer
+  const renderMarkdownContent = (md: string): string => {
+    if (!md) return '';
+    return md
+      .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-zinc-800 mt-3 mb-1">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-sm font-semibold text-zinc-800 mt-3 mb-1">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-zinc-900 mt-3 mb-1">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>')
+      .replace(/^- (.+)$/gm, '<li class="ml-3 text-xs text-zinc-600">• $1</li>')
+      .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 bg-zinc-100 rounded text-xs font-mono">$1</code>')
+      .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p class="text-xs text-zinc-600 mb-1">$1</p>')
+      .replace(/<p class="[^"]*"><\/p>/g, '');
+  };
 
   // Build tree from flat nodes
   const tree = React.useMemo(() => {
@@ -230,16 +266,16 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
 
   // Create sub-workspace from this item
   const handleCreateSubWorkspace = useCallback(async () => {
-    if (isCreatingWorkspace || !object.projectId) return;
+    if (isCreatingWorkspace || !projectId) return;
     setIsCreatingWorkspace(true);
     try {
-      const newWorkspaceId = await createSubWorkspace(item.id, object.projectId, `${item.name} Workspace`);
+      const newWorkspaceId = await createSubWorkspace(item.id, projectId, `${item.name} Workspace`);
       // Navigate to the new workspace (optional - user can manually navigate)
-      window.location.href = `/${object.projectId}/${newWorkspaceId}`;
+      window.location.href = `/${projectId}/${newWorkspaceId}`;
     } finally {
       setIsCreatingWorkspace(false);
     }
-  }, [createSubWorkspace, item.id, item.name, object.projectId, isCreatingWorkspace]);
+  }, [createSubWorkspace, item.id, item.name, projectId, isCreatingWorkspace]);
 
   const renderNode = useCallback(
     (node: TreeNode, depth: number = 0, isLast: boolean = true) => {
@@ -475,6 +511,190 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
     [selectedMindmapNode, editingNodeId, editContent, handleAddNode, handleUpdateNode, handleDeleteNode]
   );
 
+  // Markdown panel with edit/preview
+  const renderMarkdownPanel = () => (
+    <div className="flex flex-col h-full bg-white">
+      <div className="flex items-center justify-between p-2 border-b border-zinc-200">
+        <h3 className="text-xs font-medium text-zinc-600">Notes</h3>
+        <button
+          onClick={() => setIsEditingMarkdown(!isEditingMarkdown)}
+          className={`text-[10px] px-2 py-0.5 rounded ${
+            isEditingMarkdown ? 'bg-blue-100 text-blue-700' : 'text-zinc-500 hover:bg-zinc-100'
+          }`}
+        >
+          {isEditingMarkdown ? 'Preview' : 'Edit'}
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto p-2">
+        {isLoadingMarkdown ? (
+          <p className="text-xs text-zinc-400">Loading...</p>
+        ) : isEditingMarkdown ? (
+          <textarea
+            value={markdown}
+            onChange={(e) => setMarkdown(e.target.value)}
+            onBlur={() => saveMarkdown(markdown)}
+            placeholder="# Notes&#10;&#10;Add notes in markdown..."
+            className="w-full h-full min-h-[100px] p-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 resize-none font-mono"
+          />
+        ) : markdown ? (
+          <div
+            className="prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: renderMarkdownContent(markdown) }}
+          />
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-xs text-zinc-400 mb-1">No notes yet</p>
+            <button
+              onClick={() => setIsEditingMarkdown(true)}
+              className="text-[10px] text-blue-500 hover:underline"
+            >
+              Add notes
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Visualization (tree or mindmap)
+  const renderVisualization = () => (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-2 border-b border-zinc-200">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-medium text-zinc-600">Context</h3>
+          <div className="flex items-center bg-zinc-100 rounded-md p-0.5">
+            <button
+              onClick={() => setViewMode('tree')}
+              className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                viewMode === 'tree'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              Tree
+            </button>
+            <button
+              onClick={() => setViewMode('mindmap')}
+              className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                viewMode === 'mindmap'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700'
+              }`}
+            >
+              Mindmap
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {viewMode === 'tree' && nodes.length > 0 && (
+            <button
+              onClick={toggleExpandAll}
+              className="text-[10px] text-zinc-400 hover:text-zinc-600"
+            >
+              {allExpanded ? '−' : '+'}
+            </button>
+          )}
+          <button
+            onClick={() => handleAddNode(null)}
+            className="text-[10px] text-blue-500 hover:underline"
+          >
+            + Add
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto p-2">
+        {viewMode === 'tree' ? (
+          <div className="bg-zinc-50 rounded-lg border border-zinc-200 p-2 min-h-[80px]">
+            {tree.length === 0 ? (
+              <p className="text-xs text-zinc-400 text-center py-3">No context items yet</p>
+            ) : (
+              tree.map((node) => renderNode(node))
+            )}
+          </div>
+        ) : (
+          <div className="bg-zinc-50 rounded-lg border border-zinc-200 overflow-auto" style={{ minHeight: '150px', maxHeight: '300px' }}>
+            {mindmapTree.length === 0 ? (
+              <div className="h-[150px] flex items-center justify-center">
+                <p className="text-xs text-zinc-400">No context items yet</p>
+              </div>
+            ) : (
+              <svg
+                width={Math.max(mindmapDimensions.width, 300)}
+                height={Math.max(mindmapDimensions.height, 150)}
+                onClick={() => setSelectedMindmapNode(null)}
+              >
+                {mindmapTree.map((root) => renderMindmapConnections(root))}
+                {mindmapTree.map((root) => renderMindmapNode(root))}
+              </svg>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Content based on layout
+  const renderContent = () => {
+    switch (viewLayout) {
+      case 'side-by-side':
+        return (
+          <div className="flex h-full">
+            <div className="w-1/2 border-r border-zinc-200 flex-shrink-0 overflow-hidden">
+              {renderMarkdownPanel()}
+            </div>
+            <div className="w-1/2 overflow-hidden">
+              {renderVisualization()}
+            </div>
+          </div>
+        );
+      case 'tabs':
+        return (
+          <div className="flex flex-col h-full">
+            <div className="flex border-b border-zinc-200 px-2">
+              <button
+                onClick={() => setActiveTab('visualization')}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px ${
+                  activeTab === 'visualization'
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Context
+              </button>
+              <button
+                onClick={() => setActiveTab('markdown')}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px ${
+                  activeTab === 'markdown'
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Notes
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'visualization' ? renderVisualization() : renderMarkdownPanel()}
+            </div>
+          </div>
+        );
+      case 'stacked':
+        return (
+          <div className="flex flex-col h-full overflow-auto">
+            <div className="h-48 border-b border-zinc-200 flex-shrink-0">
+              {renderMarkdownPanel()}
+            </div>
+            <div className="flex-1 min-h-[200px]">
+              {renderVisualization()}
+            </div>
+          </div>
+        );
+      case 'markdown':
+        return renderMarkdownPanel();
+      default: // 'visualization'
+        return renderVisualization();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
@@ -487,16 +707,39 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
           <div className="flex items-center gap-3">
             <span className="text-2xl">{object.icon}</span>
             <h2 className="text-lg font-semibold text-zinc-800">{item.name}</h2>
+            {/* Layout switcher */}
+            <div className="flex items-center gap-0.5 bg-zinc-100 rounded-md p-0.5 ml-2">
+              {[
+                { value: 'visualization', icon: '📊', title: 'Visualization only' },
+                { value: 'markdown', icon: '📝', title: 'Notes only' },
+                { value: 'side-by-side', icon: '◫', title: 'Side by side' },
+                { value: 'tabs', icon: '▭', title: 'Tabs' },
+                { value: 'stacked', icon: '▤', title: 'Stacked' },
+              ].map((layout) => (
+                <button
+                  key={layout.value}
+                  onClick={() => handleLayoutChange(layout.value as ItemViewLayout)}
+                  className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
+                    viewLayout === layout.value
+                      ? 'bg-white text-zinc-900 shadow-sm'
+                      : 'text-zinc-500 hover:bg-white/50'
+                  }`}
+                  title={layout.title}
+                >
+                  <span className="text-[10px]">{layout.icon}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {existingSubWorkspace ? (
               <a
-                href={`/${object.projectId}/${existingSubWorkspace.id}`}
+                href={`/${projectId}/${existingSubWorkspace.id}`}
                 className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
               >
                 Open Workspace →
               </a>
-            ) : object.projectId ? (
+            ) : projectId ? (
               <button
                 onClick={handleCreateSubWorkspace}
                 disabled={isCreatingWorkspace}
@@ -512,101 +755,8 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-4 space-y-6">
-          {/* Context Data */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-zinc-600">Context</h3>
-                {/* View mode toggle */}
-                <div className="flex items-center bg-zinc-100 rounded-md p-0.5">
-                  <button
-                    onClick={() => setViewMode('tree')}
-                    className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                      viewMode === 'tree'
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-700'
-                    }`}
-                  >
-                    Tree
-                  </button>
-                  <button
-                    onClick={() => setViewMode('mindmap')}
-                    className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                      viewMode === 'mindmap'
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-700'
-                    }`}
-                  >
-                    Mindmap
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {viewMode === 'tree' && nodes.length > 0 && (
-                  <button
-                    onClick={toggleExpandAll}
-                    className="text-xs text-zinc-400 hover:text-zinc-600"
-                  >
-                    {allExpanded ? '− Collapse all' : '+ Expand all'}
-                  </button>
-                )}
-                <button
-                  onClick={() => handleAddNode(null)}
-                  className="text-xs text-blue-500 hover:underline"
-                >
-                  + Add item
-                </button>
-              </div>
-            </div>
-
-            {/* Tree View */}
-            {viewMode === 'tree' && (
-              <div className="bg-zinc-50 rounded-lg border border-zinc-200 p-2 min-h-[100px]">
-                {tree.length === 0 ? (
-                  <p className="text-sm text-zinc-400 text-center py-4">No context items yet</p>
-                ) : (
-                  tree.map((node) => renderNode(node))
-                )}
-              </div>
-            )}
-
-            {/* Mindmap View */}
-            {viewMode === 'mindmap' && (
-              <div className="bg-zinc-50 rounded-lg border border-zinc-200 overflow-auto" style={{ minHeight: '200px', maxHeight: '400px' }}>
-                {mindmapTree.length === 0 ? (
-                  <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-sm text-zinc-400">No context items yet</p>
-                  </div>
-                ) : (
-                  <svg
-                    width={Math.max(mindmapDimensions.width, 400)}
-                    height={Math.max(mindmapDimensions.height, 200)}
-                    onClick={() => setSelectedMindmapNode(null)}
-                  >
-                    {mindmapTree.map((root) => renderMindmapConnections(root))}
-                    {mindmapTree.map((root) => renderMindmapNode(root))}
-                  </svg>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Markdown Summary */}
-          <div>
-            <h3 className="text-sm font-medium text-zinc-600 mb-2">Summary</h3>
-            {isLoadingMarkdown ? (
-              <p className="text-sm text-zinc-400">Loading...</p>
-            ) : (
-              <textarea
-                value={markdown}
-                onChange={(e) => setMarkdown(e.target.value)}
-                onBlur={() => saveMarkdown(markdown)}
-                placeholder="Add notes, description, or any markdown content..."
-                className="w-full h-40 p-3 text-sm bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 resize-none"
-              />
-            )}
-          </div>
+        <div className="flex-1 overflow-hidden">
+          {renderContent()}
         </div>
       </div>
     </div>

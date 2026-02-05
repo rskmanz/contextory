@@ -28,14 +28,18 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
 
   // Get objects available for this context's workspace
   const workspaceObjects = context
-    ? objects.filter((o) => o.workspaceId === context.workspaceId || o.workspaceId === null)
+    ? objects.filter((o) =>
+        o.availableGlobal ||
+        o.availableInWorkspaces.includes('*') ||
+        (context.workspaceId && o.availableInWorkspaces.includes(context.workspaceId))
+      )
     : [];
 
   useEffect(() => {
     if (context) {
       setName(context.name);
       setIcon(context.icon);
-      setViewStyle(context.viewStyle);
+      setViewStyle(context.viewStyle || 'list');
       setSelectedObjectIds(context.objectIds || []);
     }
   }, [context]);
@@ -66,7 +70,7 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
 
   if (!isOpen || !context) return null;
 
-  const availableStyles = VIEW_STYLES[context.type] as readonly string[];
+  const availableStyles = VIEW_STYLES[context.type || 'tree'] as readonly string[];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

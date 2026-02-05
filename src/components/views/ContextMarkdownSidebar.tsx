@@ -86,7 +86,7 @@ export const ContextMarkdownSidebar: React.FC<ContextMarkdownSidebarProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="w-80 border-l border-zinc-200 bg-white flex flex-col h-full">
+    <div className="w-80 border-r border-zinc-200 bg-white flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-zinc-200">
         <h3 className="text-sm font-medium text-zinc-700">Summary</h3>

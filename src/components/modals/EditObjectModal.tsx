@@ -18,13 +18,30 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
     const [category, setCategory] = useState('');
     const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
 
-    const updateObject = useStore((state) => state.updateObject);
+    // Availability state
+    const [availableGlobal, setAvailableGlobal] = useState(false);
+    const [allProjects, setAllProjects] = useState(false);
+    const [allWorkspaces, setAllWorkspaces] = useState(false);
+    const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+    const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>([]);
+
+    const { updateObject, projects, workspaces } = useStore();
 
     useEffect(() => {
         if (object) {
             setName(object.name);
             setIcon(object.icon);
             setCategory(object.category || '');
+
+            // Initialize availability from object
+            setAvailableGlobal(object.availableGlobal);
+            const projAvail = object.availableInProjects;
+            const wsAvail = object.availableInWorkspaces;
+
+            setAllProjects(projAvail.includes('*'));
+            setAllWorkspaces(wsAvail.includes('*'));
+            setSelectedProjects(projAvail.filter(id => id !== '*'));
+            setSelectedWorkspaces(wsAvail.filter(id => id !== '*'));
         }
     }, [object]);
 
@@ -32,8 +49,29 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
         e.preventDefault();
         if (!name.trim() || !object) return;
 
-        await updateObject(object.id, { name, icon, category: category.trim() || undefined });
+        const updates: Partial<ObjectType> = {
+            name,
+            icon,
+            category: category.trim() || undefined,
+            availableGlobal,
+            availableInProjects: allProjects ? ['*'] : selectedProjects,
+            availableInWorkspaces: allWorkspaces ? ['*'] : selectedWorkspaces,
+        };
+
+        await updateObject(object.id, updates);
         onClose();
+    };
+
+    const toggleProject = (id: string) => {
+        setSelectedProjects(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+        );
+    };
+
+    const toggleWorkspace = (id: string) => {
+        setSelectedWorkspaces(prev =>
+            prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]
+        );
     };
 
     const filteredSuggestions = OBJECT_CATEGORY_SUGGESTIONS.filter(
@@ -45,7 +83,7 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
                 <h2 className="text-xl font-bold text-zinc-900 mb-4">Edit Object</h2>
                 {object.builtIn && (
                     <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg mb-4">
@@ -116,6 +154,90 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
                         )}
                         {!category && (
                             <p className="text-xs text-zinc-400 mt-1">Optional - helps organize your objects</p>
+                        )}
+                    </div>
+
+                    {/* Availability Settings */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Availability</label>
+                        <div className="space-y-2 mb-3">
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={availableGlobal}
+                                    onChange={(e) => setAvailableGlobal(e.target.checked)}
+                                    className="rounded border-zinc-300"
+                                />
+                                <span className="text-sm">🌐 Available at home (global)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Projects availability */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Projects</label>
+                        <label className="flex items-center gap-2 mb-2">
+                            <input
+                                type="checkbox"
+                                checked={allProjects}
+                                onChange={(e) => {
+                                    setAllProjects(e.target.checked);
+                                    if (e.target.checked) setSelectedProjects([]);
+                                }}
+                                className="rounded border-zinc-300"
+                            />
+                            <span className="text-sm text-zinc-700">All Projects</span>
+                        </label>
+                        {!allProjects && (
+                            <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
+                                {projects.map((p) => (
+                                    <label key={p.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProjects.includes(p.id)}
+                                            onChange={() => toggleProject(p.id)}
+                                            className="rounded border-zinc-300"
+                                        />
+                                        <span className="text-sm">{p.icon} {p.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Workspaces availability */}
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Workspaces</label>
+                        <label className="flex items-center gap-2 mb-2">
+                            <input
+                                type="checkbox"
+                                checked={allWorkspaces}
+                                onChange={(e) => {
+                                    setAllWorkspaces(e.target.checked);
+                                    if (e.target.checked) setSelectedWorkspaces([]);
+                                }}
+                                className="rounded border-zinc-300"
+                            />
+                            <span className="text-sm text-zinc-700">All Workspaces</span>
+                        </label>
+                        {!allWorkspaces && (
+                            <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
+                                {workspaces.map((w) => {
+                                    const project = projects.find(p => p.id === w.projectId);
+                                    return (
+                                        <label key={w.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedWorkspaces.includes(w.id)}
+                                                onChange={() => toggleWorkspace(w.id)}
+                                                className="rounded border-zinc-300"
+                                            />
+                                            <span className="text-sm">{w.name}</span>
+                                            <span className="text-xs text-zinc-400">({project?.name})</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
 

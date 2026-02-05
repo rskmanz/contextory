@@ -1,25 +1,29 @@
 import { NextResponse } from 'next/server';
 import { readDB, writeDB, generateId, success, list, error } from '@/lib/db';
 
-// GET - List objects (filter by scope, projectId, workspaceId)
+// GET - List objects (filter by availability)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const scope = searchParams.get('scope');
+    const global = searchParams.get('global');
     const projectId = searchParams.get('projectId');
     const workspaceId = searchParams.get('workspaceId');
 
     const db = await readDB();
     let objects = db.objects;
 
-    if (scope) {
-      objects = objects.filter((o) => o.scope === scope);
+    if (global === 'true') {
+      objects = objects.filter((o) => o.availableGlobal);
     }
     if (projectId) {
-      objects = objects.filter((o) => o.projectId === projectId);
+      objects = objects.filter((o) =>
+        o.availableInProjects.includes('*') || o.availableInProjects.includes(projectId)
+      );
     }
     if (workspaceId) {
-      objects = objects.filter((o) => o.workspaceId === workspaceId);
+      objects = objects.filter((o) =>
+        o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(workspaceId)
+      );
     }
 
     return NextResponse.json(list(objects));
@@ -39,11 +43,11 @@ export async function POST(request: Request) {
       id: generateId(),
       name: body.name || 'New Object',
       icon: body.icon || '📋',
-      scope: body.scope || 'local',
-      projectId: body.projectId || null,
-      workspaceId: body.workspaceId || null,
       category: body.category || 'Work',
       builtIn: body.builtIn || false,
+      availableGlobal: body.availableGlobal ?? true,
+      availableInProjects: body.availableInProjects || ['*'],
+      availableInWorkspaces: body.availableInWorkspaces || ['*'],
     };
 
     db.objects.push(newObject);

@@ -106,10 +106,16 @@ export function FloatingChat({
 
         case 'list_objects': {
           let filtered = objects;
-          if (args.scope) filtered = filtered.filter(o => o.scope === args.scope);
-          if (args.projectId) filtered = filtered.filter(o => o.projectId === args.projectId);
-          if (args.workspaceId) filtered = filtered.filter(o => o.workspaceId === args.workspaceId);
-          const list = filtered.map(o => `- ${o.icon} ${o.name} (${o.scope}, ${o.id})`).join('\n');
+          if (args.global) filtered = filtered.filter(o => o.availableGlobal);
+          if (args.projectId) filtered = filtered.filter(o =>
+            o.availableInProjects.includes('*') || o.availableInProjects.includes(args.projectId as string)
+          );
+          if (args.workspaceId) filtered = filtered.filter(o =>
+            o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(args.workspaceId as string)
+          );
+          const getAvailLabel = (o: typeof objects[0]) =>
+            o.availableGlobal ? 'global' : o.availableInProjects.length > 0 ? 'project' : 'workspace';
+          const list = filtered.map(o => `- ${o.icon} ${o.name} (${getAvailLabel(o)}, ${o.id})`).join('\n');
           return `Found ${filtered.length} objects:\n${list || 'No objects'}`;
         }
 
@@ -185,12 +191,16 @@ export function FloatingChat({
         }
 
         case 'create_context': {
+          const wsId = args.workspaceId as string;
+          const ws = workspaces.find(w => w.id === wsId);
           const id = await addContext({
             name: args.name as string,
             icon: (args.icon as string) || '📝',
             type: args.type as 'tree' | 'board' | 'canvas',
             viewStyle: args.type === 'tree' ? 'list' : args.type === 'board' ? 'grid' : 'freeform',
-            workspaceId: args.workspaceId as string,
+            scope: 'local',
+            projectId: ws?.projectId || null,
+            workspaceId: wsId,
             data: { nodes: [], edges: [] },
           });
           return `Created ${args.type} context "${args.name}" (ID: ${id})`;
@@ -498,21 +508,18 @@ export function FloatingChat({
   if (!isChatOpen) {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="mx-auto max-w-4xl px-4 pb-4">
+        <div className="mx-auto max-w-xl px-4 pb-4">
           <button
             onClick={() => {
               setChatOpen(true);
               setChatExpanded(true);
             }}
-            className="w-full bg-white border border-zinc-200 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3 hover:border-zinc-300 hover:shadow-xl transition-all"
+            className="w-full bg-white border border-zinc-200 rounded-xl shadow-lg px-3 py-2 flex items-center gap-2 hover:border-zinc-300 hover:shadow-xl transition-all"
           >
-            <span className="text-lg">AI</span>
-            <span className="flex-1 text-left text-zinc-400 text-sm">
-              Ask AI about this context...
+            <span className="text-sm">AI</span>
+            <span className="flex-1 text-left text-zinc-400 text-sm truncate">
+              Ask AI...
             </span>
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-xs text-zinc-400 bg-zinc-100 rounded">
-              Click to chat
-            </kbd>
           </button>
         </div>
       </div>
@@ -522,7 +529,7 @@ export function FloatingChat({
   // Expanded chat panel
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="mx-auto max-w-4xl px-4 pb-4">
+      <div className="mx-auto max-w-xl px-4 pb-4">
         <div className="bg-white border border-zinc-200 rounded-xl shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 bg-zinc-50">
