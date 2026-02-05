@@ -115,12 +115,16 @@ export const OBJECT_TYPE_SUGGESTIONS = [
   'question',
 ] as const;
 
+// Layout options for item view
+export type ItemViewLayout = 'side-by-side' | 'tabs' | 'stacked' | 'visualization' | 'markdown';
+
 export interface ObjectItem {
   id: string;
   name: string;
   objectId: string;
   workspaceId: string | null;     // null = global object item
   markdownId?: string;            // reference to .md file (optional)
+  viewLayout?: ItemViewLayout;    // layout for markdown + visualization (default: 'visualization')
   contextData?: {                 // context structure (optional)
     type?: ContextType;           // 'tree' | 'board' | 'canvas' (default: 'tree')
     viewStyle?: ViewStyle;        // view style for the type (default: 'list')
