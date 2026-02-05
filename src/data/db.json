@@ -2,7 +2,7 @@
   "projects": [
     {
       "id": "vc-program-2024",
-      "name": "2024 VC Accelerator",
+      "name": "2025 VC Accelerator",
       "icon": "🚀",
       "gradient": "bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-400",
       "category": "VC Programs"
@@ -408,7 +408,11 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "*"
+        "investor-program",
+        "startup-techstart",
+        "startup-greenfuture",
+        "startup-healthai",
+        "saas-fundraising"
       ]
     },
     {
@@ -422,7 +426,9 @@
         "vc-program-2024"
       ],
       "availableInWorkspaces": [
-        "*"
+        "startup-techstart",
+        "startup-greenfuture",
+        "startup-healthai"
       ]
     },
     {
@@ -476,7 +482,9 @@
         "*"
       ],
       "availableInWorkspaces": [
-        "*"
+        "online-program",
+        "saas-product-dev",
+        "saas-sales"
       ]
     },
     {
@@ -490,7 +498,9 @@
         "*"
       ],
       "availableInWorkspaces": [
-        "*"
+        "online-program",
+        "saas-fundraising",
+        "saas-sales"
       ]
     },
     {
@@ -518,7 +528,7 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "*"
+        "saas-product-dev"
       ]
     },
     {
@@ -532,7 +542,8 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "*"
+        "saas-sales",
+        "saas-customer-success"
       ]
     },
     {
@@ -560,7 +571,9 @@
         "saas-product"
       ],
       "availableInWorkspaces": [
-        "*"
+        "saas-sales",
+        "saas-customer-success",
+        "saas-fundraising"
       ]
     }
   ],
