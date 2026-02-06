@@ -117,7 +117,12 @@ interface AppState {
     signOut: () => Promise<void>;
 }
 
-const supabase = createClient();
+// Lazy singleton - avoids calling createClient() at module level during static generation
+let _supabase: ReturnType<typeof createClient> | null = null;
+const getSupabase = () => {
+    if (!_supabase) _supabase = createClient();
+    return _supabase;
+};
 
 export const useStore = create<AppState>((set, get) => ({
     projects: [],
@@ -144,19 +149,20 @@ export const useStore = create<AppState>((set, get) => ({
         if (get().isLoaded || get().isLoading) return;
         set({ isLoading: true });
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await getSupabase().auth.getUser();
             if (!user) {
                 set({ isLoading: false });
                 return;
             }
 
+            const sb = getSupabase();
             const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes, pinnedRes] = await Promise.all([
-                supabase.from('projects').select('*'),
-                supabase.from('workspaces').select('*'),
-                supabase.from('contexts').select('*'),
-                supabase.from('objects').select('*'),
-                supabase.from('items').select('*'),
-                supabase.from('pinned_object_tabs').select('*').order('position'),
+                sb.from('projects').select('*'),
+                sb.from('workspaces').select('*'),
+                sb.from('contexts').select('*'),
+                sb.from('objects').select('*'),
+                sb.from('items').select('*'),
+                sb.from('pinned_object_tabs').select('*').order('position'),
             ]);
 
             set({
@@ -181,7 +187,7 @@ export const useStore = create<AppState>((set, get) => ({
         const id = generateId();
         const userId = get().userId;
         set((state) => ({ projects: [...state.projects, { ...project, id }] }));
-        await supabase.from('projects').insert({ ...toSnakeKeys({ ...project, id }), user_id: userId });
+        await getSupabase().from('projects').insert({ ...toSnakeKeys({ ...project, id }), user_id: userId });
         return id;
     },
 
@@ -189,7 +195,7 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
         }));
-        await supabase.from('projects').update(toSnakeKeys(updates)).eq('id', id);
+        await getSupabase().from('projects').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteProject: async (id) => {
@@ -216,10 +222,10 @@ export const useStore = create<AppState>((set, get) => ({
 
         // Delete orphaned objects first (items cascade from objects)
         if (objectIds.length > 0) {
-            await supabase.from('objects').delete().in('id', objectIds);
+            await getSupabase().from('objects').delete().in('id', objectIds);
         }
         // Project delete cascades to workspaces → contexts
-        await supabase.from('projects').delete().eq('id', id);
+        await getSupabase().from('projects').delete().eq('id', id);
     },
 
     // Workspaces
@@ -227,7 +233,7 @@ export const useStore = create<AppState>((set, get) => ({
         const id = generateId();
         const userId = get().userId;
         set((state) => ({ workspaces: [...state.workspaces, { ...workspace, id }] }));
-        await supabase.from('workspaces').insert({ ...toSnakeKeys({ ...workspace, id }), user_id: userId });
+        await getSupabase().from('workspaces').insert({ ...toSnakeKeys({ ...workspace, id }), user_id: userId });
         return id;
     },
 
@@ -235,7 +241,7 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, ...updates } : w)),
         }));
-        await supabase.from('workspaces').update(toSnakeKeys(updates)).eq('id', id);
+        await getSupabase().from('workspaces').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteWorkspace: async (id) => {
@@ -257,9 +263,9 @@ export const useStore = create<AppState>((set, get) => ({
         }));
 
         if (localObjectIds.length > 0) {
-            await supabase.from('objects').delete().in('id', localObjectIds);
+            await getSupabase().from('objects').delete().in('id', localObjectIds);
         }
-        await supabase.from('workspaces').delete().eq('id', id);
+        await getSupabase().from('workspaces').delete().eq('id', id);
     },
 
     // Contexts
@@ -272,7 +278,7 @@ export const useStore = create<AppState>((set, get) => ({
             data: context.data || { nodes: [], edges: [] },
         };
         set((state) => ({ contexts: [...state.contexts, newContext] }));
-        await supabase.from('contexts').insert({ ...toSnakeKeys(newContext), user_id: userId });
+        await getSupabase().from('contexts').insert({ ...toSnakeKeys(newContext), user_id: userId });
         return id;
     },
 
@@ -280,14 +286,14 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             contexts: state.contexts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         }));
-        await supabase.from('contexts').update(toSnakeKeys(updates)).eq('id', id);
+        await getSupabase().from('contexts').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteContext: async (id) => {
         set((state) => ({
             contexts: state.contexts.filter((c) => c.id !== id),
         }));
-        await supabase.from('contexts').delete().eq('id', id);
+        await getSupabase().from('contexts').delete().eq('id', id);
     },
 
     getGlobalContexts: () => {
@@ -320,7 +326,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
         return nodeId;
     },
 
@@ -342,7 +348,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     deleteNode: async (contextId, nodeId) => {
@@ -363,7 +369,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     // Context Edges
@@ -384,7 +390,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
         return edgeId;
     },
 
@@ -404,7 +410,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     // Objects
@@ -412,7 +418,7 @@ export const useStore = create<AppState>((set, get) => ({
         const id = generateId();
         const userId = get().userId;
         set((state) => ({ objects: [...state.objects, { ...object, id }] }));
-        await supabase.from('objects').insert({ ...toSnakeKeys({ ...object, id }), user_id: userId });
+        await getSupabase().from('objects').insert({ ...toSnakeKeys({ ...object, id }), user_id: userId });
         return id;
     },
 
@@ -420,7 +426,7 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             objects: state.objects.map((o) => (o.id === id ? { ...o, ...updates } : o)),
         }));
-        await supabase.from('objects').update(toSnakeKeys(updates)).eq('id', id);
+        await getSupabase().from('objects').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteObject: async (id) => {
@@ -428,7 +434,7 @@ export const useStore = create<AppState>((set, get) => ({
             objects: state.objects.filter((o) => o.id !== id),
             items: state.items.filter((i) => i.objectId !== id),
         }));
-        await supabase.from('objects').delete().eq('id', id);
+        await getSupabase().from('objects').delete().eq('id', id);
     },
 
     // Items
@@ -436,7 +442,7 @@ export const useStore = create<AppState>((set, get) => ({
         const id = generateId();
         const userId = get().userId;
         set((state) => ({ items: [...state.items, { ...item, id }] }));
-        await supabase.from('items').insert({ ...toSnakeKeys({ ...item, id }), user_id: userId });
+        await getSupabase().from('items').insert({ ...toSnakeKeys({ ...item, id }), user_id: userId });
         return id;
     },
 
@@ -444,14 +450,14 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             items: state.items.map((i) => (i.id === id ? { ...i, ...updates } : i)),
         }));
-        await supabase.from('items').update(toSnakeKeys(updates)).eq('id', id);
+        await getSupabase().from('items').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteItem: async (id) => {
         set((state) => ({
             items: state.items.filter((i) => i.id !== id),
         }));
-        await supabase.from('items').delete().eq('id', id);
+        await getSupabase().from('items').delete().eq('id', id);
     },
 
     copyItem: async (itemId, workspaceId) => {
@@ -471,7 +477,7 @@ export const useStore = create<AppState>((set, get) => ({
         };
 
         set((state) => ({ items: [...state.items, newItem] }));
-        await supabase.from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+        await getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
         return newId;
     },
 
@@ -488,7 +494,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: object.availableInWorkspaces || ['*'],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
+        await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -507,7 +513,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: [],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
+        await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -529,7 +535,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: [workspaceId],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
+        await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -562,7 +568,7 @@ export const useStore = create<AppState>((set, get) => ({
             parentItemId,
         };
         set((state) => ({ workspaces: [...state.workspaces, newWorkspace] }));
-        await supabase.from('workspaces').insert({ ...toSnakeKeys(newWorkspace), user_id: userId });
+        await getSupabase().from('workspaces').insert({ ...toSnakeKeys(newWorkspace), user_id: userId });
         return id;
     },
 
@@ -580,7 +586,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     updateItemContextType: async (itemId, type, viewStyle) => {
@@ -600,7 +606,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     addItemNode: async (itemId, node) => {
@@ -620,7 +626,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
         return nodeId;
     },
 
@@ -641,7 +647,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     deleteItemNode: async (itemId, nodeId) => {
@@ -665,7 +671,7 @@ export const useStore = create<AppState>((set, get) => ({
             }),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     addItemEdge: async (itemId, edge) => {
@@ -686,7 +692,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
         return edgeId;
     },
 
@@ -706,7 +712,7 @@ export const useStore = create<AppState>((set, get) => ({
             ),
         }));
         const item = get().items.find(i => i.id === itemId);
-        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
+        if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     // AI Chat - with localStorage persistence (no DB needed)
@@ -787,7 +793,7 @@ export const useStore = create<AppState>((set, get) => ({
                 : [...state.pinnedObjectTabs, objectId],
         }));
         const position = get().pinnedObjectTabs.indexOf(objectId);
-        await supabase.from('pinned_object_tabs').upsert({
+        await getSupabase().from('pinned_object_tabs').upsert({
             user_id: userId,
             object_id: objectId,
             position,
@@ -799,7 +805,7 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             pinnedObjectTabs: state.pinnedObjectTabs.filter((id) => id !== objectId),
         }));
-        await supabase.from('pinned_object_tabs').delete()
+        await getSupabase().from('pinned_object_tabs').delete()
             .eq('user_id', userId)
             .eq('object_id', objectId);
     },
@@ -808,9 +814,9 @@ export const useStore = create<AppState>((set, get) => ({
         const userId = get().userId;
         set({ pinnedObjectTabs: objectIds });
         // Delete all and re-insert with new positions
-        await supabase.from('pinned_object_tabs').delete().eq('user_id', userId);
+        await getSupabase().from('pinned_object_tabs').delete().eq('user_id', userId);
         if (objectIds.length > 0) {
-            await supabase.from('pinned_object_tabs').insert(
+            await getSupabase().from('pinned_object_tabs').insert(
                 objectIds.map((id, i) => ({ user_id: userId, object_id: id, position: i }))
             );
         }
@@ -818,7 +824,7 @@ export const useStore = create<AppState>((set, get) => ({
 
     // Auth
     signOut: async () => {
-        await supabase.auth.signOut();
+        await getSupabase().auth.signOut();
         set({
             projects: [],
             workspaces: [],
