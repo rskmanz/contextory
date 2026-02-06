@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const MARKDOWN_DIR = path.join(process.cwd(), 'src/data/markdown');
+import { createClient } from '@/lib/supabase-server';
 
 // GET /api/markdown?id=xxx&type=items|contexts
 export async function GET(request: NextRequest) {
@@ -15,15 +12,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
     }
 
-    const filePath = path.join(MARKDOWN_DIR, type, `${id}.md`);
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('markdown_content')
+      .select('content')
+      .eq('id', id)
+      .eq('type', type)
+      .single();
 
-    try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      return NextResponse.json({ id, content });
-    } catch {
-      // File doesn't exist - return empty content
-      return NextResponse.json({ id, content: '' });
-    }
+    return NextResponse.json({ id, content: data?.content ?? '' });
   } catch (error) {
     console.error('Failed to read markdown:', error);
     return NextResponse.json({ error: 'Failed to read markdown' }, { status: 500 });
@@ -41,14 +38,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     }
 
-    const dirPath = path.join(MARKDOWN_DIR, type);
-    const filePath = path.join(dirPath, `${id}.md`);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Ensure directory exists
-    await fs.mkdir(dirPath, { recursive: true });
-
-    // Write content
-    await fs.writeFile(filePath, content || '', 'utf-8');
+    await supabase
+      .from('markdown_content')
+      .upsert({
+        id,
+        user_id: user.id,
+        type,
+        content: content || '',
+      });
 
     return NextResponse.json({ success: true, id });
   } catch (error) {
@@ -62,21 +65,18 @@ export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    const type = searchParams.get('type') || 'items';
 
     if (!id) {
       return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
     }
 
-    const filePath = path.join(MARKDOWN_DIR, type, `${id}.md`);
+    const supabase = await createClient();
+    await supabase
+      .from('markdown_content')
+      .delete()
+      .eq('id', id);
 
-    try {
-      await fs.unlink(filePath);
-      return NextResponse.json({ success: true, id });
-    } catch {
-      // File doesn't exist - that's fine
-      return NextResponse.json({ success: true, id });
-    }
+    return NextResponse.json({ success: true, id });
   } catch (error) {
     console.error('Failed to delete markdown:', error);
     return NextResponse.json({ error: 'Failed to delete markdown' }, { status: 500 });

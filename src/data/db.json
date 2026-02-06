@@ -126,6 +126,13 @@
       "projectId": "delight-x",
       "category": "Strategy & Planning",
       "id": "jg7z9ce"
+    },
+    {
+      "name": "計上最適化",
+      "projectId": "salesforce",
+      "category": "General",
+      "categoryIcon": "📁",
+      "id": "24bh3dg"
     }
   ],
   "contexts": [
@@ -345,6 +352,96 @@
       "id": "lvsxf32"
     },
     {
+      "name": "Flow",
+      "icon": "📝",
+      "scope": "local",
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "tbnnc9u"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "wdbly4r"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "dwv77tf"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "7xm25lv"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "wdbly4r",
+            "id": "yx21k64"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "wdbly4r",
+            "id": "w369qg7"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "dwv77tf",
+            "id": "eygh75k"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "dwv77tf",
+            "id": "99xnkp8"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "7xm25lv",
+            "id": "py28yxd"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "7xm25lv",
+            "id": "wjr4p1s"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "tbnnc9u",
+            "id": "cwzww1n"
+          },
+          {
+            "content": "Sub-step",
+            "parentId": "tbnnc9u",
+            "id": "y6qqwv5"
+          }
+        ],
+        "edges": []
+      },
+      "id": "82sfrw0",
+      "viewStyle": "flow",
+      "type": "board",
+      "objectIds": []
+    },
+    {
+      "name": "Untitled",
+      "icon": "📝",
+      "scope": "local",
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [],
+        "edges": []
+      },
+      "id": "6u0hiw2",
+      "viewStyle": "mindmap",
+      "type": "tree"
+    },
+    {
       "name": "Untitled",
       "icon": "📝",
       "scope": "local",
@@ -353,16 +450,86 @@
       "data": {
         "nodes": [
           {
-            "content": "test",
+            "content": "New Column",
             "parentId": null,
-            "id": "nqe7sdk"
+            "id": "lggxn8w"
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "u3mosx7"
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "clfjkdh"
+          },
+          {
+            "content": "New Column",
+            "parentId": null,
+            "id": "tkfa4wr"
+          },
+          {
+            "content": "New card",
+            "parentId": "lggxn8w",
+            "id": "pwk8dl1"
           }
         ],
         "edges": []
       },
-      "id": "1uoydeh",
-      "viewStyle": "list",
-      "type": "tree"
+      "id": "p06nrup",
+      "viewStyle": "kanban",
+      "type": "board"
+    },
+    {
+      "name": "Untitled",
+      "icon": "📝",
+      "scope": "local",
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "xbiwtup"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "j8nxer7"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "ctcymrq"
+          },
+          {
+            "content": "New Step",
+            "parentId": null,
+            "id": "im4w9n7"
+          }
+        ],
+        "edges": []
+      },
+      "id": "znwcm33",
+      "viewStyle": "flow",
+      "type": "board"
+    },
+    {
+      "name": "Untitled",
+      "icon": "📝",
+      "scope": "local",
+      "projectId": "rajob",
+      "workspaceId": "big-query-data",
+      "data": {
+        "nodes": [],
+        "edges": [],
+        "tldrawSnapshot": "{\"document\":{\"store\":{\"document:document\":{\"gridSize\":10,\"name\":\"\",\"meta\":{},\"id\":\"document:document\",\"typeName\":\"document\"},\"page:page\":{\"meta\":{},\"id\":\"page:page\",\"name\":\"Page 1\",\"index\":\"a1\",\"typeName\":\"page\"},\"shape:NhIkoZEyKnGZL6kRsviCA\":{\"x\":155.11114501953125,\"y\":78.88889694213867,\"rotation\":0,\"isLocked\":false,\"opacity\":1,\"meta\":{},\"id\":\"shape:NhIkoZEyKnGZL6kRsviCA\",\"type\":\"note\",\"props\":{\"color\":\"black\",\"richText\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]},\"size\":\"m\",\"font\":\"draw\",\"align\":\"middle\",\"verticalAlign\":\"middle\",\"labelColor\":\"black\",\"growY\":0,\"fontSizeAdjustment\":0,\"url\":\"\",\"scale\":1},\"parentId\":\"page:page\",\"index\":\"a10jOciV\",\"typeName\":\"shape\"}},\"schema\":{\"schemaVersion\":2,\"sequences\":{\"com.tldraw.store\":5,\"com.tldraw.asset\":1,\"com.tldraw.camera\":1,\"com.tldraw.document\":2,\"com.tldraw.instance\":25,\"com.tldraw.instance_page_state\":5,\"com.tldraw.page\":1,\"com.tldraw.instance_presence\":6,\"com.tldraw.pointer\":1,\"com.tldraw.shape\":4,\"com.tldraw.asset.bookmark\":2,\"com.tldraw.asset.image\":5,\"com.tldraw.asset.video\":5,\"com.tldraw.shape.group\":0,\"com.tldraw.shape.text\":4,\"com.tldraw.shape.bookmark\":2,\"com.tldraw.shape.draw\":4,\"com.tldraw.shape.geo\":11,\"com.tldraw.shape.note\":10,\"com.tldraw.shape.line\":5,\"com.tldraw.shape.frame\":1,\"com.tldraw.shape.arrow\":8,\"com.tldraw.shape.highlight\":3,\"com.tldraw.shape.embed\":4,\"com.tldraw.shape.image\":5,\"com.tldraw.shape.video\":4,\"com.tldraw.shape.object-item\":0,\"com.tldraw.binding.arrow\":1}}},\"session\":{\"version\":0,\"currentPageId\":\"page:page\",\"exportBackground\":true,\"isFocusMode\":false,\"isDebugMode\":false,\"isToolLocked\":false,\"isGridMode\":false,\"pageStates\":[{\"pageId\":\"page:page\",\"camera\":{\"x\":0,\"y\":0,\"z\":1},\"selectedShapeIds\":[\"shape:NhIkoZEyKnGZL6kRsviCA\"],\"focusedGroupId\":null}]}}"
+      },
+      "id": "vvyonlr",
+      "viewStyle": "freeform",
+      "type": "canvas"
     }
   ],
   "objects": [
@@ -433,6 +600,39 @@
       "availableGlobal": true,
       "availableInProjects": [],
       "availableInWorkspaces": []
+    },
+    {
+      "name": "Team",
+      "icon": "👤",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [],
+      "availableInWorkspaces": [
+        "big-query-data"
+      ],
+      "id": "gv41sd0"
+    },
+    {
+      "name": "Prompt",
+      "icon": "📄",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [],
+      "availableInWorkspaces": [
+        "big-query-data"
+      ],
+      "id": "8oay4gd"
+    },
+    {
+      "name": "Requirement",
+      "icon": "📋",
+      "builtIn": false,
+      "availableGlobal": false,
+      "availableInProjects": [],
+      "availableInWorkspaces": [
+        "big-query-data"
+      ],
+      "id": "pc83jja"
     }
   ],
   "items": [

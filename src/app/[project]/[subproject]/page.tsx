@@ -332,16 +332,137 @@ export default function WorkspacePage() {
     }
   };
 
-  // Visualization options for grid
-  const visualizationOptions = [
-    { viewStyle: 'mindmap' as ViewStyle, type: 'tree' as ContextType, icon: '🗺️', label: 'Mindmap', description: 'Visual hierarchy' },
-    { viewStyle: 'list' as ViewStyle, type: 'tree' as ContextType, icon: '📝', label: 'List', description: 'Nested outline' },
-    { viewStyle: 'kanban' as ViewStyle, type: 'board' as ContextType, icon: '📋', label: 'Kanban', description: 'Cards in columns' },
-    { viewStyle: 'flow' as ViewStyle, type: 'board' as ContextType, icon: '📊', label: 'Flow', description: 'Connected nodes' },
-    { viewStyle: 'grid' as ViewStyle, type: 'board' as ContextType, icon: '⊞', label: 'Grid', description: 'Card layout' },
-    { viewStyle: 'table' as ViewStyle, type: 'board' as ContextType, icon: '📑', label: 'Table', description: 'Rows and columns' },
-    { viewStyle: 'gantt' as ViewStyle, type: 'board' as ContextType, icon: '📅', label: 'Gantt', description: 'Timeline view' },
-    { viewStyle: 'freeform' as ViewStyle, type: 'canvas' as ContextType, icon: '🎨', label: 'Canvas', description: 'Free positioning' },
+  // Visualization options for grid (backup: emoji version above)
+  // Old emoji icons: 🗺️ 📝 📋 📊 ⊞ 📑 📅 🎨
+  const visualizationOptions: Array<{
+    viewStyle: ViewStyle;
+    type: ContextType;
+    label: string;
+    description: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      viewStyle: 'mindmap' as ViewStyle,
+      type: 'tree' as ContextType,
+      label: 'Mindmap',
+      description: 'Visual hierarchy',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="16" cy="16" r="3" />
+          <circle cx="6" cy="8" r="2" />
+          <circle cx="26" cy="8" r="2" />
+          <circle cx="26" cy="24" r="2" />
+          <line x1="14" y1="14" x2="8" y2="9" />
+          <line x1="18" y1="14" x2="24" y2="9" />
+          <line x1="18" y1="18" x2="24" y2="23" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'list' as ViewStyle,
+      type: 'tree' as ContextType,
+      label: 'List',
+      description: 'Nested outline',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+          <circle cx="8" cy="16" r="1.5" fill="currentColor" />
+          <circle cx="8" cy="24" r="1.5" fill="currentColor" />
+          <line x1="12" y1="8" x2="26" y2="8" />
+          <line x1="12" y1="16" x2="22" y2="16" />
+          <line x1="12" y1="24" x2="24" y2="24" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'kanban' as ViewStyle,
+      type: 'board' as ContextType,
+      label: 'Kanban',
+      description: 'Cards in columns',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="4" y="6" width="7" height="20" rx="1" />
+          <rect x="12.5" y="6" width="7" height="14" rx="1" />
+          <rect x="21" y="6" width="7" height="10" rx="1" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'flow' as ViewStyle,
+      type: 'board' as ContextType,
+      label: 'Flow',
+      description: 'Connected nodes',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="4" y="12" width="6" height="6" rx="1" />
+          <rect x="13" y="4" width="6" height="6" rx="1" />
+          <rect x="13" y="20" width="6" height="6" rx="1" />
+          <rect x="22" y="12" width="6" height="6" rx="1" />
+          <line x1="10" y1="15" x2="13" y2="9" />
+          <line x1="10" y1="15" x2="13" y2="21" />
+          <line x1="19" y1="9" x2="22" y2="14" />
+          <line x1="19" y1="21" x2="22" y2="16" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'grid' as ViewStyle,
+      type: 'board' as ContextType,
+      label: 'Grid',
+      description: 'Card layout',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="4" y="4" width="10" height="10" rx="2" />
+          <rect x="18" y="4" width="10" height="10" rx="2" />
+          <rect x="4" y="18" width="10" height="10" rx="2" />
+          <rect x="18" y="18" width="10" height="10" rx="2" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'table' as ViewStyle,
+      type: 'board' as ContextType,
+      label: 'Table',
+      description: 'Rows and columns',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="4" y="6" width="24" height="20" rx="2" />
+          <line x1="4" y1="12" x2="28" y2="12" />
+          <line x1="4" y1="18" x2="28" y2="18" />
+          <line x1="4" y1="24" x2="28" y2="24" />
+          <line x1="12" y1="6" x2="12" y2="26" />
+          <line x1="20" y1="6" x2="20" y2="26" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'gantt' as ViewStyle,
+      type: 'board' as ContextType,
+      label: 'Gantt',
+      description: 'Timeline view',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="6" y="8" width="12" height="4" rx="1" fill="currentColor" fillOpacity="0.2" />
+          <rect x="10" y="14" width="16" height="4" rx="1" fill="currentColor" fillOpacity="0.2" />
+          <rect x="4" y="20" width="8" height="4" rx="1" fill="currentColor" fillOpacity="0.2" />
+          <line x1="4" y1="6" x2="4" y2="26" />
+        </svg>
+      ),
+    },
+    {
+      viewStyle: 'freeform' as ViewStyle,
+      type: 'canvas' as ContextType,
+      label: 'Canvas',
+      description: 'Free positioning',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="4" y="4" width="24" height="24" rx="2" strokeDasharray="3 2" />
+          <rect x="8" y="8" width="6" height="6" rx="1" />
+          <rect x="18" y="14" width="8" height="5" rx="1" />
+          <circle cx="12" cy="22" r="3" />
+        </svg>
+      ),
+    },
   ];
 
   const renderView = () => {
@@ -352,18 +473,20 @@ export default function WorkspacePage() {
       if (!viewStyle) {
         return (
           <div className="flex-1 flex flex-col items-center justify-center p-8">
-            <h2 className="text-xl font-semibold text-zinc-800 mb-2">Choose a visualization</h2>
-            <p className="text-zinc-500 mb-8">How do you want to organize this context?</p>
-            <div className="grid grid-cols-4 gap-4 max-w-2xl">
+            <h2 className="text-lg text-zinc-700 mb-1">Choose a visualization</h2>
+            <p className="text-sm text-zinc-400 mb-8">How do you want to organize this context?</p>
+            <div className="grid grid-cols-4 gap-3 max-w-xl">
               {visualizationOptions.map((opt) => (
                 <button
                   key={opt.viewStyle}
                   onClick={() => handleSelectVisualization(opt.viewStyle, opt.type)}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50 transition-all"
+                  className="group flex flex-col items-center gap-2 p-5 rounded-xl border border-zinc-200 hover:border-zinc-300 hover:shadow-md hover:scale-[1.02] bg-white transition-all duration-200"
                 >
-                  <span className="text-3xl">{opt.icon}</span>
-                  <span className="font-medium text-zinc-800">{opt.label}</span>
-                  <span className="text-xs text-zinc-500 text-center">{opt.description}</span>
+                  <div className="text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                    {opt.icon}
+                  </div>
+                  <span className="text-sm font-medium text-zinc-700">{opt.label}</span>
+                  <span className="text-[11px] text-zinc-400 text-center leading-tight">{opt.description}</span>
                 </button>
               ))}
             </div>

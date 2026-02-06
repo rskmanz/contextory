@@ -118,20 +118,28 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
     setIsLoading(true);
     try {
+      const systemPrompt = `You are Context OS assistant for workspace "${workspace.name}"${
+        project ? ` in project "${project.name}"` : ''
+      }. Resources available: ${resources.map(r => r.name).join(', ') || 'none'}. Be concise and helpful.`;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...chatMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
-          context: {
-            workspace: workspace.name,
-            project: project?.name,
-            resources: resources.map(r => r.name),
-          },
+          systemPrompt,
+          provider: aiSettings.provider || 'openai',
+          model: aiSettings.model,
+          apiKey: aiSettings.apiKey,
+          enableTools: true,
         }),
       });
       const data = await response.json();
-      setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.message || 'Error' }]);
+      if (data.error) {
+        setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.error }]);
+      } else {
+        setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.content || 'No response' }]);
+      }
     } catch {
       setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: 'Connection error.' }]);
     } finally {
@@ -159,11 +167,15 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: `Summarize this resource: "${resource.name}"${resource.url ? ` (${resource.url})` : ''}. Give a brief summary of what this resource is about and key points.` }],
-          context: { workspace: workspace.name, project: project?.name },
+          systemPrompt: `You are Context OS assistant for workspace "${workspace.name}". Summarize resources concisely.`,
+          provider: aiSettings.provider || 'openai',
+          model: aiSettings.model,
+          apiKey: aiSettings.apiKey,
+          enableTools: false,
         }),
       });
       const data = await response.json();
-      setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.message || 'Could not summarize.' }]);
+      setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.content || 'Could not summarize.' }]);
     } catch {
       setChatMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: 'Error summarizing resource.' }]);
     } finally {

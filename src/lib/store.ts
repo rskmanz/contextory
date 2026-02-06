@@ -1,8 +1,21 @@
 import { create } from 'zustand';
 import { Project, Workspace, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, ChatMessage, AISettings, AIProvider } from '@/types';
+import { createClient } from '@/lib/supabase';
 
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
+
+// === camelCase ↔ snake_case conversion ===
+const toSnake = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+const toCamel = (str: string) => str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toSnakeKeys = (obj: Record<string, any>): Record<string, any> =>
+    Object.fromEntries(Object.entries(obj).map(([k, v]) => [toSnake(k), v]));
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toCamelKeys = <T>(obj: Record<string, any>): T =>
+    Object.fromEntries(Object.entries(obj).map(([k, v]) => [toCamel(k), v])) as T;
 
 interface AppState {
     // Data
@@ -11,20 +24,20 @@ interface AppState {
     contexts: Context[];
     objects: ObjectType[];
     items: ObjectItem[];
-    pinnedObjectTabs: string[];  // Object IDs pinned as home tabs
+    pinnedObjectTabs: string[];
     isLoading: boolean;
     isLoaded: boolean;
+    userId: string | null;
 
     // AI Chat State
-    chatMessages: Record<string, ChatMessage[]>; // keyed by workspaceId
+    chatMessages: Record<string, ChatMessage[]>;
     aiSettings: AISettings;
     isChatOpen: boolean;
     isChatExpanded: boolean;
     isChatLoading: boolean;
 
-    // Load data from API
+    // Load data from Supabase
     loadData: () => Promise<void>;
-    saveData: () => Promise<void>;
 
     // Projects
     addProject: (project: Omit<Project, 'id'>) => Promise<string>;
@@ -73,11 +86,11 @@ interface AppState {
     getLocalObjects: (workspaceId: string) => ObjectType[];
     getVisibleObjects: (projectId: string, workspaceId: string) => ObjectType[];
 
-    // Sub-workspaces (Phase 4)
+    // Sub-workspaces
     createSubWorkspace: (parentItemId: string, projectId: string, name: string) => Promise<string>;
     getSubWorkspaces: (parentItemId: string) => Workspace[];
 
-    // Item contextData (Phase 4)
+    // Item contextData
     updateItemContext: (itemId: string, nodes: ContextNode[]) => Promise<void>;
     updateItemContextType: (itemId: string, type: import('@/types').ContextType, viewStyle: import('@/types').ViewStyle) => Promise<void>;
     addItemNode: (itemId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
@@ -86,7 +99,7 @@ interface AppState {
     addItemEdge: (itemId: string, edge: Omit<ContextEdge, 'id'>) => Promise<string>;
     deleteItemEdge: (itemId: string, edgeId: string) => Promise<void>;
 
-    // AI Chat (Phase 5)
+    // AI Chat
     addChatMessage: (workspaceId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => string;
     getChatMessages: (workspaceId: string) => ChatMessage[];
     clearChatMessages: (workspaceId: string) => void;
@@ -99,7 +112,12 @@ interface AppState {
     pinObjectTab: (objectId: string) => Promise<void>;
     unpinObjectTab: (objectId: string) => Promise<void>;
     reorderPinnedTabs: (objectIds: string[]) => Promise<void>;
+
+    // Auth
+    signOut: () => Promise<void>;
 }
+
+const supabase = createClient();
 
 export const useStore = create<AppState>((set, get) => ({
     projects: [],
@@ -110,6 +128,7 @@ export const useStore = create<AppState>((set, get) => ({
     pinnedObjectTabs: [],
     isLoading: false,
     isLoaded: false,
+    userId: null,
 
     // AI Chat initial state
     chatMessages: {},
@@ -125,63 +144,29 @@ export const useStore = create<AppState>((set, get) => ({
         if (get().isLoaded || get().isLoading) return;
         set({ isLoading: true });
         try {
-            const res = await fetch('/api/data');
-            const data = await res.json();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                set({ isLoading: false });
+                return;
+            }
 
-            // Migrate old object format to new format
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const migratedObjects = (data.objects || []).map((o: any) => {
-                // Already migrated
-                if ('availableGlobal' in o) return o;
-
-                // Migrate from old scope-based format
-                if (o.scope === 'global') {
-                    return {
-                        id: o.id,
-                        name: o.name,
-                        icon: o.icon,
-                        type: o.type,
-                        category: o.category,
-                        builtIn: o.builtIn,
-                        availableGlobal: true,
-                        availableInProjects: o.availableInProjects || ['*'],
-                        availableInWorkspaces: o.availableInWorkspaces || ['*'],
-                    };
-                } else if (o.scope === 'project') {
-                    return {
-                        id: o.id,
-                        name: o.name,
-                        icon: o.icon,
-                        type: o.type,
-                        category: o.category,
-                        builtIn: o.builtIn,
-                        availableGlobal: false,
-                        availableInProjects: o.projectId ? [o.projectId] : [],
-                        availableInWorkspaces: [],
-                    };
-                } else {
-                    // scope === 'local'
-                    return {
-                        id: o.id,
-                        name: o.name,
-                        icon: o.icon,
-                        type: o.type,
-                        category: o.category,
-                        builtIn: o.builtIn,
-                        availableGlobal: false,
-                        availableInProjects: [],
-                        availableInWorkspaces: o.workspaceId ? [o.workspaceId] : [],
-                    };
-                }
-            });
+            const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes, pinnedRes] = await Promise.all([
+                supabase.from('projects').select('*'),
+                supabase.from('workspaces').select('*'),
+                supabase.from('contexts').select('*'),
+                supabase.from('objects').select('*'),
+                supabase.from('items').select('*'),
+                supabase.from('pinned_object_tabs').select('*').order('position'),
+            ]);
 
             set({
-                projects: data.projects || [],
-                workspaces: data.workspaces || [],
-                contexts: data.contexts || [],
-                objects: migratedObjects,
-                items: data.items || [],
-                pinnedObjectTabs: data.pinnedObjectTabs || [],
+                userId: user.id,
+                projects: (projectsRes.data ?? []).map(r => toCamelKeys<Project>(r)),
+                workspaces: (workspacesRes.data ?? []).map(r => toCamelKeys<Workspace>(r)),
+                contexts: (contextsRes.data ?? []).map(r => toCamelKeys<Context>(r)),
+                objects: (objectsRes.data ?? []).map(r => toCamelKeys<ObjectType>(r)),
+                items: (itemsRes.data ?? []).map(r => toCamelKeys<ObjectItem>(r)),
+                pinnedObjectTabs: (pinnedRes.data ?? []).map(r => r.object_id),
                 isLoaded: true,
                 isLoading: false,
             });
@@ -191,24 +176,12 @@ export const useStore = create<AppState>((set, get) => ({
         }
     },
 
-    saveData: async () => {
-        const { projects, workspaces, contexts, objects, items, pinnedObjectTabs } = get();
-        try {
-            await fetch('/api/data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projects, workspaces, contexts, objects, items, pinnedObjectTabs }),
-            });
-        } catch (error) {
-            console.error('Failed to save data:', error);
-        }
-    },
-
     // Projects
     addProject: async (project) => {
         const id = generateId();
+        const userId = get().userId;
         set((state) => ({ projects: [...state.projects, { ...project, id }] }));
-        await get().saveData();
+        await supabase.from('projects').insert({ ...toSnakeKeys({ ...project, id }), user_id: userId });
         return id;
     },
 
@@ -216,14 +189,13 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
         }));
-        await get().saveData();
+        await supabase.from('projects').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteProject: async (id) => {
         const workspaceIds = get().workspaces
             .filter((w) => w.projectId === id)
             .map((w) => w.id);
-        // Find objects that are ONLY available in this project (not global or other projects)
         const objectsToDelete = get().objects.filter((o) =>
             !o.availableGlobal &&
             o.availableInProjects.length === 1 &&
@@ -231,26 +203,31 @@ export const useStore = create<AppState>((set, get) => ({
             o.availableInWorkspaces.length === 0
         );
         const objectIds = objectsToDelete.map((o) => o.id);
+
         set((state) => ({
             projects: state.projects.filter((p) => p.id !== id),
             workspaces: state.workspaces.filter((w) => w.projectId !== id),
-            // Delete contexts: project-level OR local contexts in project's workspaces
             contexts: state.contexts.filter((c) =>
                 c.projectId !== id && (c.workspaceId === null || !workspaceIds.includes(c.workspaceId))
             ),
-            // Delete objects that were ONLY available in this project
             objects: state.objects.filter((o) => !objectIds.includes(o.id)),
-            // Delete all items belonging to deleted objects
             items: state.items.filter((i) => !objectIds.includes(i.objectId)),
         }));
-        await get().saveData();
+
+        // Delete orphaned objects first (items cascade from objects)
+        if (objectIds.length > 0) {
+            await supabase.from('objects').delete().in('id', objectIds);
+        }
+        // Project delete cascades to workspaces → contexts
+        await supabase.from('projects').delete().eq('id', id);
     },
 
     // Workspaces
     addWorkspace: async (workspace) => {
         const id = generateId();
+        const userId = get().userId;
         set((state) => ({ workspaces: [...state.workspaces, { ...workspace, id }] }));
-        await get().saveData();
+        await supabase.from('workspaces').insert({ ...toSnakeKeys({ ...workspace, id }), user_id: userId });
         return id;
     },
 
@@ -258,11 +235,10 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, ...updates } : w)),
         }));
-        await get().saveData();
+        await supabase.from('workspaces').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteWorkspace: async (id) => {
-        // Find objects that are ONLY available in this workspace
         const objectsToDelete = get().objects.filter((o) =>
             !o.availableGlobal &&
             o.availableInProjects.length === 0 &&
@@ -270,30 +246,33 @@ export const useStore = create<AppState>((set, get) => ({
             o.availableInWorkspaces[0] === id
         );
         const localObjectIds = objectsToDelete.map((o) => o.id);
+
         set((state) => ({
             workspaces: state.workspaces.filter((w) => w.id !== id),
-            // Only delete local contexts (workspaceId matches)
             contexts: state.contexts.filter((c) => c.workspaceId !== id),
-            // Delete objects that were ONLY available in this workspace
             objects: state.objects.filter((o) => !localObjectIds.includes(o.id)),
-            // Delete items: local object items OR items with this workspaceId
             items: state.items.filter((i) =>
                 !localObjectIds.includes(i.objectId) && i.workspaceId !== id
             ),
         }));
-        await get().saveData();
+
+        if (localObjectIds.length > 0) {
+            await supabase.from('objects').delete().in('id', localObjectIds);
+        }
+        await supabase.from('workspaces').delete().eq('id', id);
     },
 
     // Contexts
     addContext: async (context) => {
         const id = generateId();
+        const userId = get().userId;
         const newContext: Context = {
             ...context,
             id,
             data: context.data || { nodes: [], edges: [] },
         };
         set((state) => ({ contexts: [...state.contexts, newContext] }));
-        await get().saveData();
+        await supabase.from('contexts').insert({ ...toSnakeKeys(newContext), user_id: userId });
         return id;
     },
 
@@ -301,14 +280,14 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             contexts: state.contexts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         }));
-        await get().saveData();
+        await supabase.from('contexts').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteContext: async (id) => {
         set((state) => ({
             contexts: state.contexts.filter((c) => c.id !== id),
         }));
-        await get().saveData();
+        await supabase.from('contexts').delete().eq('id', id);
     },
 
     getGlobalContexts: () => {
@@ -323,7 +302,7 @@ export const useStore = create<AppState>((set, get) => ({
         return get().contexts.filter((c) => c.scope === 'local' && c.workspaceId === workspaceId);
     },
 
-    // Context Nodes
+    // Context Nodes (update jsonb data column)
     addNode: async (contextId, node) => {
         const nodeId = generateId();
         set((state) => ({
@@ -340,7 +319,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : c
             ),
         }));
-        await get().saveData();
+        const ctx = get().contexts.find(c => c.id === contextId);
+        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
         return nodeId;
     },
 
@@ -361,7 +341,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : c
             ),
         }));
-        await get().saveData();
+        const ctx = get().contexts.find(c => c.id === contextId);
+        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     deleteNode: async (contextId, nodeId) => {
@@ -381,7 +362,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : c
             ),
         }));
-        await get().saveData();
+        const ctx = get().contexts.find(c => c.id === contextId);
+        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     // Context Edges
@@ -401,7 +383,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : c
             ),
         }));
-        await get().saveData();
+        const ctx = get().contexts.find(c => c.id === contextId);
+        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
         return edgeId;
     },
 
@@ -420,14 +403,16 @@ export const useStore = create<AppState>((set, get) => ({
                     : c
             ),
         }));
-        await get().saveData();
+        const ctx = get().contexts.find(c => c.id === contextId);
+        if (ctx) await supabase.from('contexts').update({ data: ctx.data }).eq('id', contextId);
     },
 
     // Objects
     addObject: async (object) => {
         const id = generateId();
+        const userId = get().userId;
         set((state) => ({ objects: [...state.objects, { ...object, id }] }));
-        await get().saveData();
+        await supabase.from('objects').insert({ ...toSnakeKeys({ ...object, id }), user_id: userId });
         return id;
     },
 
@@ -435,7 +420,7 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             objects: state.objects.map((o) => (o.id === id ? { ...o, ...updates } : o)),
         }));
-        await get().saveData();
+        await supabase.from('objects').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteObject: async (id) => {
@@ -443,14 +428,15 @@ export const useStore = create<AppState>((set, get) => ({
             objects: state.objects.filter((o) => o.id !== id),
             items: state.items.filter((i) => i.objectId !== id),
         }));
-        await get().saveData();
+        await supabase.from('objects').delete().eq('id', id);
     },
 
     // Items
     addItem: async (item) => {
         const id = generateId();
+        const userId = get().userId;
         set((state) => ({ items: [...state.items, { ...item, id }] }));
-        await get().saveData();
+        await supabase.from('items').insert({ ...toSnakeKeys({ ...item, id }), user_id: userId });
         return id;
     },
 
@@ -458,14 +444,14 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             items: state.items.map((i) => (i.id === id ? { ...i, ...updates } : i)),
         }));
-        await get().saveData();
+        await supabase.from('items').update(toSnakeKeys(updates)).eq('id', id);
     },
 
     deleteItem: async (id) => {
         set((state) => ({
             items: state.items.filter((i) => i.id !== id),
         }));
-        await get().saveData();
+        await supabase.from('items').delete().eq('id', id);
     },
 
     copyItem: async (itemId, workspaceId) => {
@@ -473,6 +459,7 @@ export const useStore = create<AppState>((set, get) => ({
         if (!item) return null;
 
         const newId = generateId();
+        const userId = get().userId;
         const newItem: ObjectItem = {
             ...item,
             id: newId,
@@ -484,15 +471,15 @@ export const useStore = create<AppState>((set, get) => ({
         };
 
         set((state) => ({ items: [...state.items, newItem] }));
-        await get().saveData();
+        await supabase.from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
         return newId;
     },
 
     // === Object Availability Operations ===
 
-    // Global Objects - available at root/home level
     addGlobalObject: async (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'> & { availableInProjects?: string[]; availableInWorkspaces?: string[] }) => {
         const id = generateId();
+        const userId = get().userId;
         const newObject: ObjectType = {
             ...object,
             id,
@@ -501,7 +488,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: object.availableInWorkspaces || ['*'],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await get().saveData();
+        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -509,9 +496,9 @@ export const useStore = create<AppState>((set, get) => ({
         return get().objects.filter((o) => o.availableGlobal);
     },
 
-    // Project Objects - available in specific project(s)
     addProjectObject: async (projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
         const id = generateId();
+        const userId = get().userId;
         const newObject: ObjectType = {
             ...object,
             id,
@@ -520,7 +507,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: [],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await get().saveData();
+        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -531,9 +518,9 @@ export const useStore = create<AppState>((set, get) => ({
         );
     },
 
-    // Local Objects - available in specific workspace(s)
-    addLocalObject: async (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
+    addLocalObject: async (_projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
         const id = generateId();
+        const userId = get().userId;
         const newObject: ObjectType = {
             ...object,
             id,
@@ -542,7 +529,7 @@ export const useStore = create<AppState>((set, get) => ({
             availableInWorkspaces: [workspaceId],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
-        await get().saveData();
+        await supabase.from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
         return id;
     },
 
@@ -554,7 +541,6 @@ export const useStore = create<AppState>((set, get) => ({
         );
     },
 
-    // Get all visible objects for a workspace (global + project + local)
     getVisibleObjects: (projectId: string, workspaceId: string) => {
         return get().objects.filter((o) =>
             o.availableGlobal ||
@@ -565,9 +551,10 @@ export const useStore = create<AppState>((set, get) => ({
         );
     },
 
-    // Sub-workspaces (Phase 4)
+    // Sub-workspaces
     createSubWorkspace: async (parentItemId, projectId, name) => {
         const id = generateId();
+        const userId = get().userId;
         const newWorkspace: Workspace = {
             id,
             name,
@@ -575,7 +562,7 @@ export const useStore = create<AppState>((set, get) => ({
             parentItemId,
         };
         set((state) => ({ workspaces: [...state.workspaces, newWorkspace] }));
-        await get().saveData();
+        await supabase.from('workspaces').insert({ ...toSnakeKeys(newWorkspace), user_id: userId });
         return id;
     },
 
@@ -583,7 +570,7 @@ export const useStore = create<AppState>((set, get) => ({
         return get().workspaces.filter((w) => w.parentItemId === parentItemId);
     },
 
-    // Item contextData (Phase 4)
+    // Item contextData (update jsonb context_data column)
     updateItemContext: async (itemId, nodes) => {
         set((state) => ({
             items: state.items.map((i) =>
@@ -592,7 +579,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     updateItemContextType: async (itemId, type, viewStyle) => {
@@ -611,7 +599,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     addItemNode: async (itemId, node) => {
@@ -630,7 +619,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
         return nodeId;
     },
 
@@ -650,14 +640,14 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     deleteItemNode: async (itemId, nodeId) => {
         set((state) => ({
             items: state.items.map((i) => {
                 if (i.id !== itemId) return i;
-                // Delete node and all its descendants
                 const nodes = i.contextData?.nodes || [];
                 const toDelete = new Set<string>();
                 const findDescendants = (id: string) => {
@@ -674,7 +664,8 @@ export const useStore = create<AppState>((set, get) => ({
                 };
             }),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
     addItemEdge: async (itemId, edge) => {
@@ -694,7 +685,8 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
         return edgeId;
     },
 
@@ -713,10 +705,11 @@ export const useStore = create<AppState>((set, get) => ({
                     : i
             ),
         }));
-        await get().saveData();
+        const item = get().items.find(i => i.id === itemId);
+        if (item) await supabase.from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
-    // AI Chat (Phase 5) - with localStorage persistence
+    // AI Chat - with localStorage persistence (no DB needed)
     addChatMessage: (workspaceId, message) => {
         const id = generateId();
         const newMessage: ChatMessage = {
@@ -729,7 +722,6 @@ export const useStore = create<AppState>((set, get) => ({
                 ...state.chatMessages,
                 [workspaceId]: [...(state.chatMessages[workspaceId] || []), newMessage],
             };
-            // Persist to localStorage
             if (typeof window !== 'undefined') {
                 localStorage.setItem('context-os-chat', JSON.stringify(updated));
             }
@@ -739,7 +731,6 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     getChatMessages: (workspaceId) => {
-        // Load from localStorage on first access if empty
         const state = get();
         if (Object.keys(state.chatMessages).length === 0 && typeof window !== 'undefined') {
             const saved = localStorage.getItem('context-os-chat');
@@ -762,7 +753,6 @@ export const useStore = create<AppState>((set, get) => ({
                 ...state.chatMessages,
                 [workspaceId]: [],
             };
-            // Persist to localStorage
             if (typeof window !== 'undefined') {
                 localStorage.setItem('context-os-chat', JSON.stringify(updated));
             }
@@ -790,23 +780,55 @@ export const useStore = create<AppState>((set, get) => ({
 
     // Pinned Object Tabs
     pinObjectTab: async (objectId) => {
+        const userId = get().userId;
         set((state) => ({
             pinnedObjectTabs: state.pinnedObjectTabs.includes(objectId)
                 ? state.pinnedObjectTabs
                 : [...state.pinnedObjectTabs, objectId],
         }));
-        await get().saveData();
+        const position = get().pinnedObjectTabs.indexOf(objectId);
+        await supabase.from('pinned_object_tabs').upsert({
+            user_id: userId,
+            object_id: objectId,
+            position,
+        });
     },
 
     unpinObjectTab: async (objectId) => {
+        const userId = get().userId;
         set((state) => ({
             pinnedObjectTabs: state.pinnedObjectTabs.filter((id) => id !== objectId),
         }));
-        await get().saveData();
+        await supabase.from('pinned_object_tabs').delete()
+            .eq('user_id', userId)
+            .eq('object_id', objectId);
     },
 
     reorderPinnedTabs: async (objectIds) => {
+        const userId = get().userId;
         set({ pinnedObjectTabs: objectIds });
-        await get().saveData();
+        // Delete all and re-insert with new positions
+        await supabase.from('pinned_object_tabs').delete().eq('user_id', userId);
+        if (objectIds.length > 0) {
+            await supabase.from('pinned_object_tabs').insert(
+                objectIds.map((id, i) => ({ user_id: userId, object_id: id, position: i }))
+            );
+        }
+    },
+
+    // Auth
+    signOut: async () => {
+        await supabase.auth.signOut();
+        set({
+            projects: [],
+            workspaces: [],
+            contexts: [],
+            objects: [],
+            items: [],
+            pinnedObjectTabs: [],
+            isLoaded: false,
+            userId: null,
+        });
+        window.location.href = '/login';
     },
 }));

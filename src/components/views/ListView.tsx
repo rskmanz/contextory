@@ -90,53 +90,58 @@ export const ListView: React.FC<ListViewProps> = ({ context, isItemContext, item
     [deleteNode]
   );
 
-  const renderNode = (node: TreeNode) => (
-    <li key={node.id}>
-      {editingNodeId === node.id ? (
-        <input
-          type="text"
-          value={editContent}
-          onChange={(e) => setEditContent(e.target.value)}
-          onBlur={handleEditSubmit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleEditSubmit();
-            if (e.key === 'Escape') {
-              setEditingNodeId(null);
-              setEditContent('');
-            }
-          }}
-          className="px-1 py-0.5 text-sm border border-blue-400 rounded outline-none"
-          autoFocus
-        />
-      ) : (
-        <span
-          className="text-sm text-zinc-800 cursor-text"
-          onDoubleClick={() => handleDoubleClick(node)}
-        >
-          {node.content}
-        </span>
-      )}
+  const renderNode = (node: TreeNode, depth: number = 0) => (
+    <div key={node.id} className="py-0.5">
+      <div className="flex items-start gap-2">
+        <span className="text-zinc-300 mt-0.5">•</span>
+        {editingNodeId === node.id ? (
+          <input
+            type="text"
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onBlur={handleEditSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleEditSubmit();
+              if (e.key === 'Escape') {
+                setEditingNodeId(null);
+                setEditContent('');
+              }
+            }}
+            className="flex-1 px-1 py-0.5 text-sm border-b border-zinc-300 outline-none bg-transparent"
+            autoFocus
+          />
+        ) : (
+          <span
+            className="text-sm text-zinc-700 cursor-text"
+            onDoubleClick={() => handleDoubleClick(node)}
+          >
+            {node.content}
+          </span>
+        )}
+      </div>
       {node.children.length > 0 && (
-        <ul className="list-disc pl-5">{node.children.map(renderNode)}</ul>
+        <div className="pl-4 mt-0.5">
+          {node.children.map(child => renderNode(child, depth + 1))}
+        </div>
       )}
-    </li>
+    </div>
   );
 
   return (
-    <div className="h-full overflow-auto p-6">
-      {tree.length === 0 ? (
-        <div className="text-zinc-400">
-          <p>No items yet</p>
-          <button
+    <div className="h-full overflow-auto">
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        {tree.length === 0 ? (
+          <div
             onClick={() => handleAddChild(null)}
-            className="mt-2 text-sm text-blue-500 hover:underline"
+            className="text-zinc-300 cursor-pointer text-sm flex items-center gap-2"
           >
-            Add your first item
-          </button>
-        </div>
-      ) : (
-        <ul className="list-disc pl-5 space-y-1">{tree.map(renderNode)}</ul>
-      )}
+            <span>•</span>
+            <span>Add item...</span>
+          </div>
+        ) : (
+          <div>{tree.map(node => renderNode(node))}</div>
+        )}
+      </div>
     </div>
   );
 };
