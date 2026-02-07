@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
 
@@ -13,10 +12,6 @@ interface ObjectListViewProps {
 }
 
 export const ObjectListView: React.FC<ObjectListViewProps> = ({ object, items, workspaceId, onItemClick }) => {
-  const router = useRouter();
-  const params = useParams();
-  const { workspace, project } = params as { workspace: string; project: string };
-
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const deleteItem = useStore((state) => state.deleteItem);
@@ -27,12 +22,8 @@ export const ObjectListView: React.FC<ObjectListViewProps> = ({ object, items, w
   const [editName, setEditName] = useState('');
 
   const handleOpen = useCallback((itemId: string) => {
-    if (onItemClick) {
-      onItemClick(itemId);
-    } else {
-      router.push(`/${workspace}/${project}/item/${itemId}`);
-    }
-  }, [router, workspace, project, onItemClick]);
+    onItemClick?.(itemId);
+  }, [onItemClick]);
 
   const handleAddItem = useCallback(async () => {
     if (!newItemName.trim()) return;

@@ -78,7 +78,7 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
           const parsed = JSON.parse(snapshotData);
           loadSnapshot(editor.store, parsed);
         } catch (e) {
-          console.error('Failed to load tldraw snapshot:', e);
+          // Failed to load tldraw snapshot - start fresh
         }
       }
 
@@ -123,7 +123,7 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
       // Select the newly created shape
       editor.select(shapeId);
     } catch (err) {
-      console.error('Failed to create shape from drop:', err);
+      // Failed to create shape from drop
     }
   }, []);
 

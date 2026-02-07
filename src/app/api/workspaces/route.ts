@@ -1,38 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-function workspaceFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    gradient: row.gradient,
-    category: row.category,
-  };
-}
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { generateId, workspaceFromDb } from '@/lib/db-mappers';
 
 // GET - List all workspaces (top-level containers)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('workspaces')
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     const { data, error: dbError } = await query;
@@ -51,24 +34,25 @@ export async function GET() {
 // POST - Create workspace
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const body = await request.json();
 
     const newWorkspace = {
       id: generateId(),
-      user_id: user.id,
+      user_id: auth.userId,
       name: body.name || 'New Workspace',
       icon: body.icon || '',
       gradient: body.gradient || 'from-blue-500 to-purple-500',
       category: body.category || 'Personal',
+      resources: body.resources || [],
     };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('workspaces')
       .insert(newWorkspace)
       .select()

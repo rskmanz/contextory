@@ -39,7 +39,7 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
   const handleItemClick = (item: ObjectItemType) => {
     const proj = item.projectId ? projects.find(p => p.id === item.projectId) : null;
     if (proj) {
-      router.push(`/${proj.workspaceId}/${proj.id}/item/${item.id}`);
+      router.push(`/${proj.workspaceId}/${proj.id}?item=${item.id}`);
     }
   };
 

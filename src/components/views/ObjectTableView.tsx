@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { ObjectType, ObjectItem, FieldDefinition, FieldType, FIELD_TYPES, FieldValue } from '@/types';
 import { useStore } from '@/lib/store';
 import { generateId } from '@/lib/utils';
@@ -26,10 +25,6 @@ interface SortState {
 }
 
 export const ObjectTableView: React.FC<ObjectTableViewProps> = ({ object, items, workspaceId, onItemClick }) => {
-  const router = useRouter();
-  const params = useParams();
-  const { workspace, project } = params as { workspace: string; project: string };
-
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const updateItemFieldValue = useStore((state) => state.updateItemFieldValue);
@@ -83,12 +78,8 @@ export const ObjectTableView: React.FC<ObjectTableViewProps> = ({ object, items,
   }, []);
 
   const handleItemClick = useCallback((itemId: string) => {
-    if (onItemClick) {
-      onItemClick(itemId);
-    } else {
-      router.push(`/${workspace}/${project}/item/${itemId}`);
-    }
-  }, [router, workspace, project, onItemClick]);
+    onItemClick?.(itemId);
+  }, [onItemClick]);
 
   const handleNameDoubleClick = useCallback((item: ObjectItem, e: React.MouseEvent) => {
     e.stopPropagation();

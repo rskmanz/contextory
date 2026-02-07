@@ -46,7 +46,7 @@ describe('GET /api/contexts', () => {
 
     const dbRows = [
       {
-        id: 'ctx-1', name: 'home', icon: '', type: 'tree', view_style: 'list',
+        id: 'ctx-1', name: 'home', icon: '', type: 'tree', view_style: 'notes',
         scope: 'local', project_id: 'p1', workspace_id: 'ws-1',
         object_ids: [], markdown_id: null, data: { nodes: [] },
       },
@@ -61,7 +61,7 @@ describe('GET /api/contexts', () => {
     expect(body.success).toBe(true);
     expect(body.data).toHaveLength(1);
     expect(body.data[0].workspaceId).toBe('ws-1');
-    expect(body.data[0].viewStyle).toBe('list');
+    expect(body.data[0].viewStyle).toBe('notes');
   });
 
   it('returns all contexts when no filter', async () => {

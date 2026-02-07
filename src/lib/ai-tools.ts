@@ -277,6 +277,120 @@ export const updateNodeTool = tool(
   }
 );
 
+// ============ CONNECTION TOOLS ============
+
+export const listConnectionsTool = tool(
+  async (input) => {
+    return { action: 'list_connections', ...input };
+  },
+  {
+    name: 'list_connections',
+    description: 'List connections (external app links), optionally filtered by scope, workspace, or project',
+    schema: z.object({
+      scope: z.enum(['global', 'workspace', 'project']).optional().describe('Filter by scope'),
+      workspaceId: z.string().optional().describe('Filter by workspace ID'),
+      projectId: z.string().optional().describe('Filter by project ID'),
+    }),
+  }
+);
+
+export const createConnectionTool = tool(
+  async (input) => {
+    return { action: 'create_connection', ...input };
+  },
+  {
+    name: 'create_connection',
+    description: 'Create a new connection to an external app or service (GitHub, Notion, Slack, etc.)',
+    schema: z.object({
+      name: z.string().describe('Connection name (e.g. "Project Repo")'),
+      type: z.enum(['google_docs', 'notion', 'github', 'slack', 'jira', 'linear', 'custom']).describe('Connection type'),
+      url: z.string().optional().describe('URL for the connection'),
+      scope: z.enum(['global', 'workspace', 'project']).describe('Visibility scope'),
+      workspaceId: z.string().optional().describe('Workspace ID (for workspace/project scope)'),
+      projectId: z.string().optional().describe('Project ID (for project scope)'),
+    }),
+  }
+);
+
+export const updateConnectionTool = tool(
+  async (input) => {
+    return { action: 'update_connection', ...input };
+  },
+  {
+    name: 'update_connection',
+    description: 'Update an existing connection',
+    schema: z.object({
+      id: z.string().describe('Connection ID to update'),
+      name: z.string().optional().describe('New connection name'),
+      type: z.enum(['google_docs', 'notion', 'github', 'slack', 'jira', 'linear', 'custom']).optional().describe('New connection type'),
+      url: z.string().optional().describe('New URL'),
+      scope: z.enum(['global', 'workspace', 'project']).optional().describe('New scope'),
+    }),
+  }
+);
+
+export const deleteConnectionTool = tool(
+  async (input) => {
+    return { action: 'delete_connection', requiresConfirmation: true, ...input };
+  },
+  {
+    name: 'delete_connection',
+    description: 'Delete a connection',
+    schema: z.object({
+      id: z.string().describe('Connection ID to delete'),
+    }),
+  }
+);
+
+// ============ RESOURCE TOOLS ============
+
+export const listResourcesTool = tool(
+  async (input) => {
+    return { action: 'list_resources', ...input };
+  },
+  {
+    name: 'list_resources',
+    description: 'List resources (URLs, notes, files) attached to a workspace or project',
+    schema: z.object({
+      target: z.enum(['workspace', 'project']).describe('Whether to list workspace or project resources'),
+      targetId: z.string().describe('The workspace ID or project ID'),
+    }),
+  }
+);
+
+export const addResourceTool = tool(
+  async (input) => {
+    return { action: 'add_resource', ...input };
+  },
+  {
+    name: 'add_resource',
+    description: 'Add a resource (URL link, note, or research) to a workspace or project',
+    schema: z.object({
+      name: z.string().describe('Resource name'),
+      type: z.enum(['url', 'note', 'research']).describe('Resource type'),
+      url: z.string().optional().describe('URL (for url type)'),
+      content: z.string().optional().describe('Text content (for note type)'),
+      target: z.enum(['workspace', 'project']).describe('Add to workspace or project'),
+      targetId: z.string().describe('The workspace ID or project ID'),
+    }),
+  }
+);
+
+export const deleteResourceTool = tool(
+  async (input) => {
+    return { action: 'delete_resource', requiresConfirmation: true, ...input };
+  },
+  {
+    name: 'delete_resource',
+    description: 'Delete a resource from a workspace or project',
+    schema: z.object({
+      resourceId: z.string().describe('The resource ID to delete'),
+      target: z.enum(['workspace', 'project']).describe('Whether resource is on workspace or project'),
+      targetId: z.string().describe('The workspace ID or project ID'),
+    }),
+  }
+);
+
 // ============ DELETE TOOLS ============
 
 export const deleteWorkspaceTool = tool(
@@ -369,6 +483,8 @@ export const contextoryTools = [
   listItemsTool,
   listContextsTool,
   getItemContextTool,
+  listConnectionsTool,
+  listResourcesTool,
   // Create
   createWorkspaceTool,
   createProjectTool,
@@ -376,6 +492,8 @@ export const contextoryTools = [
   createItemTool,
   createContextTool,
   addNodeTool,
+  createConnectionTool,
+  addResourceTool,
   // Update
   updateWorkspaceTool,
   updateProjectTool,
@@ -383,6 +501,7 @@ export const contextoryTools = [
   updateItemTool,
   updateContextTool,
   updateNodeTool,
+  updateConnectionTool,
   // Delete
   deleteWorkspaceTool,
   deleteProjectTool,
@@ -390,5 +509,7 @@ export const contextoryTools = [
   deleteItemTool,
   deleteContextTool,
   deleteNodeTool,
+  deleteConnectionTool,
+  deleteResourceTool,
 ];
 

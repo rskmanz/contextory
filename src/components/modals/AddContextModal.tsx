@@ -49,8 +49,8 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
         type,
         viewStyle: DEFAULT_VIEW_STYLE[type],
         scope,
-        projectId: scope === 'global' ? null : projectId,
-        workspaceId: scope === 'project' ? workspaceId : null,
+        workspaceId: scope === 'global' ? null : workspaceId,
+        projectId: scope === 'project' ? projectId : null,
         data: { nodes: [], edges: [] },
       });
       setName('');

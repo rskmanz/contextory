@@ -97,7 +97,7 @@ CREATE TABLE items (
   id text PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   object_id text NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
-  workspace_id text REFERENCES workspaces(id) ON DELETE SET NULL,
+  project_id text REFERENCES projects(id) ON DELETE SET NULL,
   name text NOT NULL,
   markdown_id text,
   view_layout text DEFAULT 'visualization',
@@ -123,6 +123,21 @@ CREATE TABLE pinned_object_tabs (
   PRIMARY KEY (user_id, object_id)
 );
 
+CREATE TABLE connections (
+  id text PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  type text NOT NULL,
+  url text,
+  config jsonb DEFAULT '{}',
+  icon text,
+  scope text NOT NULL DEFAULT 'global',
+  workspace_id text REFERENCES workspaces(id) ON DELETE CASCADE,
+  project_id text REFERENCES projects(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
 -- ============================================
 -- 3. Row Level Security
 -- ============================================
@@ -135,6 +150,7 @@ ALTER TABLE objects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE markdown_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pinned_object_tabs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connections ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "users_own_data" ON profiles FOR ALL USING (auth.uid() = id);
 CREATE POLICY "users_own_data" ON projects FOR ALL USING (auth.uid() = user_id);
@@ -144,6 +160,7 @@ CREATE POLICY "users_own_data" ON objects FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "users_own_data" ON items FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "users_own_data" ON markdown_content FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "users_own_data" ON pinned_object_tabs FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "users_own_data" ON connections FOR ALL USING (auth.uid() = user_id);
 
 -- ============================================
 -- 4. Indexes
@@ -155,7 +172,9 @@ CREATE INDEX idx_workspaces_user ON workspaces(user_id);
 CREATE INDEX idx_contexts_workspace ON contexts(workspace_id);
 CREATE INDEX idx_contexts_user ON contexts(user_id);
 CREATE INDEX idx_items_object ON items(object_id);
-CREATE INDEX idx_items_workspace ON items(workspace_id);
+CREATE INDEX idx_items_project ON items(project_id);
 CREATE INDEX idx_items_user ON items(user_id);
 CREATE INDEX idx_objects_user ON objects(user_id);
 CREATE INDEX idx_markdown_user ON markdown_content(user_id);
+CREATE INDEX idx_connections_user ON connections(user_id);
+CREATE INDEX idx_connections_scope ON connections(scope);

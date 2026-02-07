@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { ListView } from '@/components/views/ListView';
+import React, { useEffect } from 'react';
+import { useStore } from '@/lib/store';
+import { NoteView } from '@/components/views/NoteView';
 import { MindmapView } from '@/components/views/MindmapView';
 import { KanbanView } from '@/components/views/KanbanView';
 import { GridView } from '@/components/views/GridView';
@@ -68,6 +69,13 @@ export function WorkspaceContent({
   workspaceObjects,
   projectObjects,
 }: WorkspaceContentProps) {
+  const showRightSidebar = useStore((state) => state.userSettings.showRightSidebar);
+  const theme = useStore((state) => state.userSettings.theme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Markdown Sidebar for Context (LEFT) */}
@@ -101,14 +109,15 @@ export function WorkspaceContent({
       </div>
 
       {/* Right Sidebar - Resources + AI Chat */}
-      <RightSidebar
-        workspace={currentWorkspace}
-        project={currentProject}
-
-        context={selectedContext || undefined}
-        object={selectedObject || undefined}
-        item={selectedItem || undefined}
-      />
+      {showRightSidebar && (
+        <RightSidebar
+          workspace={currentWorkspace}
+          project={currentProject}
+          context={selectedContext || undefined}
+          object={selectedObject || undefined}
+          item={selectedItem || undefined}
+        />
+      )}
     </div>
   );
 }
@@ -226,7 +235,7 @@ function ContextView({ context, onSelectVisualization }: ContextViewProps) {
   // Tree views
   if (type === 'tree') {
     if (viewStyle === 'mindmap') return <MindmapView context={context} />;
-    return <ListView context={context} />;
+    return <NoteView context={context} />;
   }
 
   // Board views

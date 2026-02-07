@@ -308,7 +308,7 @@ describe('Store - Context CRUD Functions', () => {
             name: 'Old Name',
             icon: '📝',
             type: 'tree',
-            viewStyle: 'list',
+            viewStyle: 'notes',
             scope: 'project',
             projectId: 'proj-1',
             workspaceId: 'ws-1',
@@ -333,7 +333,7 @@ describe('Store - Context CRUD Functions', () => {
     it('deleteContext removes context', async () => {
       useStore.setState({
         contexts: [
-          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'notes', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
           { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
         ],
       });
@@ -356,7 +356,7 @@ describe('Store - Context CRUD Functions', () => {
             name: 'Test Context',
             icon: '📝',
             type: 'tree',
-            viewStyle: 'list',
+            viewStyle: 'notes',
             scope: 'project',
             projectId: 'proj-1',
             workspaceId: 'ws-1',
@@ -428,7 +428,7 @@ describe('Store - Basic CRUD Functions', () => {
         workspaces: [{ id: 'ws-1', name: 'Workspace', projectId: 'proj-1' }],
         objects: [{ id: 'obj-1', name: 'Object', icon: '📋', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false }],
         items: [{ id: 'item-1', name: 'Item', objectId: 'obj-1', workspaceId: 'ws-1' }],
-        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'list', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } }],
+        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'notes', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } }],
       });
 
       const store = useStore.getState();

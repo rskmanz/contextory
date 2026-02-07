@@ -1,4 +1,4 @@
-# Context OS
+# Contextory
 
 ## 一言で
 

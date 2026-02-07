@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
 
 // GET /api/markdown?id=xxx&type=items|contexts
 export async function GET(request: NextRequest) {
@@ -9,14 +10,11 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'items';
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Missing id parameter' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     const { data } = await queryClient
       .from('markdown_content')
@@ -25,10 +23,9 @@ export async function GET(request: NextRequest) {
       .eq('type', type)
       .single();
 
-    return NextResponse.json({ id, content: data?.content ?? '' });
+    return NextResponse.json({ success: true, data: { id, content: data?.content ?? '' } });
   } catch (error) {
-    console.error('Failed to read markdown:', error);
-    return NextResponse.json({ error: 'Failed to read markdown' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to read markdown' }, { status: 500 });
   }
 }
 
@@ -36,54 +33,58 @@ export async function GET(request: NextRequest) {
 // Body: { id: string, type: 'items' | 'contexts', content: string }
 export async function POST(request: NextRequest) {
   try {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const queryClient = createServiceClient();
+
     const body = await request.json();
     const { id, type = 'items', content } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await supabase
+    await queryClient
       .from('markdown_content')
       .upsert({
         id,
-        user_id: user.id,
+        user_id: auth.userId,
         type,
         content: content || '',
       });
 
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
-    console.error('Failed to write markdown:', error);
-    return NextResponse.json({ error: 'Failed to write markdown' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to write markdown' }, { status: 500 });
   }
 }
 
 // DELETE /api/markdown?id=xxx&type=items|contexts
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const queryClient = createServiceClient();
+
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing id parameter' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Missing id parameter' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    await supabase
+    await queryClient
       .from('markdown_content')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', auth.userId);
 
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true, data: { deleted: true } });
   } catch (error) {
-    console.error('Failed to delete markdown:', error);
-    return NextResponse.json({ error: 'Failed to delete markdown' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to delete markdown' }, { status: 500 });
   }
 }

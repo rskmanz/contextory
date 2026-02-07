@@ -8,6 +8,10 @@ import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Highlight from '@tiptap/extension-highlight';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { EditorToolbar } from './EditorToolbar';
 
 interface TiptapEditorProps {
@@ -15,6 +19,7 @@ interface TiptapEditorProps {
   onChange?: (html: string) => void;
   onBlur?: (html: string) => void;
   onSave?: () => void;
+  onExtract?: () => void;
   editable?: boolean;
   placeholder?: string;
   className?: string;
@@ -27,10 +32,67 @@ interface TiptapEditorProps {
 const markdownToHtml = (md: string): string => {
   if (!md) return '';
 
-  // If content already looks like HTML, return as-is
-  if (md.trimStart().startsWith('<')) return md;
+  // If content already looks like HTML, check for embedded pipe-tables in <p> tags
+  if (md.trimStart().startsWith('<')) {
+    return md.replace(
+      /(<p>\|[^<]+\|<\/p>\s*\n?\s*<p>\|[\s:|-]+\|<\/p>(?:\s*\n?\s*<p>\|[^<]+\|<\/p>)*)/g,
+      (tableBlock) => {
+        const rows = tableBlock.match(/<p>(\|[^<]+\|)<\/p>/g);
+        if (!rows || rows.length < 2) return tableBlock;
+        const parseRow = (html: string) =>
+          html.replace(/<\/?p>/g, '').split('|').filter(c => c.trim() !== '').map(c => c.trim());
+        const headerCells = parseRow(rows[0]);
+        let html = '<table><thead><tr>';
+        for (const cell of headerCells) html += `<th>${cell}</th>`;
+        html += '</tr></thead><tbody>';
+        for (let i = 2; i < rows.length; i++) {
+          const cells = parseRow(rows[i]);
+          html += '<tr>';
+          for (const cell of cells) html += `<td>${cell}</td>`;
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+      }
+    );
+  }
 
-  return md
+  // Convert markdown tables to HTML tables
+  const lines = md.split('\n');
+  const processedLines: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    // Detect table: line with pipes, next line is separator (|---|)
+    if (
+      lines[i]?.includes('|') &&
+      lines[i + 1]?.match(/^\|?\s*[-:]+[-|:\s]+\|?\s*$/)
+    ) {
+      const headerCells = lines[i].split('|').filter((c) => c.trim() !== '');
+      let tableHtml = '<table><thead><tr>';
+      for (const cell of headerCells) {
+        tableHtml += `<th>${cell.trim()}</th>`;
+      }
+      tableHtml += '</tr></thead><tbody>';
+      i += 2; // skip header + separator
+      while (i < lines.length && lines[i]?.includes('|') && lines[i].trim() !== '') {
+        const cells = lines[i].split('|').filter((c) => c.trim() !== '');
+        tableHtml += '<tr>';
+        for (const cell of cells) {
+          tableHtml += `<td>${cell.trim()}</td>`;
+        }
+        tableHtml += '</tr>';
+        i++;
+      }
+      tableHtml += '</tbody></table>';
+      processedLines.push(tableHtml);
+      continue;
+    }
+    processedLines.push(lines[i]);
+    i++;
+  }
+  const processed = processedLines.join('\n');
+
+  return processed
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -69,6 +131,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   onChange,
   onBlur,
   onSave,
+  onExtract,
   editable = true,
   placeholder = 'Start writing...',
   className = '',
@@ -94,6 +157,10 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: false }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: markdownToHtml(content),
     editable,
@@ -143,9 +210,21 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   if (minimal) {
     return (
       <div className={`flex flex-col bg-white ${className}`}>
-        {/* Subtle toggle for toolbar */}
+        {/* Toolbar toggle + Extract button (always visible) */}
         {editable && (
-          <div className="flex items-center justify-end mb-1">
+          <div className="flex items-center justify-end gap-1.5 mb-1">
+            {onExtract && (
+              <button
+                onClick={onExtract}
+                title="Smart Extract"
+                className="px-2 h-6 rounded-md flex items-center gap-1 text-[11px] font-medium text-violet-600 hover:bg-violet-50 transition-colors"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-violet-500">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Extract
+              </button>
+            )}
             <button
               onClick={() => setShowToolbar((v) => !v)}
               className={`p-1 rounded text-xs transition-colors ${
@@ -161,7 +240,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             </button>
           </div>
         )}
-        {editable && showToolbar && <EditorToolbar editor={editor} />}
+        {editable && showToolbar && <EditorToolbar editor={editor} onExtract={onExtract} />}
         <div className="overflow-auto">
           <EditorContent editor={editor} />
         </div>
@@ -173,7 +252,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     <div
       className={`flex flex-col border border-zinc-200 rounded-lg overflow-hidden bg-white ${className}`}
     >
-      {editable && <EditorToolbar editor={editor} />}
+      {editable && <EditorToolbar editor={editor} onExtract={onExtract} />}
       <div className={`${compact ? 'p-3' : 'px-6 py-4'} overflow-auto`}>
         <EditorContent editor={editor} />
       </div>

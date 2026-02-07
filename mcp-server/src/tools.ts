@@ -20,6 +20,8 @@ export const tools = [
         name: { type: 'string', description: 'Workspace name' },
         icon: { type: 'string', description: 'Emoji icon (e.g., 🚀)' },
         category: { type: 'string', description: 'Category (e.g., Work, Personal)' },
+        gradient: { type: 'string', description: 'Gradient CSS value (e.g., "from-blue-500 to-purple-500")' },
+        resources: { type: 'array', description: 'Workspace resources', items: { type: 'object' } },
       },
       required: ['name'],
     },
@@ -34,6 +36,7 @@ export const tools = [
         name: { type: 'string', description: 'New name' },
         icon: { type: 'string', description: 'New icon' },
         category: { type: 'string', description: 'New category' },
+        gradient: { type: 'string', description: 'Gradient CSS value (e.g., "from-blue-500 to-purple-500")' },
       },
       required: ['id'],
     },
@@ -70,6 +73,9 @@ export const tools = [
         workspaceId: { type: 'string', description: 'Workspace ID' },
         name: { type: 'string', description: 'Project name' },
         category: { type: 'string', description: 'Category' },
+        parentItemId: { type: 'string', description: 'Parent item ID (optional)' },
+        categoryIcon: { type: 'string', description: 'Category icon emoji' },
+        type: { type: 'string', description: 'Project type' },
       },
       required: ['workspaceId', 'name'],
     },
@@ -83,6 +89,9 @@ export const tools = [
         id: { type: 'string', description: 'Project ID' },
         name: { type: 'string', description: 'New name' },
         category: { type: 'string', description: 'New category' },
+        parentItemId: { type: 'string', description: 'Parent item ID' },
+        categoryIcon: { type: 'string', description: 'Category icon emoji' },
+        type: { type: 'string', description: 'Project type' },
       },
       required: ['id'],
     },
@@ -225,6 +234,7 @@ export const tools = [
           type: 'object',
           description: 'Field values keyed by field definition ID',
         },
+        viewLayout: { type: 'string', description: 'View layout: visualization, document, table, or split' },
       },
       required: ['id'],
     },
@@ -308,12 +318,15 @@ export const tools = [
     inputSchema: {
       type: 'object' as const,
       properties: {
-        projectId: { type: 'string', description: 'Project ID' },
         name: { type: 'string', description: 'Context name' },
         icon: { type: 'string', description: 'Emoji icon' },
-        type: { type: 'string', description: 'Type: tree, board, or canvas' },
+        viewStyle: { type: 'string', description: 'View style: mindmap, notes, kanban, flow, grid, table, gantt, or freeform' },
+        type: { type: 'string', description: 'Type: tree, board, or canvas (auto-inferred from viewStyle if omitted)' },
+        scope: { type: 'string', description: 'Scope: global, workspace, or project (default: project)' },
+        workspaceId: { type: 'string', description: 'Workspace ID (required for workspace/project scope)' },
+        projectId: { type: 'string', description: 'Project ID (required for project scope)' },
       },
-      required: ['projectId', 'name'],
+      required: ['name'],
     },
   },
   {
@@ -325,6 +338,38 @@ export const tools = [
         id: { type: 'string', description: 'Context ID' },
         name: { type: 'string', description: 'New name' },
         icon: { type: 'string', description: 'New icon' },
+        data: {
+          type: 'object',
+          description: 'Context data with nodes and edges',
+          properties: {
+            nodes: {
+              type: 'array',
+              description: 'Context nodes',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Node ID' },
+                  content: { type: 'string', description: 'Node content' },
+                  parentId: { type: ['string', 'null'], description: 'Parent node ID (null for root)' },
+                },
+                required: ['id', 'content'],
+              },
+            },
+            edges: {
+              type: 'array',
+              description: 'Context edges',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Edge ID' },
+                  sourceId: { type: 'string', description: 'Source node ID' },
+                  targetId: { type: 'string', description: 'Target node ID' },
+                },
+                required: ['id', 'sourceId', 'targetId'],
+              },
+            },
+          },
+        },
       },
       required: ['id'],
     },
@@ -367,6 +412,68 @@ export const tools = [
       required: ['id', 'content'],
     },
   },
+
+  // ============ CONNECTIONS ============
+  {
+    name: 'list_connections',
+    description: 'List connections (filter by scope, workspaceId, projectId)',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        scope: { type: 'string', description: 'Filter by scope: global, workspace, project' },
+        workspaceId: { type: 'string', description: 'Filter by workspace ID' },
+        projectId: { type: 'string', description: 'Filter by project ID' },
+      },
+    },
+  },
+  {
+    name: 'create_connection',
+    description: 'Create a new connection',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Connection name' },
+        type: { type: 'string', description: 'Connection type (e.g., github, slack, custom)' },
+        url: { type: 'string', description: 'Connection URL' },
+        icon: { type: 'string', description: 'Emoji icon' },
+        scope: { type: 'string', description: 'Scope: global, workspace, or project' },
+        workspaceId: { type: 'string', description: 'Workspace ID (for workspace/project scope)' },
+        projectId: { type: 'string', description: 'Project ID (for project scope)' },
+        config: { type: 'object', description: 'Connection configuration object' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'update_connection',
+    description: 'Update a connection',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: 'Connection ID' },
+        name: { type: 'string', description: 'New name' },
+        type: { type: 'string', description: 'New type' },
+        url: { type: 'string', description: 'New URL' },
+        icon: { type: 'string', description: 'New icon' },
+        scope: { type: 'string', description: 'New scope' },
+        workspaceId: { type: 'string', description: 'New workspace ID' },
+        projectId: { type: 'string', description: 'New project ID' },
+        config: { type: 'object', description: 'New configuration' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_connection',
+    description: 'Delete a connection',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string', description: 'Connection ID' },
+      },
+      required: ['id'],
+    },
+  },
 ];
 
 // Tool call handler
@@ -400,14 +507,35 @@ export async function handleToolCall(
     // Objects
     case 'list_objects': {
       const params = new URLSearchParams();
-      if (args.scope) params.append('scope', String(args.scope));
+      if (args.scope === 'global') {
+        params.append('global', 'true');
+      }
       if (args.projectId) params.append('projectId', String(args.projectId));
       if (args.workspaceId) params.append('workspaceId', String(args.workspaceId));
       const query = params.toString() ? `?${params.toString()}` : '';
       return callAPI('GET', `/api/objects${query}`);
     }
-    case 'create_object':
-      return callAPI('POST', '/api/objects', args);
+    case 'create_object': {
+      // Translate MCP scope/workspaceId/projectId to API fields
+      const objBody: Record<string, unknown> = { ...args };
+      if (args.scope === 'global') {
+        objBody.availableGlobal = true;
+        objBody.availableInProjects = ['*'];
+        objBody.availableInWorkspaces = ['*'];
+      } else if (args.scope === 'workspace' && args.workspaceId) {
+        objBody.availableGlobal = false;
+        objBody.availableInWorkspaces = [args.workspaceId];
+        objBody.availableInProjects = ['*'];
+      } else if (args.scope === 'project' && args.projectId) {
+        objBody.availableGlobal = false;
+        objBody.availableInProjects = [args.projectId];
+        objBody.availableInWorkspaces = args.workspaceId ? [args.workspaceId] : ['*'];
+      }
+      delete objBody.scope;
+      delete objBody.workspaceId;
+      delete objBody.projectId;
+      return callAPI('POST', '/api/objects', objBody);
+    }
     case 'update_object':
       return callAPI('PUT', `/api/objects/${args.id}`, args);
     case 'delete_object':
@@ -418,15 +546,8 @@ export async function handleToolCall(
       const query = args.objectId ? `?objectId=${args.objectId}` : '';
       return callAPI('GET', `/api/items${query}`);
     }
-    case 'create_item': {
-      const itemBody: Record<string, unknown> = { ...args };
-      // Map projectId to workspaceId for the API (DB column is workspace_id)
-      if (itemBody.projectId && !itemBody.workspaceId) {
-        itemBody.workspaceId = itemBody.projectId;
-        delete itemBody.projectId;
-      }
-      return callAPI('POST', '/api/items', itemBody);
-    }
+    case 'create_item':
+      return callAPI('POST', '/api/items', args);
     case 'update_item':
       return callAPI('PUT', `/api/items/${args.id}`, args);
     case 'delete_item':
@@ -448,8 +569,19 @@ export async function handleToolCall(
       const query = args.projectId ? `?projectId=${args.projectId}` : '';
       return callAPI('GET', `/api/contexts${query}`);
     }
-    case 'create_context':
-      return callAPI('POST', '/api/contexts', args);
+    case 'create_context': {
+      const ctxBody: Record<string, unknown> = { ...args, scope: args.scope || 'project' };
+      // Auto-lookup workspaceId from projectId if not provided
+      if (ctxBody.projectId && !ctxBody.workspaceId) {
+        const projRes = await callAPI('GET', `/api/projects`);
+        try {
+          const projData = JSON.parse(projRes.content[0].text);
+          const proj = projData.data?.find((p: { id: string }) => p.id === ctxBody.projectId);
+          if (proj?.workspaceId) ctxBody.workspaceId = proj.workspaceId;
+        } catch { /* ignore */ }
+      }
+      return callAPI('POST', '/api/contexts', ctxBody);
+    }
     case 'update_context':
       return callAPI('PUT', `/api/contexts/${args.id}`, args);
     case 'delete_context':
@@ -467,6 +599,22 @@ export async function handleToolCall(
         content: args.content,
       });
     }
+
+    // Connections
+    case 'list_connections': {
+      const params = new URLSearchParams();
+      if (args.scope) params.append('scope', String(args.scope));
+      if (args.workspaceId) params.append('workspaceId', String(args.workspaceId));
+      if (args.projectId) params.append('projectId', String(args.projectId));
+      const query = params.toString() ? `?${params.toString()}` : '';
+      return callAPI('GET', `/api/connections${query}`);
+    }
+    case 'create_connection':
+      return callAPI('POST', '/api/connections', args);
+    case 'update_connection':
+      return callAPI('PUT', `/api/connections/${args.id}`, args);
+    case 'delete_connection':
+      return callAPI('DELETE', `/api/connections/${args.id}`);
 
     default:
       return {

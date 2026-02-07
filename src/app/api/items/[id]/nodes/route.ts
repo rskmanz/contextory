@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
 import { ContextNode } from '@/types';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-function itemFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    objectId: row.object_id,
-    workspaceId: row.workspace_id ?? null,
-    markdownId: row.markdown_id ?? null,
-    viewLayout: row.view_layout ?? 'visualization',
-    contextData: row.context_data ?? { nodes: [] },
-  };
-}
+import { generateId, itemFromDb } from '@/lib/db-mappers';
 
 // GET - Get item's context nodes
 export async function GET(
@@ -25,21 +11,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('items')
       .select('context_data')
       .eq('id', id);
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     const { data, error: dbError } = await query.single();
@@ -68,18 +49,18 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'Nodes must be an array' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     // Get current item to merge context_data
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await queryClient
       .from('items')
       .select('context_data')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .single();
 
     if (fetchError || !existing) {
@@ -89,11 +70,11 @@ export async function PUT(
     const currentContextData = (existing.context_data as Record<string, unknown>) || {};
     const updatedContextData = { ...currentContextData, nodes };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('items')
       .update({ context_data: updatedContextData, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .select()
       .single();
 
@@ -116,18 +97,18 @@ export async function POST(
     const { id } = await params;
     const nodeData = await request.json();
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     // Get current item
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing, error: fetchError } = await queryClient
       .from('items')
       .select('context_data')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .single();
 
     if (fetchError || !existing) {
@@ -145,11 +126,11 @@ export async function POST(
     const currentNodes = (currentContextData.nodes as ContextNode[]) || [];
     const updatedContextData = { ...currentContextData, nodes: [...currentNodes, newNode] };
 
-    await supabase
+    await queryClient
       .from('items')
       .update({ context_data: updatedContextData, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', auth.userId);
 
     return NextResponse.json({ success: true, data: newNode });
   } catch (e) {

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add myondAI-style keyboard shortcuts to Context OS's MindmapView for faster node creation and editing.
+Add myondAI-style keyboard shortcuts to Contextory's MindmapView for faster node creation and editing.
 
 ---
 
@@ -68,7 +68,7 @@ const findParentNodeId = (edges: Edge[], childId: string): string | null => {
 
 ---
 
-## Current Context OS State
+## Current Contextory State
 
 **MindmapView.tsx:**
 - SVG-based tree rendering (not React Flow)

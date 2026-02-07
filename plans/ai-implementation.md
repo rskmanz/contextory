@@ -1,6 +1,6 @@
 # AI Implementation
 
-> Context OS の AI 実装ガイド
+> Contextory の AI 実装ガイド
 
 ---
 
@@ -304,7 +304,7 @@ interface ExecuteToolResponse {
 
 ```typescript
 function buildContextPrompt(context: ContextInfo): string {
-  return `You are an AI assistant for Context OS.
+  return `You are an AI assistant for Contextory.
 
 ## Current Context
 - Project: ${context.project?.name || 'None'}

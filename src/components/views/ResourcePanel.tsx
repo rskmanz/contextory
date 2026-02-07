@@ -26,8 +26,10 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({ workspace }) => {
     const newResource: Resource = {
       id: generateId(),
       name: newName.trim(),
+      type: newUrl.trim() ? 'url' : 'note',
       url: newUrl.trim() || undefined,
       icon: newIcon,
+      addedAt: new Date().toISOString(),
     };
 
     await updateWorkspace(workspace.id, {

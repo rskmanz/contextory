@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { ObjectItem, ObjectType, ContextNode, ItemViewLayout, FieldValue } from '@/types';
 import { useStore } from '@/lib/store';
 import { generateId } from '@/lib/utils';
-import { TiptapEditor } from '@/components/editor';
+import { SmartEditor } from '@/components/editor';
 import { FieldValueCell } from '@/components/fields';
 
 interface ItemDetailPanelProps {
@@ -40,8 +40,6 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const projects = useStore((state) => state.projects);
 
   const [nodes, setNodes] = useState<ContextNode[]>(item.contextData?.nodes || []);
-  const [markdown, setMarkdown] = useState('');
-  const [isLoadingMarkdown, setIsLoadingMarkdown] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -51,7 +49,6 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const [selectedMindmapNode, setSelectedMindmapNode] = useState<string | null>(null);
   const [viewLayout, setViewLayout] = useState<ItemViewLayout>(item.viewLayout || 'visualization');
   const [activeTab, setActiveTab] = useState<'markdown' | 'visualization'>('visualization');
-  const [isEditingMarkdown, setIsEditingMarkdown] = useState(false);
 
   // Check if item already has a sub-project
   const existingSubWorkspace = projects.find((p) => p.parentItemId === item.id);
@@ -60,17 +57,6 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const itemProject = projects.find((p) => p.id === item.projectId);
   const projectId = item.projectId || null;
   const workspaceId = itemProject?.workspaceId || null;
-
-  // Load markdown if markdownId exists
-  useEffect(() => {
-    if (item.markdownId) {
-      setIsLoadingMarkdown(true);
-      fetch(`/api/markdown?id=${item.markdownId}&type=items`)
-        .then((res) => res.json())
-        .then((data) => setMarkdown(data.content || ''))
-        .finally(() => setIsLoadingMarkdown(false));
-    }
-  }, [item.markdownId]);
 
   // Initialize layout from item
   useEffect(() => {
@@ -171,22 +157,6 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
       await updateItem(item.id, { contextData: { nodes: newNodes } });
     },
     [item.id, updateItem]
-  );
-
-  // Save markdown
-  const saveMarkdown = useCallback(
-    async (content: string) => {
-      const markdownId = item.markdownId || item.id;
-      await fetch('/api/markdown', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: markdownId, type: 'items', content }),
-      });
-      if (!item.markdownId) {
-        await updateItem(item.id, { markdownId });
-      }
-    },
-    [item.id, item.markdownId, updateItem]
   );
 
   const handleAddNode = useCallback(
@@ -505,17 +475,16 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
         <h3 className="text-xs font-medium text-zinc-600">Notes</h3>
       </div>
       <div className="flex-1 overflow-auto p-2">
-        {isLoadingMarkdown ? (
-          <p className="text-xs text-zinc-400">Loading...</p>
-        ) : (
-          <TiptapEditor
-            content={markdown}
-            onChange={(md) => setMarkdown(md)}
-            onSave={() => saveMarkdown(markdown)}
-            placeholder="Add notes..."
-            compact
-          />
-        )}
+        <SmartEditor
+          markdownId={item.markdownId}
+          entityId={item.id}
+          markdownType="items"
+          onMarkdownIdCreated={(id) => updateItem(item.id, { markdownId: id })}
+          workspaceId={workspaceId || ''}
+          projectId={projectId || undefined}
+          compact
+          placeholder="Add notes..."
+        />
       </div>
     </div>
   );
@@ -743,6 +712,7 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
           {renderContent()}
         </div>
       </div>
+
     </div>
   );
 };

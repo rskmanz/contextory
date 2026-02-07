@@ -61,4 +61,22 @@ body {
 
 .ProseMirror mark { background-color: #fef08a; padding: 0.1rem 0.15rem; border-radius: 0.15rem; }
 
+.ProseMirror table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+.ProseMirror th, .ProseMirror td { border: 1px solid #d4d4d8; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
+.ProseMirror th { background: #f4f4f5; font-weight: 600; }
+.ProseMirror tr:hover td { background: #fafafa; }
+.ProseMirror .selectedCell { background: #dbeafe; }
+
 .ProseMirror p { margin: 0.25rem 0; }
+
+/* Smart Extract source highlighting */
+.ProseMirror .smart-extract-highlight {
+  background-color: #ede9fe;
+  border-left: 3px solid #8b5cf6;
+  padding-left: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

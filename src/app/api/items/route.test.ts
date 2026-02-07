@@ -46,7 +46,7 @@ describe('GET /api/items', () => {
     });
 
     const dbRows = [
-      { id: 'i1', name: 'Item 1', object_id: 'obj-1', workspace_id: 'ws-1', markdown_id: null, view_layout: 'visualization', context_data: { nodes: [] }, user_id: 'user-123' },
+      { id: 'i1', name: 'Item 1', object_id: 'obj-1', project_id: 'ws-1', markdown_id: null, view_layout: 'visualization', context_data: { nodes: [] }, user_id: 'user-123' },
     ];
 
     mockFrom.mockReturnValue(mockQuery(dbRows));
@@ -109,7 +109,7 @@ describe('POST /api/items', () => {
       id: 'new-id',
       name: 'My Item',
       object_id: 'obj-1',
-      workspace_id: null,
+      project_id: null,
       markdown_id: null,
       view_layout: 'visualization',
       context_data: { nodes: [] },

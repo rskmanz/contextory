@@ -74,7 +74,7 @@ export const ObjectsTab: React.FC<ObjectsTabProps> = ({
   const navigateToItem = (itemId: string) => {
     const clickedItem = items.find(i => i.id === itemId);
     const proj = clickedItem?.projectId ? projects.find(p => p.id === clickedItem.projectId) : null;
-    if (proj) router.push(`/${proj.workspaceId}/${proj.id}/item/${itemId}`);
+    if (proj) router.push(`/${proj.workspaceId}/${proj.id}?item=${itemId}`);
   };
 
   return (
@@ -388,7 +388,7 @@ const SelectedObjectView: React.FC<SelectedObjectViewProps> = ({
               <div
                 key={item.id}
                 onClick={() => {
-                  if (proj) router.push(`/${proj.workspaceId}/${proj.id}/item/${item.id}`);
+                  if (proj) router.push(`/${proj.workspaceId}/${proj.id}?item=${item.id}`);
                 }}
                 className="bg-white border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 hover:shadow-sm transition-all cursor-pointer group"
               >

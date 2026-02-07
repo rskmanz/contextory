@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
 import { CopyItemModal } from '@/components/modals/CopyItemModal';
@@ -14,10 +13,6 @@ interface ObjectGridViewProps {
 }
 
 export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, workspaceId, onItemClick }) => {
-  const router = useRouter();
-  const params = useParams();
-  const { workspace, project } = params as { workspace: string; project: string };
-
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const deleteItem = useStore((state) => state.deleteItem);
@@ -33,17 +28,12 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
       objectId: object.id,
       projectId: workspaceId,
     });
-    // Navigate to the new item
-    router.push(`/${workspace}/${project}/item/${id}`);
-  }, [addItem, object.id, workspaceId, router, workspace, project]);
+    onItemClick?.(id);
+  }, [addItem, object.id, workspaceId, onItemClick]);
 
   const handleItemClick = useCallback((itemId: string) => {
-    if (onItemClick) {
-      onItemClick(itemId);
-    } else {
-      router.push(`/${workspace}/${project}/item/${itemId}`);
-    }
-  }, [router, workspace, project, onItemClick]);
+    onItemClick?.(itemId);
+  }, [onItemClick]);
 
   const handleDoubleClick = useCallback((item: ObjectItem, e: React.MouseEvent) => {
     e.stopPropagation();

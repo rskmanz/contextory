@@ -5,6 +5,7 @@ import { Editor } from '@tiptap/react';
 
 interface EditorToolbarProps {
   editor: Editor | null;
+  onExtract?: () => void;
 }
 
 interface ToolbarButton {
@@ -20,7 +21,7 @@ type ToolbarItem = ToolbarButton | ToolbarDivider;
 const isDivider = (item: ToolbarItem): item is ToolbarDivider =>
   'divider' in item;
 
-export const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
+export const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, onExtract }) => {
   if (!editor) return null;
 
   const setLink = useCallback(() => {
@@ -127,7 +128,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
   ];
 
   return (
-    <div className="bg-zinc-50 border-b border-zinc-200 rounded-t-lg p-1 flex gap-0.5 flex-wrap">
+    <div className="bg-zinc-50 border-b border-zinc-200 rounded-t-lg p-1 flex gap-0.5 flex-wrap items-center">
       {items.map((item, idx) => {
         if (isDivider(item)) {
           return (
@@ -152,6 +153,21 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor }) => {
           </button>
         );
       })}
+      {onExtract && (
+        <>
+          <div className="flex-1" />
+          <button
+            onClick={onExtract}
+            title="Smart Extract"
+            className="px-2.5 h-7 rounded-md flex items-center gap-1.5 text-[11px] font-medium text-violet-600 hover:bg-violet-50 transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-violet-500">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Extract
+          </button>
+        </>
+      )}
     </div>
   );
 };

@@ -28,18 +28,16 @@ export const VISUALIZATION_OPTIONS: VisualizationOption[] = [
     ),
   },
   {
-    viewStyle: 'list',
+    viewStyle: 'notes',
     type: 'tree',
-    label: 'Bullet list',
-    description: 'Nested outline',
+    label: 'Notes',
+    description: 'Rich text document',
     icon: (
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="8" cy="8" r="1.5" fill="currentColor" />
-        <circle cx="8" cy="16" r="1.5" fill="currentColor" />
-        <circle cx="8" cy="24" r="1.5" fill="currentColor" />
-        <line x1="12" y1="8" x2="26" y2="8" />
-        <line x1="12" y1="16" x2="22" y2="16" />
-        <line x1="12" y1="24" x2="24" y2="24" />
+        <rect x="6" y="4" width="20" height="24" rx="2" />
+        <line x1="10" y1="10" x2="22" y2="10" />
+        <line x1="10" y1="15" x2="22" y2="15" />
+        <line x1="10" y1="20" x2="18" y2="20" />
       </svg>
     ),
   },

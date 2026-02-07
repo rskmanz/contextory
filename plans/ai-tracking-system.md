@@ -1,6 +1,6 @@
 # AI Tracking System
 
-> Context OS 内蔵の AI トラッキングシステム (LangSmith 風)
+> Contextory 内蔵の AI トラッキングシステム (LangSmith 風)
 
 ---
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, AISettings, AIProvider, FieldDefinition, FieldValue } from '@/types';
+import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, AISettings, AIProvider, FieldDefinition, FieldValue, UserSettings, Connection, Workflow } from '@/types';
 import { createClient } from '@/lib/supabase';
 import { generateId, toSnakeKeys, toCamelKeys } from '@/lib/utils';
 
@@ -14,9 +14,20 @@ interface AppState {
     isLoading: boolean;
     isLoaded: boolean;
     userId: string | null;
+    userEmail: string | null;
+    userAvatarUrl: string | null;
 
     // AI Settings
     aiSettings: AISettings;
+
+    // User Settings
+    userSettings: UserSettings;
+
+    // Connections
+    connections: Connection[];
+
+    // Workflows
+    workflows: Workflow[];
 
     // Load data from Supabase
     loadData: () => Promise<void>;
@@ -92,6 +103,22 @@ interface AppState {
     // AI Settings
     setAISettings: (settings: Partial<AISettings>) => void;
 
+    // User Settings
+    setUserSettings: (settings: Partial<UserSettings>) => void;
+
+    // Connections
+    addConnection: (connection: Omit<Connection, 'id'>) => Promise<string>;
+    updateConnection: (id: string, updates: Partial<Connection>) => Promise<void>;
+    deleteConnection: (id: string) => Promise<void>;
+    getGlobalConnections: () => Connection[];
+    getWorkspaceConnections: (workspaceId: string) => Connection[];
+    getProjectConnections: (projectId: string) => Connection[];
+
+    // Workflows
+    addWorkflow: (workflow: Omit<Workflow, 'id'>) => Promise<string>;
+    updateWorkflow: (id: string, updates: Partial<Workflow>) => Promise<void>;
+    deleteWorkflow: (id: string) => Promise<void>;
+
     // Pinned Object Tabs
     pinObjectTab: (objectId: string) => Promise<void>;
     unpinObjectTab: (objectId: string) => Promise<void>;
@@ -115,15 +142,30 @@ export const useStore = create<AppState>((set, get) => ({
     objects: [],
     items: [],
     pinnedObjectTabs: [],
+    connections: [],
+    workflows: [],
     isLoading: false,
     isLoaded: false,
     userId: null,
+    userEmail: null,
+    userAvatarUrl: null,
 
     // AI Settings initial state
     aiSettings: {
         provider: 'openai' as AIProvider,
         model: 'gpt-4o',
     },
+
+    // User Settings initial state (hydrate from localStorage if available)
+    userSettings: (() => {
+        const defaults: UserSettings = { displayName: '', defaultViewMode: 'grid', theme: 'light', showRightSidebar: true };
+        if (typeof window === 'undefined') return defaults;
+        try {
+            const stored = localStorage.getItem('contextory_user_settings');
+            if (stored) return { ...defaults, ...JSON.parse(stored) };
+        } catch { /* ignore */ }
+        return defaults;
+    })(),
 
     loadData: async () => {
         if (get().isLoaded || get().isLoading) return;
@@ -136,28 +178,44 @@ export const useStore = create<AppState>((set, get) => ({
             }
 
             const sb = getSupabase();
-            const [workspacesRes, projectsRes, contextsRes, objectsRes, itemsRes, pinnedRes] = await Promise.all([
+            const [workspacesRes, projectsRes, contextsRes, objectsRes, itemsRes, pinnedRes, profileRes, connectionsRes, workflowsRes] = await Promise.all([
                 sb.from('workspaces').select('*'),
                 sb.from('projects').select('*'),
                 sb.from('contexts').select('*'),
                 sb.from('objects').select('*'),
                 sb.from('items').select('*'),
                 sb.from('pinned_object_tabs').select('*').order('position'),
+                sb.from('profiles').select('preferences').eq('id', user.id).single(),
+                sb.from('connections').select('*'),
+                sb.from('workflows').select('*'),
             ]);
+
+            // Hydrate user settings from profile preferences
+            const defaults: UserSettings = { displayName: '', defaultViewMode: 'grid', theme: 'light', showRightSidebar: true };
+            const prefs = (profileRes.data?.preferences as Partial<UserSettings>) || {};
 
             set({
                 userId: user.id,
+                userEmail: user.email ?? null,
+                userAvatarUrl: (user.user_metadata?.avatar_url as string) ?? null,
                 workspaces: (workspacesRes.data ?? []).map(r => toCamelKeys<Workspace>(r)),
                 projects: (projectsRes.data ?? []).map(r => toCamelKeys<Project>(r)),
-                contexts: (contextsRes.data ?? []).map(r => toCamelKeys<Context>(r)),
+                contexts: (contextsRes.data ?? []).map(r => ({
+                    ...toCamelKeys<Context>(r),
+                    workspaceId: r.project_id ?? null,
+                    projectId: r.workspace_id ?? null,
+                })),
                 objects: (objectsRes.data ?? []).map(r => toCamelKeys<ObjectType>(r)),
                 items: (itemsRes.data ?? []).map(r => toCamelKeys<ObjectItem>(r)),
                 pinnedObjectTabs: (pinnedRes.data ?? []).map(r => r.object_id),
+                connections: (connectionsRes.data ?? []).map(r => toCamelKeys<Connection>(r)),
+                workflows: (workflowsRes.data ?? []).map(r => toCamelKeys<Workflow>(r)),
+                userSettings: { ...defaults, ...prefs },
                 isLoaded: true,
                 isLoading: false,
             });
         } catch (error) {
-            console.error('Failed to load data:', error);
+            // Failed to load data - user likely not authenticated
             set({ isLoading: false });
         }
     },
@@ -258,7 +316,12 @@ export const useStore = create<AppState>((set, get) => ({
             data: context.data || { nodes: [], edges: [] },
         };
         set((state) => ({ contexts: [...state.contexts, newContext] }));
-        await getSupabase().from('contexts').insert({ ...toSnakeKeys(newContext), user_id: userId });
+        await getSupabase().from('contexts').insert({
+            ...toSnakeKeys(newContext),
+            project_id: newContext.workspaceId ?? null,
+            workspace_id: newContext.projectId ?? null,
+            user_id: userId,
+        });
         return id;
     },
 
@@ -266,7 +329,14 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => ({
             contexts: state.contexts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         }));
-        await getSupabase().from('contexts').update(toSnakeKeys(updates)).eq('id', id);
+        const dbUpdates = toSnakeKeys(updates);
+        if ('workspaceId' in updates || 'projectId' in updates) {
+            delete dbUpdates.workspace_id;
+            delete dbUpdates.project_id;
+            if ('workspaceId' in updates) dbUpdates.project_id = updates.workspaceId;
+            if ('projectId' in updates) dbUpdates.workspace_id = updates.projectId;
+        }
+        await getSupabase().from('contexts').update(dbUpdates).eq('id', id);
     },
 
     deleteContext: async (id) => {
@@ -765,6 +835,83 @@ export const useStore = create<AppState>((set, get) => ({
         }));
     },
 
+    // User Settings (persisted to profiles.preferences + localStorage fallback)
+    setUserSettings: (settings) => {
+        const updated = { ...get().userSettings, ...settings };
+        set({ userSettings: updated });
+        try {
+            localStorage.setItem('contextory_user_settings', JSON.stringify(updated));
+        } catch { /* ignore */ }
+        const userId = get().userId;
+        if (userId) {
+            getSupabase().from('profiles').update({ preferences: updated }).eq('id', userId).then(() => {});
+        }
+    },
+
+    // Connections CRUD
+    addConnection: async (connection) => {
+        const id = generateId();
+        const userId = get().userId;
+        const newConn = { ...connection, id };
+        set((state) => ({ connections: [...state.connections, newConn] }));
+        await getSupabase().from('connections').insert({ ...toSnakeKeys(newConn), user_id: userId });
+        return id;
+    },
+
+    updateConnection: async (id, updates) => {
+        set((state) => ({
+            connections: state.connections.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        }));
+        await getSupabase().from('connections').update(toSnakeKeys(updates)).eq('id', id);
+    },
+
+    deleteConnection: async (id) => {
+        set((state) => ({ connections: state.connections.filter((c) => c.id !== id) }));
+        await getSupabase().from('connections').delete().eq('id', id);
+    },
+
+    getGlobalConnections: () => get().connections.filter((c) => c.scope === 'global'),
+
+    getWorkspaceConnections: (workspaceId) =>
+        get().connections.filter((c) => c.scope === 'workspace' && c.workspaceId === workspaceId),
+
+    getProjectConnections: (projectId) =>
+        get().connections.filter((c) => c.scope === 'project' && c.projectId === projectId),
+
+    // Workflows CRUD
+    addWorkflow: async (workflow) => {
+        const id = generateId();
+        const userId = get().userId;
+        const now = new Date().toISOString();
+        const newWorkflow = { ...workflow, id, createdAt: now, updatedAt: now };
+        set((state) => ({ workflows: [...state.workflows, newWorkflow] }));
+        await getSupabase().from('workflows').insert({
+            ...toSnakeKeys(newWorkflow),
+            user_id: userId,
+            steps: newWorkflow.steps,
+        });
+        return id;
+    },
+
+    updateWorkflow: async (id, updates) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+            workflows: state.workflows.map((w) =>
+                w.id === id ? { ...w, ...updates, updatedAt: now } : w
+            ),
+        }));
+        const dbUpdates = toSnakeKeys({ ...updates, updatedAt: now });
+        if (updates.steps) {
+            dbUpdates.steps = updates.steps;
+        }
+        await getSupabase().from('workflows').update(dbUpdates).eq('id', id);
+    },
+
+    deleteWorkflow: async (id) => {
+        set((state) => ({ workflows: state.workflows.filter((w) => w.id !== id) }));
+        await getSupabase().from('workflows').delete().eq('id', id);
+    },
+
     // Pinned Object Tabs
     pinObjectTab: async (objectId) => {
         const userId = get().userId;
@@ -815,6 +962,8 @@ export const useStore = create<AppState>((set, get) => ({
             pinnedObjectTabs: [],
             isLoaded: false,
             userId: null,
+            userEmail: null,
+            userAvatarUrl: null,
         });
         window.location.href = '/login';
     },

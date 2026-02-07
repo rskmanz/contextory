@@ -6,15 +6,20 @@ export interface Workspace {
   icon: string;
   gradient: string;
   category: string;
+  resources?: Resource[];
 }
 
 // Resource attached to a project
 export interface Resource {
   id: string;
   name: string;
+  type: 'url' | 'file' | 'note' | 'research';
   url?: string;
-  notes?: string;
+  content?: string;
+  summary?: string;
   icon?: string;
+  notes?: string;
+  addedAt?: string;
 }
 
 export interface Project {
@@ -53,22 +58,29 @@ export type ContextType = typeof CONTEXT_TYPES[number];
 
 // View styles per structure (switchable within same type)
 export const VIEW_STYLES = {
-  tree: ['mindmap', 'list'] as const,
+  tree: ['mindmap', 'notes'] as const,
   board: ['kanban', 'grid', 'flow', 'table', 'gantt'] as const,
   canvas: ['freeform'] as const,
 } as const;
 
-export type TreeViewStyle = 'mindmap' | 'list';
+export type TreeViewStyle = 'mindmap' | 'notes';
 export type BoardViewStyle = 'kanban' | 'grid' | 'flow' | 'table' | 'gantt';
 export type CanvasViewStyle = 'freeform';
 export type ViewStyle = TreeViewStyle | BoardViewStyle | CanvasViewStyle;
 
 // Default view style for each type
 export const DEFAULT_VIEW_STYLE: Record<ContextType, ViewStyle> = {
-  tree: 'list',
+  tree: 'notes',
   board: 'grid',
   canvas: 'freeform',
 };
+
+// Infer context type from view style
+export function getContextTypeFromViewStyle(viewStyle: ViewStyle): ContextType {
+  if ((VIEW_STYLES.tree as readonly string[]).includes(viewStyle)) return 'tree';
+  if ((VIEW_STYLES.board as readonly string[]).includes(viewStyle)) return 'board';
+  return 'canvas';
+}
 
 // Edge for flow connections (used in Board views)
 export interface ContextEdge {
@@ -97,6 +109,71 @@ export interface Context {
 
 // Object scope: determines visibility
 export type ObjectScope = 'global' | 'workspace' | 'project';
+
+// Connection types for external app integrations
+export const CONNECTION_TYPES = ['google_docs', 'notion', 'github', 'slack', 'jira', 'linear', 'custom'] as const;
+export type ConnectionType = typeof CONNECTION_TYPES[number];
+
+export interface Connection {
+  id: string;
+  name: string;
+  type: ConnectionType;
+  url?: string;
+  config?: Record<string, unknown>;
+  icon?: string;
+  scope: ObjectScope;
+  workspaceId?: string;
+  projectId?: string;
+}
+
+export const CONNECTION_TYPE_INFO: Record<ConnectionType, { label: string; icon: string }> = {
+  google_docs: { label: 'Google Docs', icon: '📄' },
+  notion: { label: 'Notion', icon: '📝' },
+  github: { label: 'GitHub', icon: '🐙' },
+  slack: { label: 'Slack', icon: '💬' },
+  jira: { label: 'Jira', icon: '🎯' },
+  linear: { label: 'Linear', icon: '📐' },
+  custom: { label: 'Custom', icon: '🔗' },
+};
+
+// Workflow step types for AI task flows
+export const WORKFLOW_STEP_TYPES = ['research', 'summarize', 'create_item', 'add_resource', 'generate_context', 'custom_prompt'] as const;
+export type WorkflowStepType = typeof WORKFLOW_STEP_TYPES[number];
+
+export const WORKFLOW_STEP_INFO: Record<WorkflowStepType, { label: string; icon: string; description: string }> = {
+  research: { label: 'Research', icon: '\u{1F50D}', description: 'AI web research on a topic' },
+  summarize: { label: 'Summarize', icon: '\u{1F4DD}', description: 'Summarize previous step output' },
+  create_item: { label: 'Create Item', icon: '\u{1F4C4}', description: 'Create an item from results' },
+  add_resource: { label: 'Add Resource', icon: '\u{1F4CE}', description: 'Save result as a resource' },
+  generate_context: { label: 'Generate Context', icon: '\u{1F333}', description: 'Create context tree from text' },
+  custom_prompt: { label: 'Custom Prompt', icon: '\u{2728}', description: 'Run a custom AI prompt' },
+};
+
+export interface WorkflowStep {
+  id: string;
+  type: WorkflowStepType;
+  name: string;
+  config: {
+    topic?: string;
+    prompt?: string;
+    objectId?: string;
+    target?: 'workspace' | 'project';
+    targetId?: string;
+    contextId?: string;
+  };
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  icon?: string;
+  scope: ObjectScope;
+  workspaceId?: string;
+  projectId?: string;
+  steps: WorkflowStep[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 // Field types for object schema definition
 export const FIELD_TYPES = ['text', 'number', 'select', 'multiSelect', 'date', 'checkbox', 'url', 'relation'] as const;
@@ -161,7 +238,7 @@ export interface ObjectItem {
   fieldValues?: FieldValues;      // per-item field values keyed by FieldDefinition.id
   contextData?: {                 // context structure (optional)
     type?: ContextType;           // 'tree' | 'board' | 'canvas' (default: 'tree')
-    viewStyle?: ViewStyle;        // view style for the type (default: 'list')
+    viewStyle?: ViewStyle;        // view style for the type (default: 'notes')
     nodes: ContextNode[];
     edges?: ContextEdge[];        // for board/canvas types
     tldrawSnapshot?: string;      // JSON stringified tldraw state for canvas view
@@ -191,6 +268,13 @@ export interface AISettings {
   provider: AIProvider;
   model: string;
   apiKey?: string;
+}
+
+export interface UserSettings {
+  displayName: string;
+  defaultViewMode: 'grid' | 'list' | 'table';
+  theme: 'light' | 'dark';
+  showRightSidebar: boolean;
 }
 
 export interface ChatState {
@@ -240,4 +324,55 @@ export const OBJECT_CATEGORY_SUGGESTIONS = [
   'External',       // News, Trends, Competitors, Market Research
   'Assets',         // Products, Services, Brands, Campaigns
 ] as const;
+
+// Smart Extraction Types
+export type ExtractionType = 'object_with_items' | 'context_nodes' | 'standalone_items';
+
+export interface ExtractedFieldDef {
+  name: string;
+  type: FieldType;
+}
+
+export interface ExtractedItem {
+  name: string;
+  fieldValues?: Record<string, FieldValue>;
+}
+
+export interface ExtractedNode {
+  content: string;
+  parentIndex?: number;
+  metadata?: { startDate?: string; endDate?: string; progress?: number };
+}
+
+export interface ExtractedEdge {
+  sourceIndex: number;
+  targetIndex: number;
+}
+
+export interface ExtractionSuggestion {
+  id: string;
+  type: ExtractionType;
+  title: string;
+  icon: string;
+  description: string;
+  sourceHeading?: string;
+  // object_with_items
+  objectName?: string;
+  fields?: ExtractedFieldDef[];
+  items?: ExtractedItem[];
+  // context_nodes
+  contextName?: string;
+  viewStyle?: ViewStyle;
+  nodes?: ExtractedNode[];
+  edges?: ExtractedEdge[];
+  // standalone_items
+  targetObjectId?: string;
+  targetObjectName?: string;
+  standaloneItems?: ExtractedItem[];
+}
+
+export interface ExtractionResult {
+  suggestions: ExtractionSuggestion[];
+  summary: string;
+}
 

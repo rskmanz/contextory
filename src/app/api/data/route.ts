@@ -1,133 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
-
-function projectFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    gradient: row.gradient,
-    category: row.category,
-  };
-}
-
-function workspaceFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    workspaceId: row.workspace_id,
-    parentItemId: row.parent_item_id ?? null,
-    category: row.category,
-    categoryIcon: row.category_icon,
-    type: row.type,
-    resources: row.resources ?? [],
-  };
-}
-
-function objectFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    type: row.type,
-    category: row.category,
-    builtIn: row.built_in ?? false,
-    availableGlobal: row.available_global ?? false,
-    availableInWorkspaces: row.available_in_workspaces ?? [],
-    availableInProjects: row.available_in_projects ?? [],
-    fields: row.fields ?? [],
-  };
-}
-
-function itemFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    objectId: row.object_id,
-    workspaceId: row.workspace_id ?? null,
-    markdownId: row.markdown_id ?? null,
-    viewLayout: row.view_layout ?? 'visualization',
-    fieldValues: row.field_values ?? {},
-    contextData: row.context_data ?? { nodes: [] },
-  };
-}
-
-function contextFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    type: row.type,
-    viewStyle: row.view_style,
-    scope: row.scope,
-    workspaceId: row.project_id ?? null,
-    projectId: row.workspace_id ?? null,
-    objectIds: row.object_ids ?? [],
-    markdownId: row.markdown_id ?? null,
-    data: row.data ?? { nodes: [], edges: [] },
-  };
-}
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { workspaceFromDb, projectFromDb, objectFromDb, itemFromDb, contextFromDb, connectionFromDb } from '@/lib/db-mappers';
 
 // GET - Read all data from Supabase
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const buildQuery = (table: string) => {
+      let query = queryClient.from(table).select('*').order('created_at', { ascending: true });
+      if (auth) {
+        query = query.eq('user_id', auth.userId);
+      }
+      return query;
+    };
 
-    const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes] = await Promise.all([
-      queryClient.from('workspaces').select('*').order('created_at', { ascending: true }),
-      queryClient.from('projects').select('*').order('created_at', { ascending: true }),
-      queryClient.from('contexts').select('*').order('created_at', { ascending: true }),
-      queryClient.from('objects').select('*').order('created_at', { ascending: true }),
-      queryClient.from('items').select('*').order('created_at', { ascending: true }),
+    const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes, connectionsRes] = await Promise.all([
+      buildQuery('workspaces'),
+      buildQuery('projects'),
+      buildQuery('contexts'),
+      buildQuery('objects'),
+      buildQuery('items'),
+      buildQuery('connections'),
     ]);
 
     return NextResponse.json({
-      projects: (projectsRes.data || []).map(projectFromDb),
-      workspaces: (workspacesRes.data || []).map(workspaceFromDb),
-      contexts: (contextsRes.data || []).map(contextFromDb),
-      objects: (objectsRes.data || []).map(objectFromDb),
-      items: (itemsRes.data || []).map(itemFromDb),
+      success: true,
+      data: {
+        projects: (projectsRes.data || []).map(workspaceFromDb),
+        workspaces: (workspacesRes.data || []).map(projectFromDb),
+        contexts: (contextsRes.data || []).map(contextFromDb),
+        objects: (objectsRes.data || []).map(objectFromDb),
+        items: (itemsRes.data || []).map(itemFromDb),
+        connections: (connectionsRes.data || []).map(connectionFromDb),
+      },
     });
   } catch (e) {
-    console.error('Error reading data:', e);
-    return NextResponse.json({ projects: [], workspaces: [], contexts: [], objects: [], items: [] });
+    return NextResponse.json({ success: false, error: 'Failed to load data' }, { status: 500 });
   }
 }
 
 // POST - Bulk write data to Supabase (used for data migration/import)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await authenticateRequest(request);
+    if (!auth) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const body = await request.json();
 
     // Upsert each entity type with user_id
     if (body.projects?.length) {
-      await supabase.from('workspaces').upsert(
+      await queryClient.from('workspaces').upsert(
         body.projects.map((p: Record<string, unknown>) => ({
           id: p.id,
-          user_id: user.id,
+          user_id: auth.userId,
           name: p.name,
           icon: p.icon,
           gradient: p.gradient,
           category: p.category,
+          resources: p.resources || [],
         }))
       );
     }
 
     if (body.workspaces?.length) {
-      await supabase.from('projects').upsert(
+      await queryClient.from('projects').upsert(
         body.workspaces.map((w: Record<string, unknown>) => ({
           id: w.id,
-          user_id: user.id,
+          user_id: auth.userId,
           name: w.name,
           workspace_id: w.workspaceId,
           parent_item_id: w.parentItemId || null,
@@ -140,10 +85,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.objects?.length) {
-      await supabase.from('objects').upsert(
+      await queryClient.from('objects').upsert(
         body.objects.map((o: Record<string, unknown>) => ({
           id: o.id,
-          user_id: user.id,
+          user_id: auth.userId,
           name: o.name,
           icon: o.icon,
           type: o.type,
@@ -158,10 +103,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.contexts?.length) {
-      await supabase.from('contexts').upsert(
+      await queryClient.from('contexts').upsert(
         body.contexts.map((c: Record<string, unknown>) => ({
           id: c.id,
-          user_id: user.id,
+          user_id: auth.userId,
           name: c.name,
           icon: c.icon,
           type: c.type,
@@ -177,13 +122,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.items?.length) {
-      await supabase.from('items').upsert(
+      await queryClient.from('items').upsert(
         body.items.map((i: Record<string, unknown>) => ({
           id: i.id,
-          user_id: user.id,
+          user_id: auth.userId,
           name: i.name,
           object_id: i.objectId,
-          workspace_id: i.workspaceId || null,
+          project_id: i.projectId || null,
           markdown_id: i.markdownId || null,
           view_layout: i.viewLayout || 'visualization',
           field_values: i.fieldValues || {},
@@ -192,9 +137,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body.connections?.length) {
+      await queryClient.from('connections').upsert(
+        body.connections.map((c: Record<string, unknown>) => ({
+          id: c.id,
+          user_id: auth.userId,
+          name: c.name,
+          type: c.type,
+          url: c.url || null,
+          config: c.config || {},
+          icon: c.icon || null,
+          scope: c.scope || 'global',
+          workspace_id: c.workspaceId || null,
+          project_id: c.projectId || null,
+        }))
+      );
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Error writing data:', e);
-    return NextResponse.json({ error: 'Failed to write data' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to write data' }, { status: 500 });
   }
 }

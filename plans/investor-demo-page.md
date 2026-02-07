@@ -1,7 +1,7 @@
 # Investor Demo Page Plan
 
 ## Overview
-Create a one-page illustration explaining Context OS to investors, showing the full data hierarchy.
+Create a one-page illustration explaining Contextory to investors, showing the full data hierarchy.
 
 ## Page URL
 `/demo`
@@ -35,9 +35,9 @@ Create a one-page illustration explaining Context OS to investors, showing the f
    - Probably: Manually compile from multiple sources
    - Problem: Time-consuming, easy to miss updates
 
-**How Context OS Helps:**
+**How Contextory Helps:**
 
-| Pain Point | Current Tool | Context OS Solution |
+| Pain Point | Current Tool | Contextory Solution |
 |------------|--------------|---------------------|
 | Track startups | Notion pages | Workspace per startup with full context |
 | Meeting context | Search everywhere | Click startup → see all history |
@@ -124,7 +124,7 @@ Phase 1: Selection ─── Phase 2: Mentoring ─── Phase 3: Demo Day
 
 ## Full Hierarchy Illustration
 ```
-Context OS
+Contextory
 │
 ├── 🏠 Home (Global View)
 │   ├── All Projects
@@ -168,7 +168,7 @@ Context OS
 ## Interview Demo Script
 
 ### Opening (30 sec)
-"I built Context OS to solve a problem I kept seeing - information about projects and people is scattered everywhere. Let me show you how it works for a VC Program Manager."
+"I built Contextory to solve a problem I kept seeing - information about projects and people is scattered everywhere. Let me show you how it works for a VC Program Manager."
 
 ### Demo Flow (3-5 min)
 

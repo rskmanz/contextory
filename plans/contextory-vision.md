@@ -1,4 +1,4 @@
-# Context OS
+# Contextory
 
 > **Co-creating contexts of your work with AI.**
 
@@ -313,19 +313,20 @@ Already configured in `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "context-os": {
+    "contextory": {
       "type": "stdio",
       "command": "node",
       "args": ["C:/Users/User/InfoDashboard/info-dashboard/mcp-server/build/index.js"],
       "env": {
-        "CONTEXT_OS_URL": "http://localhost:3000"
+        "CONTEXTORY_URL": "http://localhost:3000",
+        "CONTEXTORY_API_KEY": "ctx_..."
       }
     }
   }
 }
 ```
 
-**Skill:** Use `/context-os` command in Claude Code
+**Skill:** Use `/contextory` command in Claude Code
 
 ---
 

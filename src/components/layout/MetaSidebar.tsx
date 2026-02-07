@@ -12,6 +12,10 @@ export const MetaSidebar: React.FC<MetaSidebarProps> = ({ activePage = 'home' })
     const isWorkspace = activePage === 'workspace' || activePage === 'workspaces';
     const workspaces = useStore((state) => state.workspaces);
     const projects = useStore((state) => state.projects);
+    const userEmail = useStore((state) => state.userEmail);
+    const userAvatarUrl = useStore((state) => state.userAvatarUrl);
+
+    const userInitial = userEmail ? userEmail[0].toUpperCase() : '?';
 
     // Get the first project to link directly to editor
     const firstProject = projects[0];
@@ -79,6 +83,21 @@ export const MetaSidebar: React.FC<MetaSidebarProps> = ({ activePage = 'home' })
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
+            </Link>
+
+            {/* User Avatar */}
+            <Link
+                href="/settings"
+                className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border-2 border-zinc-200 hover:border-zinc-400 transition-all"
+                title={userEmail || 'Account'}
+            >
+                {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-sm font-semibold text-zinc-500 bg-zinc-100 w-full h-full flex items-center justify-center">
+                        {userInitial}
+                    </span>
+                )}
             </Link>
         </aside>
     );

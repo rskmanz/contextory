@@ -25,6 +25,7 @@ describe('DemoPage', () => {
     const { container } = render(<DemoPage />);
 
     expect(container.textContent).not.toContain('Context OS');
+    expect(container.textContent).not.toContain('context-os');
   });
 
   it('renders the Try Demo link', () => {

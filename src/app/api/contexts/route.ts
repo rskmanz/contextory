@@ -1,46 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-function contextFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    type: row.type,
-    viewStyle: row.view_style,
-    scope: row.scope,
-    workspaceId: row.project_id ?? null,
-    projectId: row.workspace_id ?? null,
-    objectIds: row.object_ids ?? [],
-    markdownId: row.markdown_id ?? null,
-    data: row.data ?? { nodes: [], edges: [] },
-  };
-}
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { getContextTypeFromViewStyle, ViewStyle } from '@/types';
+import { generateId, contextFromDb } from '@/lib/db-mappers';
 
 // GET - List contexts (filter by projectId)
 export async function GET(request: NextRequest) {
   try {
     const projectId = request.nextUrl.searchParams.get('projectId');
 
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('contexts')
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     if (projectId) {
@@ -63,11 +41,11 @@ export async function GET(request: NextRequest) {
 // POST - Create context
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const body = await request.json();
 
@@ -82,11 +60,11 @@ export async function POST(request: NextRequest) {
 
     const newContext = {
       id: generateId(),
-      user_id: user.id,
+      user_id: auth.userId,
       name: body.name || 'New Context',
       icon: body.icon || '',
-      type: body.type || 'tree',
-      view_style: body.viewStyle || 'mindmap',
+      type: body.type || (body.viewStyle ? getContextTypeFromViewStyle(body.viewStyle as ViewStyle) : 'tree'),
+      view_style: body.viewStyle || 'notes',
       scope: scope,
       project_id: scope === 'global' ? null : body.workspaceId,
       workspace_id: scope === 'project' ? body.projectId : null,
@@ -95,7 +73,7 @@ export async function POST(request: NextRequest) {
       data: body.data || { nodes: [] },
     };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('contexts')
       .insert(newContext)
       .select()

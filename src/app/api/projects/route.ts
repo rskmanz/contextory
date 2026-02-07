@@ -1,43 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-function projectFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    workspaceId: row.workspace_id,
-    parentItemId: row.parent_item_id ?? null,
-    category: row.category,
-    categoryIcon: row.category_icon,
-    type: row.type,
-    resources: row.resources ?? [],
-  };
-}
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { generateId, projectFromDb } from '@/lib/db-mappers';
 
 // GET - List projects (sub-units, optionally filter by workspaceId)
 export async function GET(request: NextRequest) {
   try {
     const workspaceId = request.nextUrl.searchParams.get('workspaceId');
 
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('projects')
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     if (workspaceId) {
@@ -60,11 +40,11 @@ export async function GET(request: NextRequest) {
 // POST - Create project
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const body = await request.json();
 
@@ -74,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const newProject = {
       id: generateId(),
-      user_id: user.id,
+      user_id: auth.userId,
       name: body.name || 'New Project',
       workspace_id: body.workspaceId,
       parent_item_id: body.parentItemId || null,
@@ -82,7 +62,7 @@ export async function POST(request: NextRequest) {
       category_icon: body.categoryIcon || '',
     };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('projects')
       .insert(newProject)
       .select()

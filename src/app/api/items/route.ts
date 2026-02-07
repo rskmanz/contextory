@@ -1,51 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { generateId, itemFromDb } from '@/lib/db-mappers';
 
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-function itemFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    objectId: row.object_id,
-    workspaceId: row.workspace_id ?? null,
-    markdownId: row.markdown_id ?? null,
-    viewLayout: row.view_layout ?? 'visualization',
-    fieldValues: row.field_values ?? {},
-    contextData: row.context_data ?? { nodes: [] },
-  };
-}
-
-// GET - List items (filter by objectId, workspaceId)
+// GET - List items (filter by objectId, projectId)
 export async function GET(request: NextRequest) {
   try {
     const objectId = request.nextUrl.searchParams.get('objectId');
-    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
+    const projectId = request.nextUrl.searchParams.get('projectId');
 
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('items')
       .select('*')
       .order('created_at', { ascending: true });
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     if (objectId) {
       query = query.eq('object_id', objectId);
     }
-    if (workspaceId) {
-      query = query.eq('workspace_id', workspaceId);
+    if (projectId) {
+      query = query.eq('project_id', projectId);
     }
 
     const { data, error: dbError } = await query;
@@ -64,11 +44,11 @@ export async function GET(request: NextRequest) {
 // POST - Create item
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const body = await request.json();
 
@@ -78,16 +58,16 @@ export async function POST(request: NextRequest) {
 
     const newItem = {
       id: generateId(),
-      user_id: user.id,
+      user_id: auth.userId,
       name: body.name || 'New Item',
       object_id: body.objectId,
-      workspace_id: body.workspaceId || null,
+      project_id: body.projectId || null,
       markdown_id: body.markdownId || null,
       field_values: body.fieldValues || {},
       context_data: body.contextData || { nodes: [] },
     };
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('items')
       .insert(newItem)
       .select()

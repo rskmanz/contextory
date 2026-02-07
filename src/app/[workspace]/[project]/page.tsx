@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AddContextModal } from '@/components/modals/AddContextModal';
@@ -21,6 +21,7 @@ type ModalName = 'addContext' | 'editContext' | 'addObject' | 'editObject' | 'ed
 
 export default function ProjectPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { workspace, project } = params as { workspace: string; project: string };
 
   const workspaces = useStore((state) => state.workspaces);
@@ -55,13 +56,22 @@ export default function ProjectPage() {
   const [viewLevel, setViewLevel] = useState<'global' | 'workspace' | 'project'>('project');
   const [objectViewScope, setObjectViewScope] = useState<'workspace' | 'project'>('project');
   const [contextViewScope, setContextViewScope] = useState<'workspace' | 'project'>('project');
-  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table'>('grid');
+  const userSettings = useStore((state) => state.userSettings);
+  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table'>(userSettings.defaultViewMode);
 
   const modal = useModalState<ModalName>();
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Read ?item= query param to auto-open an item
+  useEffect(() => {
+    const itemId = searchParams.get('item');
+    if (itemId && isLoaded) {
+      setActiveTab({ type: 'item', id: itemId });
+    }
+  }, [searchParams, isLoaded]);
 
   const currentWorkspace = workspaces.find((p) => p.id === workspace);
   const currentProject = projects.find((w) => w.id === project);

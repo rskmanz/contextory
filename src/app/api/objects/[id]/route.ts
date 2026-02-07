@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase-server';
-
-function objectFromDb(row: Record<string, unknown>) {
-  return {
-    id: row.id,
-    name: row.name,
-    icon: row.icon,
-    type: row.type,
-    category: row.category,
-    builtIn: row.built_in ?? false,
-    availableGlobal: row.available_global ?? false,
-    availableInProjects: row.available_in_projects ?? [],
-    availableInWorkspaces: row.available_in_workspaces ?? [],
-    fields: row.fields ?? [],
-  };
-}
+import { createServiceClient } from '@/lib/supabase-server';
+import { authenticateRequest } from '@/lib/api-auth';
+import { objectFromDb } from '@/lib/db-mappers';
 
 // GET - Get single object
 export async function GET(
@@ -23,21 +10,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Allow unauthenticated access for MCP server compatibility
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Use service role client for unauthenticated access (MCP), anon client for authenticated
-    const queryClient = user ? supabase : createServiceClient();
+    const auth = await authenticateRequest(request);
+    const queryClient = createServiceClient();
 
     let query = queryClient
       .from('objects')
       .select('*')
       .eq('id', id);
 
-    if (user) {
-      query = query.eq('user_id', user.id);
+    if (auth) {
+      query = query.eq('user_id', auth.userId);
     }
 
     const { data, error: dbError } = await query.single();
@@ -59,11 +41,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
     const updates = await request.json();
 
@@ -79,11 +61,11 @@ export async function PUT(
     if (updates.fields !== undefined) dbUpdates.fields = updates.fields;
     dbUpdates.updated_at = new Date().toISOString();
 
-    const { data, error: dbError } = await supabase
+    const { data, error: dbError } = await queryClient
       .from('objects')
       .update(dbUpdates)
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .select()
       .single();
 
@@ -104,17 +86,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const auth = await authenticateRequest(request);
+    if (!auth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const queryClient = createServiceClient();
 
-    const { error: dbError } = await supabase
+    const { error: dbError } = await queryClient
       .from('objects')
       .delete()
       .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('user_id', auth.userId);
 
     if (dbError) {
       return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
