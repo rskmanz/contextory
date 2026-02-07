@@ -8,10 +8,12 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -39,10 +41,12 @@ export declare const tools: ({
                 description: string;
             };
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -73,10 +77,12 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -98,10 +104,12 @@ export declare const tools: ({
             name?: undefined;
             icon?: undefined;
             category?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -116,7 +124,7 @@ export declare const tools: ({
     inputSchema: {
         type: "object";
         properties: {
-            projectId: {
+            workspaceId: {
                 type: string;
                 description: string;
             };
@@ -125,8 +133,10 @@ export declare const tools: ({
             category?: undefined;
             id?: undefined;
             scope?: undefined;
-            workspaceId?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -141,7 +151,7 @@ export declare const tools: ({
     inputSchema: {
         type: "object";
         properties: {
-            projectId: {
+            workspaceId: {
                 type: string;
                 description: string;
             };
@@ -156,8 +166,10 @@ export declare const tools: ({
             icon?: undefined;
             id?: undefined;
             scope?: undefined;
-            workspaceId?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -185,10 +197,12 @@ export declare const tools: ({
                 description: string;
             };
             icon?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -219,7 +233,9 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -246,11 +262,11 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
-            projectId: {
+            workspaceId: {
                 type: string;
                 description: string;
             };
-            workspaceId: {
+            projectId: {
                 type: string;
                 description: string;
             };
@@ -258,8 +274,58 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
+            fields: {
+                type: string;
+                description: string;
+                items: {
+                    type: string;
+                    properties: {
+                        id: {
+                            type: string;
+                            description: string;
+                        };
+                        name: {
+                            type: string;
+                            description: string;
+                        };
+                        type: {
+                            type: string;
+                            description: string;
+                        };
+                        options: {
+                            type: string;
+                            items: {
+                                type: string;
+                                properties: {
+                                    id: {
+                                        type: string;
+                                    };
+                                    label: {
+                                        type: string;
+                                    };
+                                    color: {
+                                        type: string;
+                                    };
+                                };
+                                required: string[];
+                            };
+                            description: string;
+                        };
+                        required: {
+                            type: string;
+                            description: string;
+                        };
+                        relationObjectId: {
+                            type: string;
+                            description: string;
+                        };
+                    };
+                    required: string[];
+                };
+            };
             id?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -286,11 +352,61 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
+            fields: {
+                type: string;
+                description: string;
+                items: {
+                    type: string;
+                    properties: {
+                        id: {
+                            type: string;
+                            description: string;
+                        };
+                        name: {
+                            type: string;
+                            description: string;
+                        };
+                        type: {
+                            type: string;
+                            description: string;
+                        };
+                        options: {
+                            type: string;
+                            items: {
+                                type: string;
+                                properties: {
+                                    id: {
+                                        type: string;
+                                    };
+                                    label: {
+                                        type: string;
+                                    };
+                                    color: {
+                                        type: string;
+                                    };
+                                };
+                                required: string[];
+                            };
+                            description: string;
+                        };
+                        required: {
+                            type: string;
+                            description: string;
+                        };
+                        relationObjectId: {
+                            type: string;
+                            description: string;
+                        };
+                    };
+                    required: string[];
+                };
+            };
             category?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -313,9 +429,11 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -338,15 +456,20 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
-            workspaceId: {
+            projectId: {
+                type: string;
+                description: string;
+            };
+            fieldValues: {
                 type: string;
                 description: string;
             };
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
+            workspaceId?: undefined;
             scope?: undefined;
+            fields?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -369,11 +492,16 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
+            fieldValues: {
+                type: string;
+                description: string;
+            };
             icon?: undefined;
             category?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
             itemId?: undefined;
             nodes?: undefined;
@@ -397,10 +525,12 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             nodes?: undefined;
             content?: undefined;
             parentId?: undefined;
@@ -444,10 +574,12 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             content?: undefined;
             parentId?: undefined;
             type?: undefined;
@@ -476,10 +608,12 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             nodes?: undefined;
             type?: undefined;
         };
@@ -491,7 +625,7 @@ export declare const tools: ({
     inputSchema: {
         type: "object";
         properties: {
-            workspaceId: {
+            projectId: {
                 type: string;
                 description: string;
             };
@@ -499,9 +633,11 @@ export declare const tools: ({
             icon?: undefined;
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
+            workspaceId?: undefined;
             scope?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -516,7 +652,7 @@ export declare const tools: ({
     inputSchema: {
         type: "object";
         properties: {
-            workspaceId: {
+            projectId: {
                 type: string;
                 description: string;
             };
@@ -534,13 +670,48 @@ export declare const tools: ({
             };
             category?: undefined;
             id?: undefined;
-            projectId?: undefined;
+            workspaceId?: undefined;
             scope?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
             parentId?: undefined;
+        };
+        required: string[];
+    };
+} | {
+    name: string;
+    description: string;
+    inputSchema: {
+        type: "object";
+        properties: {
+            id: {
+                type: string;
+                description: string;
+            };
+            name: {
+                type: string;
+                description: string;
+            };
+            icon: {
+                type: string;
+                description: string;
+            };
+            category?: undefined;
+            workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
+            objectId?: undefined;
+            fieldValues?: undefined;
+            itemId?: undefined;
+            nodes?: undefined;
+            content?: undefined;
+            parentId?: undefined;
+            type?: undefined;
         };
         required: string[];
     };
@@ -561,10 +732,12 @@ export declare const tools: ({
             name?: undefined;
             icon?: undefined;
             category?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             content?: undefined;
@@ -593,10 +766,12 @@ export declare const tools: ({
             name?: undefined;
             icon?: undefined;
             category?: undefined;
-            projectId?: undefined;
-            scope?: undefined;
             workspaceId?: undefined;
+            scope?: undefined;
+            projectId?: undefined;
+            fields?: undefined;
             objectId?: undefined;
+            fieldValues?: undefined;
             itemId?: undefined;
             nodes?: undefined;
             parentId?: undefined;

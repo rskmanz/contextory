@@ -377,25 +377,25 @@ export async function handleToolCall(
   switch (name) {
     // Workspaces (top-level containers)
     case 'list_workspaces':
-      return callAPI('GET', '/api/projects');
+      return callAPI('GET', '/api/workspaces');
     case 'create_workspace':
-      return callAPI('POST', '/api/projects', args);
+      return callAPI('POST', '/api/workspaces', args);
     case 'update_workspace':
-      return callAPI('PUT', `/api/projects/${args.id}`, args);
+      return callAPI('PUT', `/api/workspaces/${args.id}`, args);
     case 'delete_workspace':
-      return callAPI('DELETE', `/api/projects/${args.id}`);
+      return callAPI('DELETE', `/api/workspaces/${args.id}`);
 
     // Projects (sub-units within workspaces)
     case 'list_projects': {
       const query = args.workspaceId ? `?workspaceId=${args.workspaceId}` : '';
-      return callAPI('GET', `/api/workspaces${query}`);
+      return callAPI('GET', `/api/projects${query}`);
     }
     case 'create_project':
-      return callAPI('POST', '/api/workspaces', args);
+      return callAPI('POST', '/api/projects', args);
     case 'update_project':
-      return callAPI('PUT', `/api/workspaces/${args.id}`, args);
+      return callAPI('PUT', `/api/projects/${args.id}`, args);
     case 'delete_project':
-      return callAPI('DELETE', `/api/workspaces/${args.id}`);
+      return callAPI('DELETE', `/api/projects/${args.id}`);
 
     // Objects
     case 'list_objects': {
@@ -418,8 +418,15 @@ export async function handleToolCall(
       const query = args.objectId ? `?objectId=${args.objectId}` : '';
       return callAPI('GET', `/api/items${query}`);
     }
-    case 'create_item':
-      return callAPI('POST', '/api/items', args);
+    case 'create_item': {
+      const itemBody: Record<string, unknown> = { ...args };
+      // Map projectId to workspaceId for the API (DB column is workspace_id)
+      if (itemBody.projectId && !itemBody.workspaceId) {
+        itemBody.workspaceId = itemBody.projectId;
+        delete itemBody.projectId;
+      }
+      return callAPI('POST', '/api/items', itemBody);
+    }
     case 'update_item':
       return callAPI('PUT', `/api/items/${args.id}`, args);
     case 'delete_item':

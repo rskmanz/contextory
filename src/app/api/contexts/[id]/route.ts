@@ -9,8 +9,8 @@ function contextFromDb(row: Record<string, unknown>) {
     type: row.type,
     viewStyle: row.view_style,
     scope: row.scope,
-    projectId: row.project_id ?? null,
-    workspaceId: row.workspace_id ?? null,
+    workspaceId: row.project_id ?? null,
+    projectId: row.workspace_id ?? null,
     objectIds: row.object_ids ?? [],
     markdownId: row.markdown_id ?? null,
     data: row.data ?? { nodes: [], edges: [] },
@@ -85,8 +85,8 @@ export async function PUT(
     if (updates.type !== undefined) dbUpdates.type = updates.type;
     if (updates.viewStyle !== undefined) dbUpdates.view_style = updates.viewStyle;
     if (updates.scope !== undefined) dbUpdates.scope = updates.scope;
-    if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
-    if (updates.workspaceId !== undefined) dbUpdates.workspace_id = updates.workspaceId;
+    if (updates.workspaceId !== undefined) dbUpdates.project_id = updates.workspaceId;
+    if (updates.projectId !== undefined) dbUpdates.workspace_id = updates.projectId;
     if (updates.objectIds !== undefined) dbUpdates.object_ids = updates.objectIds;
     if (updates.markdownId !== undefined) dbUpdates.markdown_id = updates.markdownId;
     if (updates.data !== undefined) dbUpdates.data = updates.data;

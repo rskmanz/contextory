@@ -9,27 +9,36 @@ function projectFromDb(row: Record<string, unknown>) {
   return {
     id: row.id,
     name: row.name,
-    icon: row.icon,
-    gradient: row.gradient,
+    workspaceId: row.workspace_id,
+    parentItemId: row.parent_item_id ?? null,
     category: row.category,
+    categoryIcon: row.category_icon,
+    type: row.type,
+    resources: row.resources ?? [],
   };
 }
 
-// GET - List all projects
-export async function GET() {
+// GET - List projects (sub-units, optionally filter by workspaceId)
+export async function GET(request: NextRequest) {
   try {
+    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
+
     const supabase = await createClient();
 
     // Allow unauthenticated access for MCP server compatibility
     const { data: { user } } = await supabase.auth.getUser();
 
     let query = supabase
-      .from('workspaces')
+      .from('projects')
       .select('*')
       .order('created_at', { ascending: true });
 
     if (user) {
       query = query.eq('user_id', user.id);
+    }
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
     }
 
     const { data, error: dbError } = await query;
@@ -56,17 +65,22 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    if (!body.workspaceId) {
+      return NextResponse.json({ success: false, error: 'workspaceId is required' }, { status: 400 });
+    }
+
     const newProject = {
       id: generateId(),
       user_id: user.id,
       name: body.name || 'New Project',
-      icon: body.icon || '',
-      gradient: body.gradient || 'from-blue-500 to-purple-500',
-      category: body.category || 'Personal',
+      workspace_id: body.workspaceId,
+      parent_item_id: body.parentItemId || null,
+      category: body.category || '',
+      category_icon: body.categoryIcon || '',
     };
 
     const { data, error: dbError } = await supabase
-      .from('workspaces')
+      .from('projects')
       .insert(newProject)
       .select()
       .single();

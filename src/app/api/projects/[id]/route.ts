@@ -5,9 +5,12 @@ function projectFromDb(row: Record<string, unknown>) {
   return {
     id: row.id,
     name: row.name,
-    icon: row.icon,
-    gradient: row.gradient,
+    workspaceId: row.workspace_id,
+    parentItemId: row.parent_item_id ?? null,
     category: row.category,
+    categoryIcon: row.category_icon,
+    type: row.type,
+    resources: row.resources ?? [],
   };
 }
 
@@ -24,7 +27,7 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser();
 
     let query = supabase
-      .from('workspaces')
+      .from('projects')
       .select('*')
       .eq('id', id);
 
@@ -61,13 +64,16 @@ export async function PUT(
 
     const dbUpdates: Record<string, unknown> = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
-    if (updates.gradient !== undefined) dbUpdates.gradient = updates.gradient;
+    if (updates.workspaceId !== undefined) dbUpdates.workspace_id = updates.workspaceId;
+    if (updates.parentItemId !== undefined) dbUpdates.parent_item_id = updates.parentItemId;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.categoryIcon !== undefined) dbUpdates.category_icon = updates.categoryIcon;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.resources !== undefined) dbUpdates.resources = updates.resources;
     dbUpdates.updated_at = new Date().toISOString();
 
     const { data, error: dbError } = await supabase
-      .from('workspaces')
+      .from('projects')
       .update(dbUpdates)
       .eq('id', id)
       .eq('user_id', user.id)
@@ -84,7 +90,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete project (cascades to projects via FK)
+// DELETE - Delete project (cascades to items via FK)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -98,7 +104,7 @@ export async function DELETE(
     }
 
     const { error: dbError } = await supabase
-      .from('workspaces')
+      .from('projects')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id);

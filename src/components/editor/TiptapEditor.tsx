@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -19,6 +19,7 @@ interface TiptapEditorProps {
   placeholder?: string;
   className?: string;
   compact?: boolean;
+  minimal?: boolean;
 }
 
 // Convert markdown to HTML for Tiptap consumption
@@ -72,7 +73,9 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   placeholder = 'Start writing...',
   className = '',
   compact = false,
+  minimal = false,
 }) => {
+  const [showToolbar, setShowToolbar] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -136,6 +139,35 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   }, [editor, content]);
 
   if (!editor) return null;
+
+  if (minimal) {
+    return (
+      <div className={`flex flex-col bg-white ${className}`}>
+        {/* Subtle toggle for toolbar */}
+        {editable && (
+          <div className="flex items-center justify-end mb-1">
+            <button
+              onClick={() => setShowToolbar((v) => !v)}
+              className={`p-1 rounded text-xs transition-colors ${
+                showToolbar
+                  ? 'text-zinc-600 bg-zinc-100'
+                  : 'text-zinc-300 hover:text-zinc-500'
+              }`}
+              title={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16M4 12h10M4 18h14" />
+              </svg>
+            </button>
+          </div>
+        )}
+        {editable && showToolbar && <EditorToolbar editor={editor} />}
+        <div className="overflow-auto">
+          <EditorContent editor={editor} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

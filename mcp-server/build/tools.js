@@ -1,62 +1,13 @@
 import { callAPI } from './api-client.js';
 // Tool definitions
 export const tools = [
-    // ============ PROJECTS ============
-    {
-        name: 'list_projects',
-        description: 'List all projects in Contextory',
-        inputSchema: {
-            type: 'object',
-            properties: {},
-        },
-    },
-    {
-        name: 'create_project',
-        description: 'Create a new project',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                name: { type: 'string', description: 'Project name' },
-                icon: { type: 'string', description: 'Emoji icon (e.g., 🚀)' },
-                category: { type: 'string', description: 'Category (e.g., Work, Personal)' },
-            },
-            required: ['name'],
-        },
-    },
-    {
-        name: 'update_project',
-        description: 'Update a project',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                id: { type: 'string', description: 'Project ID' },
-                name: { type: 'string', description: 'New name' },
-                icon: { type: 'string', description: 'New icon' },
-                category: { type: 'string', description: 'New category' },
-            },
-            required: ['id'],
-        },
-    },
-    {
-        name: 'delete_project',
-        description: 'Delete a project',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                id: { type: 'string', description: 'Project ID' },
-            },
-            required: ['id'],
-        },
-    },
     // ============ WORKSPACES ============
     {
         name: 'list_workspaces',
-        description: 'List workspaces in a project',
+        description: 'List all workspaces in Contextory',
         inputSchema: {
             type: 'object',
-            properties: {
-                projectId: { type: 'string', description: 'Project ID to filter by' },
-            },
+            properties: {},
         },
     },
     {
@@ -65,11 +16,11 @@ export const tools = [
         inputSchema: {
             type: 'object',
             properties: {
-                projectId: { type: 'string', description: 'Project ID' },
                 name: { type: 'string', description: 'Workspace name' },
-                category: { type: 'string', description: 'Category' },
+                icon: { type: 'string', description: 'Emoji icon (e.g., 🚀)' },
+                category: { type: 'string', description: 'Category (e.g., Work, Personal)' },
             },
-            required: ['projectId', 'name'],
+            required: ['name'],
         },
     },
     {
@@ -80,6 +31,7 @@ export const tools = [
             properties: {
                 id: { type: 'string', description: 'Workspace ID' },
                 name: { type: 'string', description: 'New name' },
+                icon: { type: 'string', description: 'New icon' },
                 category: { type: 'string', description: 'New category' },
             },
             required: ['id'],
@@ -96,6 +48,54 @@ export const tools = [
             required: ['id'],
         },
     },
+    // ============ PROJECTS ============
+    {
+        name: 'list_projects',
+        description: 'List projects in a workspace',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                workspaceId: { type: 'string', description: 'Workspace ID to filter by' },
+            },
+        },
+    },
+    {
+        name: 'create_project',
+        description: 'Create a new project',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                workspaceId: { type: 'string', description: 'Workspace ID' },
+                name: { type: 'string', description: 'Project name' },
+                category: { type: 'string', description: 'Category' },
+            },
+            required: ['workspaceId', 'name'],
+        },
+    },
+    {
+        name: 'update_project',
+        description: 'Update a project',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Project ID' },
+                name: { type: 'string', description: 'New name' },
+                category: { type: 'string', description: 'New category' },
+            },
+            required: ['id'],
+        },
+    },
+    {
+        name: 'delete_project',
+        description: 'Delete a project',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Project ID' },
+            },
+            required: ['id'],
+        },
+    },
     // ============ OBJECTS ============
     {
         name: 'list_objects',
@@ -103,7 +103,7 @@ export const tools = [
         inputSchema: {
             type: 'object',
             properties: {
-                scope: { type: 'string', description: 'Filter by scope: global, project, local' },
+                scope: { type: 'string', description: 'Filter by scope: global, workspace, project' },
                 projectId: { type: 'string', description: 'Filter by project ID' },
                 workspaceId: { type: 'string', description: 'Filter by workspace ID' },
             },
@@ -117,10 +117,26 @@ export const tools = [
             properties: {
                 name: { type: 'string', description: 'Object name' },
                 icon: { type: 'string', description: 'Emoji icon' },
-                scope: { type: 'string', description: 'Scope: global, project, or local' },
-                projectId: { type: 'string', description: 'Project ID (for project/local scope)' },
-                workspaceId: { type: 'string', description: 'Workspace ID (for local scope)' },
+                scope: { type: 'string', description: 'Scope: global, workspace, or project' },
+                workspaceId: { type: 'string', description: 'Workspace ID (for workspace/project scope)' },
+                projectId: { type: 'string', description: 'Project ID (for project scope)' },
                 category: { type: 'string', description: 'Category (Work, People, Tools, etc.)' },
+                fields: {
+                    type: 'array',
+                    description: 'Field schema definitions for this object type',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', description: 'Field ID' },
+                            name: { type: 'string', description: 'Field name' },
+                            type: { type: 'string', description: 'Field type: text, number, select, multiSelect, date, checkbox, url, relation' },
+                            options: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' }, color: { type: 'string' } }, required: ['id', 'label'] }, description: 'Options for select/multiSelect fields' },
+                            required: { type: 'boolean', description: 'Whether the field is required' },
+                            relationObjectId: { type: 'string', description: 'Object ID for relation fields' },
+                        },
+                        required: ['id', 'name', 'type'],
+                    },
+                },
             },
             required: ['name', 'scope'],
         },
@@ -134,6 +150,22 @@ export const tools = [
                 id: { type: 'string', description: 'Object ID' },
                 name: { type: 'string', description: 'New name' },
                 icon: { type: 'string', description: 'New icon' },
+                fields: {
+                    type: 'array',
+                    description: 'Field schema definitions for this object type',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', description: 'Field ID' },
+                            name: { type: 'string', description: 'Field name' },
+                            type: { type: 'string', description: 'Field type: text, number, select, multiSelect, date, checkbox, url, relation' },
+                            options: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' }, color: { type: 'string' } }, required: ['id', 'label'] }, description: 'Options for select/multiSelect fields' },
+                            required: { type: 'boolean', description: 'Whether the field is required' },
+                            relationObjectId: { type: 'string', description: 'Object ID for relation fields' },
+                        },
+                        required: ['id', 'name', 'type'],
+                    },
+                },
             },
             required: ['id'],
         },
@@ -168,7 +200,11 @@ export const tools = [
             properties: {
                 objectId: { type: 'string', description: 'Object ID' },
                 name: { type: 'string', description: 'Item name' },
-                workspaceId: { type: 'string', description: 'Workspace ID (optional)' },
+                projectId: { type: 'string', description: 'Project ID (optional)' },
+                fieldValues: {
+                    type: 'object',
+                    description: 'Field values keyed by field definition ID',
+                },
             },
             required: ['objectId', 'name'],
         },
@@ -181,6 +217,10 @@ export const tools = [
             properties: {
                 id: { type: 'string', description: 'Item ID' },
                 name: { type: 'string', description: 'New name' },
+                fieldValues: {
+                    type: 'object',
+                    description: 'Field values keyed by field definition ID',
+                },
             },
             required: ['id'],
         },
@@ -248,11 +288,11 @@ export const tools = [
     // ============ CONTEXTS ============
     {
         name: 'list_contexts',
-        description: 'List meta contexts in a workspace',
+        description: 'List meta contexts in a project',
         inputSchema: {
             type: 'object',
             properties: {
-                workspaceId: { type: 'string', description: 'Workspace ID' },
+                projectId: { type: 'string', description: 'Project ID' },
             },
         },
     },
@@ -262,12 +302,12 @@ export const tools = [
         inputSchema: {
             type: 'object',
             properties: {
-                workspaceId: { type: 'string', description: 'Workspace ID' },
+                projectId: { type: 'string', description: 'Project ID' },
                 name: { type: 'string', description: 'Context name' },
                 icon: { type: 'string', description: 'Emoji icon' },
                 type: { type: 'string', description: 'Type: tree, board, or canvas' },
             },
-            required: ['workspaceId', 'name'],
+            required: ['projectId', 'name'],
         },
     },
     {
@@ -324,26 +364,26 @@ export const tools = [
 // Tool call handler
 export async function handleToolCall(name, args) {
     switch (name) {
-        // Projects
-        case 'list_projects':
-            return callAPI('GET', '/api/projects');
-        case 'create_project':
-            return callAPI('POST', '/api/projects', args);
-        case 'update_project':
-            return callAPI('PUT', `/api/projects/${args.id}`, args);
-        case 'delete_project':
-            return callAPI('DELETE', `/api/projects/${args.id}`);
-        // Workspaces
-        case 'list_workspaces': {
-            const query = args.projectId ? `?projectId=${args.projectId}` : '';
-            return callAPI('GET', `/api/workspaces${query}`);
-        }
+        // Workspaces (top-level containers)
+        case 'list_workspaces':
+            return callAPI('GET', '/api/workspaces');
         case 'create_workspace':
             return callAPI('POST', '/api/workspaces', args);
         case 'update_workspace':
             return callAPI('PUT', `/api/workspaces/${args.id}`, args);
         case 'delete_workspace':
             return callAPI('DELETE', `/api/workspaces/${args.id}`);
+        // Projects (sub-units within workspaces)
+        case 'list_projects': {
+            const query = args.workspaceId ? `?workspaceId=${args.workspaceId}` : '';
+            return callAPI('GET', `/api/projects${query}`);
+        }
+        case 'create_project':
+            return callAPI('POST', '/api/projects', args);
+        case 'update_project':
+            return callAPI('PUT', `/api/projects/${args.id}`, args);
+        case 'delete_project':
+            return callAPI('DELETE', `/api/projects/${args.id}`);
         // Objects
         case 'list_objects': {
             const params = new URLSearchParams();
@@ -367,8 +407,15 @@ export async function handleToolCall(name, args) {
             const query = args.objectId ? `?objectId=${args.objectId}` : '';
             return callAPI('GET', `/api/items${query}`);
         }
-        case 'create_item':
-            return callAPI('POST', '/api/items', args);
+        case 'create_item': {
+            const itemBody = { ...args };
+            // Map projectId to workspaceId for the API (DB column is workspace_id)
+            if (itemBody.projectId && !itemBody.workspaceId) {
+                itemBody.workspaceId = itemBody.projectId;
+                delete itemBody.projectId;
+            }
+            return callAPI('POST', '/api/items', itemBody);
+        }
         case 'update_item':
             return callAPI('PUT', `/api/items/${args.id}`, args);
         case 'delete_item':
@@ -385,7 +432,7 @@ export async function handleToolCall(name, args) {
             });
         // Contexts
         case 'list_contexts': {
-            const query = args.workspaceId ? `?workspaceId=${args.workspaceId}` : '';
+            const query = args.projectId ? `?projectId=${args.projectId}` : '';
             return callAPI('GET', `/api/contexts${query}`);
         }
         case 'create_context':
