@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, ChatMessage, AISettings, AIProvider, FieldDefinition, FieldValue } from '@/types';
+import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, AISettings, AIProvider, FieldDefinition, FieldValue } from '@/types';
 import { createClient } from '@/lib/supabase';
 import { generateId, toSnakeKeys, toCamelKeys } from '@/lib/utils';
 
@@ -15,12 +15,8 @@ interface AppState {
     isLoaded: boolean;
     userId: string | null;
 
-    // AI Chat State
-    chatMessages: Record<string, ChatMessage[]>;
+    // AI Settings
     aiSettings: AISettings;
-    isChatOpen: boolean;
-    isChatExpanded: boolean;
-    isChatLoading: boolean;
 
     // Load data from Supabase
     loadData: () => Promise<void>;
@@ -93,14 +89,8 @@ interface AppState {
     addItemEdge: (itemId: string, edge: Omit<ContextEdge, 'id'>) => Promise<string>;
     deleteItemEdge: (itemId: string, edgeId: string) => Promise<void>;
 
-    // AI Chat
-    addChatMessage: (projectId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => string;
-    getChatMessages: (projectId: string) => ChatMessage[];
-    clearChatMessages: (projectId: string) => void;
+    // AI Settings
     setAISettings: (settings: Partial<AISettings>) => void;
-    setChatOpen: (isOpen: boolean) => void;
-    setChatExpanded: (isExpanded: boolean) => void;
-    setChatLoading: (isLoading: boolean) => void;
 
     // Pinned Object Tabs
     pinObjectTab: (objectId: string) => Promise<void>;
@@ -129,15 +119,11 @@ export const useStore = create<AppState>((set, get) => ({
     isLoaded: false,
     userId: null,
 
-    // AI Chat initial state
-    chatMessages: {},
+    // AI Settings initial state
     aiSettings: {
         provider: 'openai' as AIProvider,
         model: 'gpt-4o',
     },
-    isChatOpen: false,
-    isChatExpanded: false,
-    isChatLoading: false,
 
     loadData: async () => {
         if (get().isLoaded || get().isLoading) return;
@@ -772,73 +758,11 @@ export const useStore = create<AppState>((set, get) => ({
         if (item) await getSupabase().from('items').update({ context_data: item.contextData }).eq('id', itemId);
     },
 
-    // AI Chat - with localStorage persistence (no DB needed)
-    addChatMessage: (projectId, message) => {
-        const id = generateId();
-        const newMessage: ChatMessage = {
-            ...message,
-            id,
-            timestamp: Date.now(),
-        };
-        set((state) => {
-            const updated = {
-                ...state.chatMessages,
-                [projectId]: [...(state.chatMessages[projectId] || []), newMessage],
-            };
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('contextory-chat', JSON.stringify(updated));
-            }
-            return { chatMessages: updated };
-        });
-        return id;
-    },
-
-    getChatMessages: (projectId) => {
-        const state = get();
-        if (Object.keys(state.chatMessages).length === 0 && typeof window !== 'undefined') {
-            const saved = localStorage.getItem('contextory-chat');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    set({ chatMessages: parsed });
-                    return parsed[projectId] || [];
-                } catch {
-                    // Invalid JSON, ignore
-                }
-            }
-        }
-        return state.chatMessages[projectId] || [];
-    },
-
-    clearChatMessages: (projectId) => {
-        set((state) => {
-            const updated = {
-                ...state.chatMessages,
-                [projectId]: [],
-            };
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('contextory-chat', JSON.stringify(updated));
-            }
-            return { chatMessages: updated };
-        });
-    },
-
+    // AI Settings
     setAISettings: (settings) => {
         set((state) => ({
             aiSettings: { ...state.aiSettings, ...settings },
         }));
-    },
-
-    setChatOpen: (isOpen) => {
-        set({ isChatOpen: isOpen });
-    },
-
-    setChatExpanded: (isExpanded) => {
-        set({ isChatExpanded: isExpanded });
-    },
-
-    setChatLoading: (isLoading) => {
-        set({ isChatLoading: isLoading });
     },
 
     // Pinned Object Tabs

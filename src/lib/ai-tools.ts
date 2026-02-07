@@ -392,12 +392,3 @@ export const contextoryTools = [
   deleteNodeTool,
 ];
 
-// Tool names that require user confirmation before execution
-export const TOOLS_REQUIRING_CONFIRMATION = [
-  'delete_workspace',
-  'delete_project',
-  'delete_object',
-  'delete_item',
-  'delete_context',
-  'delete_node',
-];

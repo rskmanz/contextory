@@ -241,22 +241,3 @@ export const OBJECT_CATEGORY_SUGGESTIONS = [
   'Assets',         // Products, Services, Brands, Campaigns
 ] as const;
 
-// AI Tool Call Types (for LangChain tool calling)
-export interface AIToolCall {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-}
-
-export interface AIToolResult {
-  action: string;
-  requiresConfirmation?: boolean;
-  [key: string]: unknown;
-}
-
-// Pending tool call awaiting user confirmation
-export interface PendingToolCall {
-  toolCall: AIToolCall;
-  entityName: string;
-  entityType: 'workspace' | 'project' | 'object' | 'item' | 'context' | 'node';
-}

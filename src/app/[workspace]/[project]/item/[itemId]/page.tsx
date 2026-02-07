@@ -12,7 +12,6 @@ import { FreeformView } from '@/components/views/FreeformView';
 import { FlowView } from '@/components/views/FlowView';
 import { TableView } from '@/components/views/TableView';
 import { GanttView } from '@/components/views/GanttView';
-import { FloatingChat } from '@/components/ai/FloatingChat';
 import { TiptapEditor } from '@/components/editor';
 import { FieldValueCell } from '@/components/fields';
 import { useStore } from '@/lib/store';
@@ -401,13 +400,6 @@ export default function ItemContextPage() {
         </div>
       </div>
 
-      {/* Floating AI Chat */}
-      <FloatingChat
-        workspace={currentWorkspace}
-        project={currentProject}
-        object={currentObject}
-        item={currentItem}
-      />
     </div>
   );
 }
