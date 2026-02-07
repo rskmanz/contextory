@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
@@ -23,7 +23,10 @@ export async function GET() {
     // Allow unauthenticated access for MCP server compatibility
     const { data: { user } } = await supabase.auth.getUser();
 
-    let query = supabase
+    // Use service role client for unauthenticated access (MCP), anon client for authenticated
+    const queryClient = user ? supabase : createServiceClient();
+
+    let query = queryClient
       .from('workspaces')
       .select('*')
       .order('created_at', { ascending: true });

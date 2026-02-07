@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 
 function projectFromDb(row: Record<string, unknown>) {
   return {
@@ -72,13 +72,17 @@ function contextFromDb(row: Record<string, unknown>) {
 export async function GET() {
   try {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Use service role client for unauthenticated access (MCP), anon client for authenticated
+    const queryClient = user ? supabase : createServiceClient();
 
     const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes] = await Promise.all([
-      supabase.from('workspaces').select('*').order('created_at', { ascending: true }),
-      supabase.from('projects').select('*').order('created_at', { ascending: true }),
-      supabase.from('contexts').select('*').order('created_at', { ascending: true }),
-      supabase.from('objects').select('*').order('created_at', { ascending: true }),
-      supabase.from('items').select('*').order('created_at', { ascending: true }),
+      queryClient.from('workspaces').select('*').order('created_at', { ascending: true }),
+      queryClient.from('projects').select('*').order('created_at', { ascending: true }),
+      queryClient.from('contexts').select('*').order('created_at', { ascending: true }),
+      queryClient.from('objects').select('*').order('created_at', { ascending: true }),
+      queryClient.from('items').select('*').order('created_at', { ascending: true }),
     ]);
 
     return NextResponse.json({

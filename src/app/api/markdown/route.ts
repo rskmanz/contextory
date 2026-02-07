@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceClient } from '@/lib/supabase-server';
 
 // GET /api/markdown?id=xxx&type=items|contexts
 export async function GET(request: NextRequest) {
@@ -13,7 +13,12 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Use service role client for unauthenticated access (MCP), anon client for authenticated
+    const queryClient = user ? supabase : createServiceClient();
+
+    const { data } = await queryClient
       .from('markdown_content')
       .select('content')
       .eq('id', id)
