@@ -26,6 +26,8 @@ export default function ProjectPage() {
   const workspaces = useStore((state) => state.workspaces);
   const projects = useStore((state) => state.projects);
   const items = useStore((state) => state.items);
+  const contexts = useStore((state) => state.contexts);
+  const objects = useStore((state) => state.objects);
   const loadData = useStore((state) => state.loadData);
   const isLoaded = useStore((state) => state.isLoaded);
   const addContext = useStore((state) => state.addContext);
@@ -38,7 +40,7 @@ export default function ProjectPage() {
   const updateItemContextType = useStore((state) => state.updateItemContextType);
   const updateItem = useStore((state) => state.updateItem);
 
-  // Scope-based getters
+  // Scope-based getters (subscribe to contexts/objects above to trigger re-renders)
   const getGlobalObjects = useStore((state) => state.getGlobalObjects);
   const getWorkspaceObjects = useStore((state) => state.getWorkspaceObjects);
   const getProjectObjects = useStore((state) => state.getProjectObjects);
