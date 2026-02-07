@@ -30,8 +30,8 @@ export const VISUALIZATION_OPTIONS: VisualizationOption[] = [
   {
     viewStyle: 'list',
     type: 'tree',
-    label: 'Notes',
-    description: 'Simple bullet list',
+    label: 'Bullet list',
+    description: 'Simple note outline',
     icon: (
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="8" cy="8" r="1.5" fill="currentColor" />
