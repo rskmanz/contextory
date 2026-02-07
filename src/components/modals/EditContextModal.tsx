@@ -18,27 +18,15 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
   context,
 }) => {
   const updateContext = useStore((state) => state.updateContext);
-  const objects = useStore((state) => state.objects);
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📝');
-  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Get objects available for this context's workspace
-  const workspaceObjects = context
-    ? objects.filter((o) =>
-        o.availableGlobal ||
-        o.availableInWorkspaces.includes('*') ||
-        (context.workspaceId && o.availableInWorkspaces.includes(context.workspaceId))
-      )
-    : [];
 
   useEffect(() => {
     if (context) {
       setName(context.name);
       setIcon(context.icon);
-      setSelectedObjectIds(context.objectIds || []);
     }
   }, [context]);
 
@@ -51,18 +39,11 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
       await updateContext(context.id, {
         name: name.trim(),
         icon,
-        objectIds: selectedObjectIds,
       });
       onClose();
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const toggleObject = (objectId: string) => {
-    setSelectedObjectIds((prev) =>
-      prev.includes(objectId) ? prev.filter((id) => id !== objectId) : [...prev, objectId]
-    );
   };
 
   if (!isOpen || !context) return null;
@@ -112,37 +93,6 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
               {context.viewStyle || 'Not set'} ({context.type})
             </div>
           </div>
-
-          {/* Linked Objects */}
-          {workspaceObjects.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                Linked Objects
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {workspaceObjects.map((obj) => (
-                  <button
-                    key={obj.id}
-                    type="button"
-                    onClick={() => toggleObject(obj.id)}
-                    className={`px-3 py-1.5 text-sm rounded-lg border-2 flex items-center gap-1.5 transition-colors ${
-                      selectedObjectIds.includes(obj.id)
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-zinc-200 hover:border-zinc-400 text-zinc-600'
-                    }`}
-                  >
-                    <span>{obj.icon}</span>
-                    <span>{obj.name}</span>
-                  </button>
-                ))}
-              </div>
-              {selectedObjectIds.length > 0 && (
-                <p className="text-xs text-zinc-400 mt-2">
-                  {selectedObjectIds.length} object(s) linked
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
