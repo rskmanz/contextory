@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { Context, VIEW_STYLES, ViewStyle, ObjectType } from '@/types';
+import { Context } from '@/types';
 
 interface EditContextModalProps {
   isOpen: boolean;
@@ -22,7 +22,6 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📝');
-  const [viewStyle, setViewStyle] = useState<ViewStyle>('list');
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,7 +38,6 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
     if (context) {
       setName(context.name);
       setIcon(context.icon);
-      setViewStyle(context.viewStyle || 'list');
       setSelectedObjectIds(context.objectIds || []);
     }
   }, [context]);
@@ -53,7 +51,6 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
       await updateContext(context.id, {
         name: name.trim(),
         icon,
-        viewStyle,
         objectIds: selectedObjectIds,
       });
       onClose();
@@ -69,8 +66,6 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
   };
 
   if (!isOpen || !context) return null;
-
-  const availableStyles = VIEW_STYLES[context.type || 'tree'] as readonly string[];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -110,36 +105,11 @@ export const EditContextModal: React.FC<EditContextModalProps> = ({
             </div>
           </div>
 
-          {/* View Style (only if multiple styles available) */}
-          {availableStyles.length > 1 && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                View Style
-              </label>
-              <div className="flex gap-2">
-                {availableStyles.map((style) => (
-                  <button
-                    key={style}
-                    type="button"
-                    onClick={() => setViewStyle(style as ViewStyle)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 capitalize transition-colors ${
-                      viewStyle === style
-                        ? 'border-zinc-900 bg-zinc-100'
-                        : 'border-zinc-200 hover:border-zinc-400'
-                    }`}
-                  >
-                    {style}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Type display (read-only) */}
+          {/* View style (read-only) */}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Type</label>
-            <div className="px-3 py-2 bg-zinc-100 text-zinc-600 rounded-lg capitalize">
-              {context.type}
+            <label className="block text-sm font-medium text-zinc-700 mb-1">View</label>
+            <div className="px-3 py-2 bg-zinc-100 text-zinc-600 rounded-lg capitalize text-sm">
+              {context.viewStyle || 'Not set'} ({context.type})
             </div>
           </div>
 
