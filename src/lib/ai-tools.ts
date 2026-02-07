@@ -1,32 +1,32 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-// Tool definitions for Context OS AI assistant
+// Tool definitions for Contextory AI assistant
 // These tools allow the AI to read and modify all data in the system
 
 // ============ READ TOOLS ============
 
-export const listProjectsTool = tool(
+export const listWorkspacesTool = tool(
   async () => {
     // This will be handled client-side
-    return { action: 'list_projects' };
+    return { action: 'list_workspaces' };
   },
   {
-    name: 'list_projects',
-    description: 'List all projects in the system',
+    name: 'list_workspaces',
+    description: 'List all workspaces in the system',
     schema: z.object({}),
   }
 );
 
-export const listWorkspacesTool = tool(
+export const listProjectsTool = tool(
   async (input) => {
-    return { action: 'list_workspaces', ...input };
+    return { action: 'list_projects', ...input };
   },
   {
-    name: 'list_workspaces',
-    description: 'List all workspaces, optionally filtered by project',
+    name: 'list_projects',
+    description: 'List all projects, optionally filtered by workspace',
     schema: z.object({
-      projectId: z.string().optional().describe('Filter by project ID'),
+      workspaceId: z.string().optional().describe('Filter by workspace ID'),
     }),
   }
 );
@@ -37,11 +37,11 @@ export const listObjectsTool = tool(
   },
   {
     name: 'list_objects',
-    description: 'List all objects, optionally filtered by scope, project, or workspace',
+    description: 'List all objects, optionally filtered by scope, workspace, or project',
     schema: z.object({
-      scope: z.enum(['global', 'project', 'local']).optional().describe('Filter by scope'),
-      projectId: z.string().optional().describe('Filter by project ID'),
+      scope: z.enum(['global', 'workspace', 'project']).optional().describe('Filter by scope'),
       workspaceId: z.string().optional().describe('Filter by workspace ID'),
+      projectId: z.string().optional().describe('Filter by project ID'),
     }),
   }
 );
@@ -65,9 +65,9 @@ export const listContextsTool = tool(
   },
   {
     name: 'list_contexts',
-    description: 'List all contexts in a workspace',
+    description: 'List all contexts in a project',
     schema: z.object({
-      workspaceId: z.string().describe('The workspace ID to list contexts from'),
+      projectId: z.string().describe('The project ID to list contexts from'),
     }),
   }
 );
@@ -87,33 +87,33 @@ export const getItemContextTool = tool(
 
 // ============ CREATE TOOLS ============
 
-export const createProjectTool = tool(
-  async (input) => {
-    return { action: 'create_project', ...input };
-  },
-  {
-    name: 'create_project',
-    description: 'Create a new project',
-    schema: z.object({
-      name: z.string().describe('Project name'),
-      icon: z.string().optional().describe('Emoji icon for the project'),
-      category: z.string().optional().describe('Project category'),
-    }),
-  }
-);
-
 export const createWorkspaceTool = tool(
   async (input) => {
     return { action: 'create_workspace', ...input };
   },
   {
     name: 'create_workspace',
-    description: 'Create a new workspace in a project',
+    description: 'Create a new workspace',
     schema: z.object({
-      projectId: z.string().describe('The project ID to create workspace in'),
       name: z.string().describe('Workspace name'),
+      icon: z.string().optional().describe('Emoji icon for the workspace'),
       category: z.string().optional().describe('Workspace category'),
-      categoryIcon: z.string().optional().describe('Emoji icon for the workspace'),
+    }),
+  }
+);
+
+export const createProjectTool = tool(
+  async (input) => {
+    return { action: 'create_project', ...input };
+  },
+  {
+    name: 'create_project',
+    description: 'Create a new project in a workspace',
+    schema: z.object({
+      workspaceId: z.string().describe('The workspace ID to create project in'),
+      name: z.string().describe('Project name'),
+      category: z.string().optional().describe('Project category'),
+      categoryIcon: z.string().optional().describe('Emoji icon for the project'),
     }),
   }
 );
@@ -124,13 +124,13 @@ export const createObjectTool = tool(
   },
   {
     name: 'create_object',
-    description: 'Create a new object (collection of items). Scope determines visibility: global (everywhere), project (within project), local (within workspace)',
+    description: 'Create a new object (collection of items). Scope determines visibility: global (everywhere), workspace (within workspace), project (within project)',
     schema: z.object({
       name: z.string().describe('Object name'),
       icon: z.string().optional().describe('Emoji icon'),
-      scope: z.enum(['global', 'project', 'local']).describe('Visibility scope'),
-      projectId: z.string().optional().describe('Project ID (required for project/local scope)'),
-      workspaceId: z.string().optional().describe('Workspace ID (required for local scope)'),
+      scope: z.enum(['global', 'workspace', 'project']).describe('Visibility scope'),
+      workspaceId: z.string().optional().describe('Workspace ID (required for workspace/project scope)'),
+      projectId: z.string().optional().describe('Project ID (required for project scope)'),
       category: z.string().optional().describe('Object category'),
     }),
   }
@@ -146,7 +146,7 @@ export const createItemTool = tool(
     schema: z.object({
       objectId: z.string().describe('The object ID to add item to'),
       name: z.string().describe('Item name'),
-      workspaceId: z.string().optional().describe('Workspace ID for local items'),
+      projectId: z.string().optional().describe('Project ID for project-scoped items'),
     }),
   }
 );
@@ -157,9 +157,9 @@ export const createContextTool = tool(
   },
   {
     name: 'create_context',
-    description: 'Create a new context (tree, board, or canvas) in a workspace',
+    description: 'Create a new context (tree, board, or canvas) in a project',
     schema: z.object({
-      workspaceId: z.string().describe('The workspace ID to create context in'),
+      projectId: z.string().describe('The project ID to create context in'),
       name: z.string().describe('Context name'),
       icon: z.string().optional().describe('Emoji icon'),
       type: z.enum(['tree', 'board', 'canvas']).describe('Context type'),
@@ -185,22 +185,6 @@ export const addNodeTool = tool(
 
 // ============ UPDATE TOOLS ============
 
-export const updateProjectTool = tool(
-  async (input) => {
-    return { action: 'update_project', ...input };
-  },
-  {
-    name: 'update_project',
-    description: 'Update an existing project',
-    schema: z.object({
-      id: z.string().describe('Project ID to update'),
-      name: z.string().optional().describe('New project name'),
-      icon: z.string().optional().describe('New emoji icon'),
-      category: z.string().optional().describe('New category'),
-    }),
-  }
-);
-
 export const updateWorkspaceTool = tool(
   async (input) => {
     return { action: 'update_workspace', ...input };
@@ -211,6 +195,22 @@ export const updateWorkspaceTool = tool(
     schema: z.object({
       id: z.string().describe('Workspace ID to update'),
       name: z.string().optional().describe('New workspace name'),
+      icon: z.string().optional().describe('New emoji icon'),
+      category: z.string().optional().describe('New category'),
+    }),
+  }
+);
+
+export const updateProjectTool = tool(
+  async (input) => {
+    return { action: 'update_project', ...input };
+  },
+  {
+    name: 'update_project',
+    description: 'Update an existing project',
+    schema: z.object({
+      id: z.string().describe('Project ID to update'),
+      name: z.string().optional().describe('New project name'),
       category: z.string().optional().describe('New category'),
       categoryIcon: z.string().optional().describe('New emoji icon'),
     }),
@@ -279,28 +279,28 @@ export const updateNodeTool = tool(
 
 // ============ DELETE TOOLS ============
 
-export const deleteProjectTool = tool(
-  async (input) => {
-    return { action: 'delete_project', requiresConfirmation: true, ...input };
-  },
-  {
-    name: 'delete_project',
-    description: 'Delete a project and all its workspaces, contexts, and objects',
-    schema: z.object({
-      id: z.string().describe('Project ID to delete'),
-    }),
-  }
-);
-
 export const deleteWorkspaceTool = tool(
   async (input) => {
     return { action: 'delete_workspace', requiresConfirmation: true, ...input };
   },
   {
     name: 'delete_workspace',
-    description: 'Delete a workspace and all its contexts',
+    description: 'Delete a workspace and all its projects, contexts, and objects',
     schema: z.object({
       id: z.string().describe('Workspace ID to delete'),
+    }),
+  }
+);
+
+export const deleteProjectTool = tool(
+  async (input) => {
+    return { action: 'delete_project', requiresConfirmation: true, ...input };
+  },
+  {
+    name: 'delete_project',
+    description: 'Delete a project and all its contexts',
+    schema: z.object({
+      id: z.string().describe('Project ID to delete'),
     }),
   }
 );
@@ -361,31 +361,31 @@ export const deleteNodeTool = tool(
 
 // ============ EXPORT ALL TOOLS ============
 
-export const contextOSTools = [
+export const contextoryTools = [
   // Read
-  listProjectsTool,
   listWorkspacesTool,
+  listProjectsTool,
   listObjectsTool,
   listItemsTool,
   listContextsTool,
   getItemContextTool,
   // Create
-  createProjectTool,
   createWorkspaceTool,
+  createProjectTool,
   createObjectTool,
   createItemTool,
   createContextTool,
   addNodeTool,
   // Update
-  updateProjectTool,
   updateWorkspaceTool,
+  updateProjectTool,
   updateObjectTool,
   updateItemTool,
   updateContextTool,
   updateNodeTool,
   // Delete
-  deleteProjectTool,
   deleteWorkspaceTool,
+  deleteProjectTool,
   deleteObjectTool,
   deleteItemTool,
   deleteContextTool,
@@ -394,8 +394,8 @@ export const contextOSTools = [
 
 // Tool names that require user confirmation before execution
 export const TOOLS_REQUIRING_CONFIRMATION = [
-  'delete_project',
   'delete_workspace',
+  'delete_project',
   'delete_object',
   'delete_item',
   'delete_context',

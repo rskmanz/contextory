@@ -53,8 +53,8 @@ export function FloatingChat({
   const updateWorkspace = useStore((state) => state.updateWorkspace);
   const deleteWorkspace = useStore((state) => state.deleteWorkspace);
   const addGlobalObject = useStore((state) => state.addGlobalObject);
+  const addWorkspaceObject = useStore((state) => state.addWorkspaceObject);
   const addProjectObject = useStore((state) => state.addProjectObject);
-  const addLocalObject = useStore((state) => state.addLocalObject);
   const updateObject = useStore((state) => state.updateObject);
   const deleteObject = useStore((state) => state.deleteObject);
   const addItem = useStore((state) => state.addItem);
@@ -97,11 +97,8 @@ export function FloatingChat({
         }
 
         case 'list_workspaces': {
-          const filtered = args.projectId
-            ? workspaces.filter(w => w.projectId === args.projectId)
-            : workspaces;
-          const list = filtered.map(w => `- ${w.name} (${w.id}) in project ${w.projectId}`).join('\n');
-          return `Found ${filtered.length} workspaces:\n${list || 'No workspaces'}`;
+          const list = workspaces.map(w => `- ${w.name} (${w.id})`).join('\n');
+          return `Found ${workspaces.length} workspaces:\n${list || 'No workspaces'}`;
         }
 
         case 'list_objects': {
@@ -142,19 +139,19 @@ export function FloatingChat({
 
         // ============ CREATE TOOLS ============
         case 'create_project': {
-          const id = await addProject({
+          const id = await addWorkspace({
             name: args.name as string,
             icon: (args.icon as string) || '📁',
             gradient: 'bg-gradient-to-br from-blue-300 via-blue-400 to-indigo-400',
-            category: (args.category as string) || 'Main',
+            category: (args.category as string) || '',
           });
           return `Created project "${args.name}" (ID: ${id})`;
         }
 
         case 'create_workspace': {
-          const id = await addWorkspace({
+          const id = await addProject({
             name: args.name as string,
-            projectId: args.projectId as string,
+            workspaceId: args.workspaceId as string,
             category: args.category as string,
             categoryIcon: args.categoryIcon as string,
           });
@@ -162,7 +159,7 @@ export function FloatingChat({
         }
 
         case 'create_object': {
-          const scope = args.scope as 'global' | 'project' | 'local';
+          const scope = args.scope as 'global' | 'workspace' | 'project';
           const objData = {
             name: args.name as string,
             icon: (args.icon as string) || '📦',
@@ -173,10 +170,10 @@ export function FloatingChat({
           let id: string;
           if (scope === 'global') {
             id = await addGlobalObject(objData);
-          } else if (scope === 'project') {
-            id = await addProjectObject(args.projectId as string, objData);
+          } else if (scope === 'workspace') {
+            id = await addWorkspaceObject(args.projectId as string, objData);
           } else {
-            id = await addLocalObject(args.projectId as string, args.workspaceId as string, objData);
+            id = await addProjectObject(args.projectId as string, args.workspaceId as string, objData);
           }
           return `Created ${scope} object "${args.name}" (ID: ${id})`;
         }
@@ -185,7 +182,7 @@ export function FloatingChat({
           const id = await addItem({
             name: args.name as string,
             objectId: args.objectId as string,
-            workspaceId: (args.workspaceId as string) || null,
+            projectId: (args.projectId as string) || null,
           });
           return `Created item "${args.name}" (ID: ${id})`;
         }
@@ -198,8 +195,8 @@ export function FloatingChat({
             icon: (args.icon as string) || '📝',
             type: args.type as 'tree' | 'board' | 'canvas',
             viewStyle: args.type === 'tree' ? 'list' : args.type === 'board' ? 'grid' : 'freeform',
-            scope: 'local',
-            projectId: ws?.projectId || null,
+            scope: 'project',
+            projectId: (args.projectId as string) || null,
             workspaceId: wsId,
             data: { nodes: [], edges: [] },
           });
@@ -225,20 +222,20 @@ export function FloatingChat({
 
         // ============ UPDATE TOOLS ============
         case 'update_project': {
-          const updates: Partial<Project> = {};
+          const updates: Partial<Workspace> = {};
           if (args.name) updates.name = args.name as string;
           if (args.icon) updates.icon = args.icon as string;
           if (args.category) updates.category = args.category as string;
-          await updateProject(args.id as string, updates);
+          await updateWorkspace(args.id as string, updates);
           return `Updated project ${args.id}`;
         }
 
         case 'update_workspace': {
-          const updates: Partial<Workspace> = {};
+          const updates: Partial<Project> = {};
           if (args.name) updates.name = args.name as string;
           if (args.category) updates.category = args.category as string;
           if (args.categoryIcon) updates.categoryIcon = args.categoryIcon as string;
-          await updateWorkspace(args.id as string, updates);
+          await updateProject(args.id as string, updates);
           return `Updated workspace ${args.id}`;
         }
 

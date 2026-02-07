@@ -37,9 +37,9 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
   };
 
   const handleItemClick = (item: ObjectItemType) => {
-    const ws = workspaces.find(w => w.id === item.workspaceId);
-    if (ws) {
-      router.push(`/${ws.projectId}/${ws.id}/item/${item.id}`);
+    const proj = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+    if (proj) {
+      router.push(`/${proj.workspaceId}/${proj.id}/item/${item.id}`);
     }
   };
 
@@ -115,8 +115,8 @@ export const ObjectItem: React.FC<ObjectItemProps> = ({
       {expanded && objectItems.length > 0 && (
         <div className="border-t border-zinc-100 bg-zinc-50 px-3 py-2 space-y-1">
           {objectItems.slice(0, 5).map((item) => {
-            const ws = workspaces.find(w => w.id === item.workspaceId);
-            const proj = ws ? projects.find(p => p.id === ws.projectId) : null;
+            const proj = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+            const ws = proj ? workspaces.find(w => w.id === proj.workspaceId) : null;
             return (
               <div
                 key={item.id}

@@ -10,7 +10,7 @@ import { tools, handleToolCall } from './tools.js';
 // Create MCP server
 const server = new Server(
   {
-    name: 'context-os',
+    name: 'contextory',
     version: '1.0.0',
   },
   {
@@ -35,7 +35,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Context OS MCP Server running on stdio');
+  console.error('Contextory MCP Server running on stdio');
 }
 
 main().catch((error) => {

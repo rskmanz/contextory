@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { ObjectItem, ObjectType, ContextNode, ItemViewLayout } from '@/types';
+import { ObjectItem, ObjectType, ContextNode, ItemViewLayout, FieldValue } from '@/types';
 import { useStore } from '@/lib/store';
+import { generateId } from '@/lib/utils';
+import { TiptapEditor } from '@/components/editor';
+import { FieldValueCell } from '@/components/fields';
 
 interface ItemDetailPanelProps {
   item: ObjectItem;
@@ -30,13 +33,11 @@ const NODE_PADDING = 10;
 const LEVEL_GAP = 120;
 const SIBLING_GAP = 8;
 
-// Generate unique ID
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
 export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, onClose }) => {
   const updateItem = useStore((state) => state.updateItem);
-  const createSubWorkspace = useStore((state) => state.createSubWorkspace);
-  const workspaces = useStore((state) => state.workspaces);
+  const updateItemFieldValue = useStore((state) => state.updateItemFieldValue);
+  const createSubProject = useStore((state) => state.createSubProject);
+  const projects = useStore((state) => state.projects);
 
   const [nodes, setNodes] = useState<ContextNode[]>(item.contextData?.nodes || []);
   const [markdown, setMarkdown] = useState('');
@@ -52,12 +53,13 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
   const [activeTab, setActiveTab] = useState<'markdown' | 'visualization'>('visualization');
   const [isEditingMarkdown, setIsEditingMarkdown] = useState(false);
 
-  // Check if item already has a sub-workspace
-  const existingSubWorkspace = workspaces.find((w) => w.parentItemId === item.id);
+  // Check if item already has a sub-project
+  const existingSubWorkspace = projects.find((p) => p.parentItemId === item.id);
 
-  // Get projectId from the workspace the item belongs to
-  const itemWorkspace = workspaces.find((w) => w.id === item.workspaceId);
-  const projectId = itemWorkspace?.projectId || null;
+  // Get workspaceId from the item's project
+  const itemProject = projects.find((p) => p.id === item.projectId);
+  const projectId = item.projectId || null;
+  const workspaceId = itemProject?.workspaceId || null;
 
   // Load markdown if markdownId exists
   useEffect(() => {
@@ -83,21 +85,6 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
     await updateItem(item.id, { viewLayout: layout });
   };
 
-  // Simple markdown renderer
-  const renderMarkdownContent = (md: string): string => {
-    if (!md) return '';
-    return md
-      .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-zinc-800 mt-3 mb-1">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="text-sm font-semibold text-zinc-800 mt-3 mb-1">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold text-zinc-900 mt-3 mb-1">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>')
-      .replace(/^- (.+)$/gm, '<li class="ml-3 text-xs text-zinc-600">• $1</li>')
-      .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 bg-zinc-100 rounded text-xs font-mono">$1</code>')
-      .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p class="text-xs text-zinc-600 mb-1">$1</p>')
-      .replace(/<p class="[^"]*"><\/p>/g, '');
-  };
 
   // Build tree from flat nodes
   const tree = React.useMemo(() => {
@@ -264,18 +251,18 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
     }
   }, [allExpanded, nodes]);
 
-  // Create sub-workspace from this item
+  // Create sub-project from this item
   const handleCreateSubWorkspace = useCallback(async () => {
-    if (isCreatingWorkspace || !projectId) return;
+    if (isCreatingWorkspace || !workspaceId) return;
     setIsCreatingWorkspace(true);
     try {
-      const newWorkspaceId = await createSubWorkspace(item.id, projectId, `${item.name} Workspace`);
-      // Navigate to the new workspace (optional - user can manually navigate)
-      window.location.href = `/${projectId}/${newWorkspaceId}`;
+      const newProjectId = await createSubProject(item.id, workspaceId, `${item.name} Project`);
+      // Navigate to the new project (optional - user can manually navigate)
+      window.location.href = `/${workspaceId}/${newProjectId}`;
     } finally {
       setIsCreatingWorkspace(false);
     }
-  }, [createSubWorkspace, item.id, item.name, projectId, isCreatingWorkspace]);
+  }, [createSubProject, item.id, item.name, workspaceId, isCreatingWorkspace]);
 
   const renderNode = useCallback(
     (node: TreeNode, depth: number = 0, isLast: boolean = true) => {
@@ -511,46 +498,23 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
     [selectedMindmapNode, editingNodeId, editContent, handleAddNode, handleUpdateNode, handleDeleteNode]
   );
 
-  // Markdown panel with edit/preview
+  // Markdown panel with Tiptap editor
   const renderMarkdownPanel = () => (
     <div className="flex flex-col h-full bg-white">
       <div className="flex items-center justify-between p-2 border-b border-zinc-200">
         <h3 className="text-xs font-medium text-zinc-600">Notes</h3>
-        <button
-          onClick={() => setIsEditingMarkdown(!isEditingMarkdown)}
-          className={`text-[10px] px-2 py-0.5 rounded ${
-            isEditingMarkdown ? 'bg-blue-100 text-blue-700' : 'text-zinc-500 hover:bg-zinc-100'
-          }`}
-        >
-          {isEditingMarkdown ? 'Preview' : 'Edit'}
-        </button>
       </div>
       <div className="flex-1 overflow-auto p-2">
         {isLoadingMarkdown ? (
           <p className="text-xs text-zinc-400">Loading...</p>
-        ) : isEditingMarkdown ? (
-          <textarea
-            value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
-            onBlur={() => saveMarkdown(markdown)}
-            placeholder="# Notes&#10;&#10;Add notes in markdown..."
-            className="w-full h-full min-h-[100px] p-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 resize-none font-mono"
-          />
-        ) : markdown ? (
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderMarkdownContent(markdown) }}
-          />
         ) : (
-          <div className="text-center py-4">
-            <p className="text-xs text-zinc-400 mb-1">No notes yet</p>
-            <button
-              onClick={() => setIsEditingMarkdown(true)}
-              className="text-[10px] text-blue-500 hover:underline"
-            >
-              Add notes
-            </button>
-          </div>
+          <TiptapEditor
+            content={markdown}
+            onChange={(md) => setMarkdown(md)}
+            onSave={() => saveMarkdown(markdown)}
+            placeholder="Add notes..."
+            compact
+          />
         )}
       </div>
     </div>
@@ -753,6 +717,26 @@ export const ItemDetailPanel: React.FC<ItemDetailPanelProps> = ({ item, object, 
             </button>
           </div>
         </div>
+
+        {/* Properties */}
+        {object.fields && object.fields.length > 0 && (
+          <div className="px-4 py-3 border-b border-zinc-100">
+            <div className="text-xs font-medium text-zinc-400 uppercase mb-2">Properties</div>
+            {object.fields.map((field) => (
+              <div key={field.id} className="flex items-center py-1.5 gap-3">
+                <span className="text-sm text-zinc-500 w-28 shrink-0 truncate">{field.name}</span>
+                <div className="flex-1 min-w-0">
+                  <FieldValueCell
+                    field={field}
+                    value={item.fieldValues?.[field.id] ?? null}
+                    onChange={(val: FieldValue) => updateItemFieldValue(item.id, field.id, val)}
+                    compact
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">

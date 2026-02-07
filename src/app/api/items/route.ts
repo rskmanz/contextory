@@ -1,55 +1,101 @@
-import { NextResponse } from 'next/server';
-import { readDB, writeDB, generateId, success, list, error } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function itemFromDb(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    objectId: row.object_id,
+    workspaceId: row.workspace_id ?? null,
+    markdownId: row.markdown_id ?? null,
+    viewLayout: row.view_layout ?? 'visualization',
+    fieldValues: row.field_values ?? {},
+    contextData: row.context_data ?? { nodes: [] },
+  };
+}
 
 // GET - List items (filter by objectId, workspaceId)
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const objectId = searchParams.get('objectId');
-    const workspaceId = searchParams.get('workspaceId');
+    const objectId = request.nextUrl.searchParams.get('objectId');
+    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
 
-    const db = await readDB();
-    let items = db.items;
+    const supabase = await createClient();
+
+    // Allow unauthenticated access for MCP server compatibility
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('items')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (user) {
+      query = query.eq('user_id', user.id);
+    }
 
     if (objectId) {
-      items = items.filter((i) => i.objectId === objectId);
+      query = query.eq('object_id', objectId);
     }
     if (workspaceId) {
-      items = items.filter((i) => i.workspaceId === workspaceId);
+      query = query.eq('workspace_id', workspaceId);
     }
 
-    return NextResponse.json(list(items));
+    const { data, error: dbError } = await query;
+
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    const mapped = (data || []).map(itemFromDb);
+    return NextResponse.json({ success: true, data: mapped, total: mapped.length });
   } catch (e) {
-    console.error('Error listing items:', e);
-    return NextResponse.json(error('Failed to list items'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to list items' }, { status: 500 });
   }
 }
 
 // POST - Create item
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const db = await readDB();
 
     if (!body.objectId) {
-      return NextResponse.json(error('objectId is required'), { status: 400 });
+      return NextResponse.json({ success: false, error: 'objectId is required' }, { status: 400 });
     }
 
     const newItem = {
       id: generateId(),
+      user_id: user.id,
       name: body.name || 'New Item',
-      objectId: body.objectId,
-      workspaceId: body.workspaceId || null,
-      markdownId: body.markdownId || null,
-      contextData: body.contextData || { nodes: [] },
+      object_id: body.objectId,
+      workspace_id: body.workspaceId || null,
+      markdown_id: body.markdownId || null,
+      field_values: body.fieldValues || {},
+      context_data: body.contextData || { nodes: [] },
     };
 
-    db.items.push(newItem);
-    await writeDB(db);
+    const { data, error: dbError } = await supabase
+      .from('items')
+      .insert(newItem)
+      .select()
+      .single();
 
-    return NextResponse.json(success(newItem), { status: 201 });
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, data: itemFromDb(data) }, { status: 201 });
   } catch (e) {
-    console.error('Error creating item:', e);
-    return NextResponse.json(error('Failed to create item'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to create item' }, { status: 500 });
   }
 }

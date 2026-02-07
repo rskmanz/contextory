@@ -1,82 +1,120 @@
-import { NextResponse } from 'next/server';
-import { readDB, writeDB, success, error } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+function workspaceFromDb(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    workspaceId: row.workspace_id,
+    parentItemId: row.parent_item_id ?? null,
+    category: row.category,
+    categoryIcon: row.category_icon,
+    type: row.type,
+    resources: row.resources ?? [],
+  };
+}
 
 // GET - Get single workspace
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const db = await readDB();
-    const workspace = db.workspaces.find((w) => w.id === id);
+    const supabase = await createClient();
 
-    if (!workspace) {
-      return NextResponse.json(error('Workspace not found'), { status: 404 });
+    // Allow unauthenticated access for MCP server compatibility
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id);
+
+    if (user) {
+      query = query.eq('user_id', user.id);
     }
 
-    return NextResponse.json(success(workspace));
+    const { data, error: dbError } = await query.single();
+
+    if (dbError || !data) {
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: workspaceFromDb(data) });
   } catch (e) {
-    console.error('Error getting workspace:', e);
-    return NextResponse.json(error('Failed to get workspace'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to get workspace' }, { status: 500 });
   }
 }
 
 // PUT - Update workspace
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const updates = await request.json();
-    const db = await readDB();
-
-    const index = db.workspaces.findIndex((w) => w.id === id);
-    if (index === -1) {
-      return NextResponse.json(error('Workspace not found'), { status: 404 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    db.workspaces[index] = { ...db.workspaces[index], ...updates, id };
-    await writeDB(db);
+    const updates = await request.json();
 
-    return NextResponse.json(success(db.workspaces[index]));
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.workspaceId !== undefined) dbUpdates.workspace_id = updates.workspaceId;
+    if (updates.parentItemId !== undefined) dbUpdates.parent_item_id = updates.parentItemId;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.categoryIcon !== undefined) dbUpdates.category_icon = updates.categoryIcon;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.resources !== undefined) dbUpdates.resources = updates.resources;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { data, error: dbError } = await supabase
+      .from('projects')
+      .update(dbUpdates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (dbError || !data) {
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: workspaceFromDb(data) });
   } catch (e) {
-    console.error('Error updating workspace:', e);
-    return NextResponse.json(error('Failed to update workspace'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to update workspace' }, { status: 500 });
   }
 }
 
-// DELETE - Delete workspace
+// DELETE - Delete workspace (cascades to items via FK)
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const db = await readDB();
-
-    const index = db.workspaces.findIndex((w) => w.id === id);
-    if (index === -1) {
-      return NextResponse.json(error('Workspace not found'), { status: 404 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    db.workspaces.splice(index, 1);
-    // Also delete related contexts
-    db.contexts = db.contexts.filter((c) => c.workspaceId !== id);
-    // Delete objects that are ONLY available in this workspace
-    db.objects = db.objects.filter((o) =>
-      o.availableGlobal ||
-      o.availableInProjects.length > 0 ||
-      o.availableInWorkspaces.length !== 1 ||
-      o.availableInWorkspaces[0] !== id
-    );
+    const { error: dbError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
 
-    await writeDB(db);
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
 
-    return NextResponse.json(success({ deleted: true }));
+    return NextResponse.json({ success: true, data: { deleted: true } });
   } catch (e) {
-    console.error('Error deleting workspace:', e);
-    return NextResponse.json(error('Failed to delete workspace'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to delete workspace' }, { status: 500 });
   }
 }

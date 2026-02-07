@@ -4,7 +4,7 @@ export const tools = [
     // ============ PROJECTS ============
     {
         name: 'list_projects',
-        description: 'List all projects in Context OS',
+        description: 'List all projects in Contextory',
         inputSchema: {
             type: 'object',
             properties: {},

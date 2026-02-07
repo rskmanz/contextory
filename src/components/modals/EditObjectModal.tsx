@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { ObjectType, OBJECT_CATEGORY_SUGGESTIONS } from '@/types';
+import { ObjectType, OBJECT_CATEGORY_SUGGESTIONS, FieldDefinition } from '@/types';
+import { FieldSchemaEditor } from '@/components/fields';
 
 interface EditObjectModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('📁');
     const [category, setCategory] = useState('');
+    const [fields, setFields] = useState<FieldDefinition[]>([]);
     const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
 
     // Availability state
@@ -32,11 +34,12 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
             setName(object.name);
             setIcon(object.icon);
             setCategory(object.category || '');
+            setFields(object.fields || []);
 
             // Initialize availability from object
             setAvailableGlobal(object.availableGlobal);
-            const projAvail = object.availableInProjects;
-            const wsAvail = object.availableInWorkspaces;
+            const projAvail = object.availableInProjects ?? [];
+            const wsAvail = object.availableInWorkspaces ?? [];
 
             setAllProjects(projAvail.includes('*'));
             setAllWorkspaces(wsAvail.includes('*'));
@@ -56,6 +59,7 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
             availableGlobal,
             availableInProjects: allProjects ? ['*'] : selectedProjects,
             availableInWorkspaces: allWorkspaces ? ['*'] : selectedWorkspaces,
+            fields,
         };
 
         await updateObject(object.id, updates);
@@ -173,9 +177,9 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
                         </div>
                     </div>
 
-                    {/* Projects availability */}
+                    {/* Workspaces availability */}
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Projects</label>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Workspaces</label>
                         <label className="flex items-center gap-2 mb-2">
                             <input
                                 type="checkbox"
@@ -186,28 +190,28 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
                                 }}
                                 className="rounded border-zinc-300"
                             />
-                            <span className="text-sm text-zinc-700">All Projects</span>
+                            <span className="text-sm text-zinc-700">All Workspaces</span>
                         </label>
                         {!allProjects && (
                             <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
-                                {projects.map((p) => (
-                                    <label key={p.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
+                                {workspaces.map((w) => (
+                                    <label key={w.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
                                         <input
                                             type="checkbox"
-                                            checked={selectedProjects.includes(p.id)}
-                                            onChange={() => toggleProject(p.id)}
+                                            checked={selectedProjects.includes(w.id)}
+                                            onChange={() => toggleProject(w.id)}
                                             className="rounded border-zinc-300"
                                         />
-                                        <span className="text-sm">{p.icon} {p.name}</span>
+                                        <span className="text-sm">{w.icon} {w.name}</span>
                                     </label>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* Workspaces availability */}
+                    {/* Projects availability */}
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Workspaces</label>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Projects</label>
                         <label className="flex items-center gap-2 mb-2">
                             <input
                                 type="checkbox"
@@ -218,27 +222,32 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClos
                                 }}
                                 className="rounded border-zinc-300"
                             />
-                            <span className="text-sm text-zinc-700">All Workspaces</span>
+                            <span className="text-sm text-zinc-700">All Projects</span>
                         </label>
                         {!allWorkspaces && (
                             <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
-                                {workspaces.map((w) => {
-                                    const project = projects.find(p => p.id === w.projectId);
+                                {projects.map((p) => {
+                                    const ws = workspaces.find(w => w.id === p.workspaceId);
                                     return (
-                                        <label key={w.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
+                                        <label key={p.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedWorkspaces.includes(w.id)}
-                                                onChange={() => toggleWorkspace(w.id)}
+                                                checked={selectedWorkspaces.includes(p.id)}
+                                                onChange={() => toggleWorkspace(p.id)}
                                                 className="rounded border-zinc-300"
                                             />
-                                            <span className="text-sm">{w.name}</span>
-                                            <span className="text-xs text-zinc-400">({project?.name})</span>
+                                            <span className="text-sm">{p.categoryIcon || '📁'} {p.name}</span>
+                                            <span className="text-xs text-zinc-400">({ws?.name})</span>
                                         </label>
                                     );
                                 })}
                             </div>
                         )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Properties</label>
+                        <FieldSchemaEditor fields={fields} onChange={setFields} />
                     </div>
 
                     <div className="flex gap-3 justify-end pt-4">

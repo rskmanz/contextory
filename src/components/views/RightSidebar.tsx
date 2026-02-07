@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Workspace, Resource, Project, Context, ObjectType, ObjectItem } from '@/types';
 import { useStore } from '@/lib/store';
+import { generateId } from '@/lib/utils';
 
 interface RightSidebarProps {
   workspace: Workspace;
@@ -11,8 +12,6 @@ interface RightSidebarProps {
   object?: ObjectType;
   item?: ObjectItem;
 }
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Try to extract hostname safely
 const getHostname = (url: string): string | null => {
@@ -35,7 +34,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   object,
   item,
 }) => {
-  const updateWorkspace = useStore((state) => state.updateWorkspace);
+  const updateProject = useStore((state) => state.updateProject);
   const aiSettings = useStore((state) => state.aiSettings);
 
   const [input, setInput] = useState('');
@@ -45,7 +44,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
   const feedEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const resources = workspace.resources || [];
+  const resources: Resource[] = project?.resources || [];
 
   useEffect(() => {
     feedEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -62,14 +61,16 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       url: url.startsWith('http') ? url : `https://${url}`,
     };
 
-    await updateWorkspace(workspace.id, {
+    if (!project) return;
+    await updateProject(project.id, {
       resources: [...resources, newResource],
     });
   };
 
   const handleDeleteResource = async (resourceId: string) => {
-    await updateWorkspace(workspace.id, {
-      resources: resources.filter((r) => r.id !== resourceId),
+    if (!project) return;
+    await updateProject(project.id, {
+      resources: resources.filter((r: Resource) => r.id !== resourceId),
     });
   };
 
@@ -118,7 +119,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
     setIsLoading(true);
     try {
-      const systemPrompt = `You are Context OS assistant for workspace "${workspace.name}"${
+      const systemPrompt = `You are Contextory assistant for workspace "${workspace.name}"${
         project ? ` in project "${project.name}"` : ''
       }. Resources available: ${resources.map(r => r.name).join(', ') || 'none'}. Be concise and helpful.`;
 
@@ -167,7 +168,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: `Summarize this resource: "${resource.name}"${resource.url ? ` (${resource.url})` : ''}. Give a brief summary of what this resource is about and key points.` }],
-          systemPrompt: `You are Context OS assistant for workspace "${workspace.name}". Summarize resources concisely.`,
+          systemPrompt: `You are Contextory assistant for workspace "${workspace.name}". Summarize resources concisely.`,
           provider: aiSettings.provider || 'openai',
           model: aiSettings.model,
           apiKey: aiSettings.apiKey,

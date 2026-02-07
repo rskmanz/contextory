@@ -1,10 +1,10 @@
 {
-  "name": "context-os-mcp",
+  "name": "contextory-mcp",
   "version": "1.0.0",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "context-os-mcp": "build/index.js"
+    "contextory-mcp": "build/index.js"
   },
   "scripts": {
     "build": "tsc",

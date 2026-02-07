@@ -16,7 +16,7 @@ interface ObjectGridViewProps {
 export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, workspaceId, onItemClick }) => {
   const router = useRouter();
   const params = useParams();
-  const { project, subproject } = params as { project: string; subproject: string };
+  const { workspace, project } = params as { workspace: string; project: string };
 
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
@@ -31,19 +31,19 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
     const id = await addItem({
       name: 'New item',
       objectId: object.id,
-      workspaceId,
+      projectId: workspaceId,
     });
     // Navigate to the new item
-    router.push(`/${project}/${subproject}/item/${id}`);
-  }, [addItem, object.id, workspaceId, router, project, subproject]);
+    router.push(`/${workspace}/${project}/item/${id}`);
+  }, [addItem, object.id, workspaceId, router, workspace, project]);
 
   const handleItemClick = useCallback((itemId: string) => {
     if (onItemClick) {
       onItemClick(itemId);
     } else {
-      router.push(`/${project}/${subproject}/item/${itemId}`);
+      router.push(`/${workspace}/${project}/item/${itemId}`);
     }
-  }, [router, project, subproject, onItemClick]);
+  }, [router, workspace, project, onItemClick]);
 
   const handleDoubleClick = useCallback((item: ObjectItem, e: React.MouseEvent) => {
     e.stopPropagation();

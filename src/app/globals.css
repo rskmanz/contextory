@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+  min-height: 200px;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #a1a1aa;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+.ProseMirror h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+
+.ProseMirror ul { list-style: disc; padding-left: 1.5rem; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.5rem; }
+.ProseMirror li { margin: 0.25rem 0; }
+
+.ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; gap: 0.5rem; }
+.ProseMirror ul[data-type="taskList"] li label { margin-top: 0.15rem; }
+
+.ProseMirror code { background: #f4f4f5; padding: 0.15rem 0.3rem; border-radius: 0.25rem; font-size: 0.875rem; }
+.ProseMirror pre { background: #18181b; color: #e4e4e7; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+.ProseMirror pre code { background: none; padding: 0; color: inherit; }
+
+.ProseMirror blockquote { border-left: 3px solid #d4d4d8; padding-left: 1rem; color: #71717a; margin: 0.75rem 0; }
+
+.ProseMirror a { color: #2563eb; text-decoration: underline; }
+
+.ProseMirror mark { background-color: #fef08a; padding: 0.1rem 0.15rem; border-radius: 0.15rem; }
+
+.ProseMirror p { margin: 0.25rem 0; }

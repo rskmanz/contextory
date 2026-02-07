@@ -1,19 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Workspace, Resource } from '@/types';
+import { Project, Resource } from '@/types';
 import { useStore } from '@/lib/store';
+import { generateId } from '@/lib/utils';
 
 interface ResourcePanelProps {
-  workspace: Workspace;
+  workspace: Project;
 }
-
-const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const RESOURCE_ICONS = ['📄', '🔗', '📝', '📊', '🎯', '📁', '💡', '🔧'];
 
 export const ResourcePanel: React.FC<ResourcePanelProps> = ({ workspace }) => {
-  const updateWorkspace = useStore((state) => state.updateWorkspace);
+  const updateWorkspace = useStore((state) => state.updateProject);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newUrl, setNewUrl] = useState('');

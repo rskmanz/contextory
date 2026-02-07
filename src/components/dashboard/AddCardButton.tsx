@@ -14,7 +14,7 @@ export const AddCardButton: React.FC<AddCardButtonProps> = ({ onClick }) => {
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            <span className="mt-2 text-sm font-medium">Add Project</span>
+            <span className="mt-2 text-sm font-medium">Add Workspace</span>
         </button>
     );
 };

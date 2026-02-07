@@ -26,8 +26,8 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
   onClose,
   projectId,
   workspaceId,
-  defaultScope = 'local',
-  allowedScopes = ['global', 'project', 'local'],
+  defaultScope = 'project',
+  allowedScopes = ['global', 'workspace', 'project'],
 }) => {
   const addContext = useStore((state) => state.addContext);
 
@@ -50,7 +50,7 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
         viewStyle: DEFAULT_VIEW_STYLE[type],
         scope,
         projectId: scope === 'global' ? null : projectId,
-        workspaceId: scope === 'local' ? workspaceId : null,
+        workspaceId: scope === 'project' ? workspaceId : null,
         data: { nodes: [], edges: [] },
       });
       setName('');
@@ -149,6 +149,19 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
                     🌐 Global
                   </button>
                 )}
+                {allowedScopes.includes('workspace') && (
+                  <button
+                    type="button"
+                    onClick={() => setScope('workspace')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      scope === 'workspace'
+                        ? 'bg-white text-zinc-900 shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-700'
+                    }`}
+                  >
+                    📁 Workspace
+                  </button>
+                )}
                 {allowedScopes.includes('project') && (
                   <button
                     type="button"
@@ -159,27 +172,14 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
                         : 'text-zinc-500 hover:text-zinc-700'
                     }`}
                   >
-                    📁 Project
-                  </button>
-                )}
-                {allowedScopes.includes('local') && (
-                  <button
-                    type="button"
-                    onClick={() => setScope('local')}
-                    className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      scope === 'local'
-                        ? 'bg-white text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 hover:text-zinc-700'
-                    }`}
-                  >
-                    📍 Workspace
+                    📍 Project
                   </button>
                 )}
               </div>
               <p className="text-xs text-zinc-400 mt-1">
-                {scope === 'global' && 'Available in all workspaces'}
-                {scope === 'project' && 'Available in all workspaces of this project'}
-                {scope === 'local' && 'Available only in this workspace'}
+                {scope === 'global' && 'Available in all projects'}
+                {scope === 'workspace' && 'Available in all projects of this workspace'}
+                {scope === 'project' && 'Available only in this project'}
               </p>
             </div>
           )}

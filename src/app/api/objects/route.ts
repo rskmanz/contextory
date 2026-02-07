@@ -1,61 +1,113 @@
-import { NextResponse } from 'next/server';
-import { readDB, writeDB, generateId, success, list, error } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function objectFromDb(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    type: row.type,
+    category: row.category,
+    builtIn: row.built_in ?? false,
+    availableGlobal: row.available_global ?? false,
+    availableInProjects: row.available_in_projects ?? [],
+    availableInWorkspaces: row.available_in_workspaces ?? [],
+    fields: row.fields ?? [],
+  };
+}
 
 // GET - List objects (filter by availability)
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const global = searchParams.get('global');
-    const projectId = searchParams.get('projectId');
-    const workspaceId = searchParams.get('workspaceId');
+    const global = request.nextUrl.searchParams.get('global');
+    const projectId = request.nextUrl.searchParams.get('projectId');
+    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
 
-    const db = await readDB();
-    let objects = db.objects;
+    const supabase = await createClient();
 
+    // Allow unauthenticated access for MCP server compatibility
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('objects')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (user) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error: dbError } = await query;
+
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    let objects = (data || []).map(objectFromDb);
+
+    // Apply filters in JS to match original behavior with array contains logic
     if (global === 'true') {
-      objects = objects.filter((o) => o.availableGlobal);
+      objects = objects.filter((o: Record<string, unknown>) => o.availableGlobal);
     }
     if (projectId) {
-      objects = objects.filter((o) =>
-        o.availableInProjects.includes('*') || o.availableInProjects.includes(projectId)
-      );
+      objects = objects.filter((o: Record<string, unknown>) => {
+        const projects = o.availableInProjects as string[];
+        return projects.includes('*') || projects.includes(projectId);
+      });
     }
     if (workspaceId) {
-      objects = objects.filter((o) =>
-        o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(workspaceId)
-      );
+      objects = objects.filter((o: Record<string, unknown>) => {
+        const workspaces = o.availableInWorkspaces as string[];
+        return workspaces.includes('*') || workspaces.includes(workspaceId);
+      });
     }
 
-    return NextResponse.json(list(objects));
+    return NextResponse.json({ success: true, data: objects, total: objects.length });
   } catch (e) {
-    console.error('Error listing objects:', e);
-    return NextResponse.json(error('Failed to list objects'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to list objects' }, { status: 500 });
   }
 }
 
 // POST - Create object
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const db = await readDB();
 
     const newObject = {
       id: generateId(),
+      user_id: user.id,
       name: body.name || 'New Object',
-      icon: body.icon || '📋',
+      icon: body.icon || '',
       category: body.category || 'Work',
-      builtIn: body.builtIn || false,
-      availableGlobal: body.availableGlobal ?? true,
-      availableInProjects: body.availableInProjects || ['*'],
-      availableInWorkspaces: body.availableInWorkspaces || ['*'],
+      built_in: body.builtIn || false,
+      available_global: body.availableGlobal ?? true,
+      available_in_projects: body.availableInProjects || ['*'],
+      available_in_workspaces: body.availableInWorkspaces || ['*'],
+      fields: body.fields || [],
     };
 
-    db.objects.push(newObject);
-    await writeDB(db);
+    const { data, error: dbError } = await supabase
+      .from('objects')
+      .insert(newObject)
+      .select()
+      .single();
 
-    return NextResponse.json(success(newObject), { status: 201 });
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, data: objectFromDb(data) }, { status: 201 });
   } catch (e) {
-    console.error('Error creating object:', e);
-    return NextResponse.json(error('Failed to create object'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to create object' }, { status: 500 });
   }
 }

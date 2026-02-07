@@ -1,6 +1,6 @@
 // Core Data Types
 
-export interface Project {
+export interface Workspace {
   id: string;
   name: string;
   icon: string;
@@ -8,7 +8,7 @@ export interface Project {
   category: string;
 }
 
-// Resource attached to a workspace
+// Resource attached to a project
 export interface Resource {
   id: string;
   name: string;
@@ -17,15 +17,15 @@ export interface Resource {
   icon?: string;
 }
 
-export interface Workspace {
+export interface Project {
   id: string;
   name: string;
-  projectId: string;
-  parentItemId?: string;  // if set, this is a sub-workspace of an item (future)
+  workspaceId: string;
+  parentItemId?: string;  // if set, this is a sub-project of an item (future)
   category?: string;
   categoryIcon?: string;
   type?: string;          // department, activity, client, etc.
-  resources?: Resource[];  // workspace-level resources
+  resources?: Resource[];  // project-level resources
 }
 
 // Node within a context (tree structure)
@@ -83,9 +83,9 @@ export interface Context {
   icon: string;
   type?: ContextType;
   viewStyle?: ViewStyle;
-  scope: ObjectScope;             // 'global' | 'project' | 'local'
-  projectId: string | null;       // null for global, set for project/local
-  workspaceId: string | null;     // null for global/project, set for local
+  scope: ObjectScope;             // 'global' | 'workspace' | 'project'
+  workspaceId: string | null;     // null for global, set for workspace/project
+  projectId: string | null;       // null for global/workspace, set for project
   objectIds?: string[];           // linked objects (optional)
   markdownId?: string;            // reference to .md file (optional)
   data: {
@@ -96,7 +96,29 @@ export interface Context {
 }
 
 // Object scope: determines visibility
-export type ObjectScope = 'global' | 'project' | 'local';
+export type ObjectScope = 'global' | 'workspace' | 'project';
+
+// Field types for object schema definition
+export const FIELD_TYPES = ['text', 'number', 'select', 'multiSelect', 'date', 'checkbox', 'url', 'relation'] as const;
+export type FieldType = typeof FIELD_TYPES[number];
+
+export interface SelectOption {
+  id: string;
+  label: string;
+  color?: string;
+}
+
+export interface FieldDefinition {
+  id: string;
+  name: string;
+  type: FieldType;
+  required?: boolean;
+  options?: SelectOption[];
+  relationObjectId?: string;
+}
+
+export type FieldValue = string | number | boolean | string[] | null;
+export type FieldValues = Record<string, FieldValue>;
 
 export interface ObjectType {
   id: string;
@@ -106,9 +128,10 @@ export interface ObjectType {
   category?: string;              // Work, People, Tools, etc.
   builtIn: boolean;
   // Availability flags
-  availableGlobal: boolean;       // Available at root/home level (outside projects)
-  availableInProjects: string[];  // ['*'] = all, or specific project IDs
-  availableInWorkspaces: string[]; // ['*'] = all, or specific workspace IDs
+  availableGlobal: boolean;       // Available at root/home level (outside workspaces)
+  availableInWorkspaces: string[];  // ['*'] = all, or specific workspace IDs
+  availableInProjects: string[]; // ['*'] = all, or specific project IDs
+  fields?: FieldDefinition[];     // Schema: columns for this object type
 }
 
 // Common object types for naming matching
@@ -132,9 +155,10 @@ export interface ObjectItem {
   id: string;
   name: string;
   objectId: string;
-  workspaceId: string | null;     // null = global object item
+  projectId: string | null;     // null = global object item
   markdownId?: string;            // reference to .md file (optional)
   viewLayout?: ItemViewLayout;    // layout for markdown + visualization (default: 'visualization')
+  fieldValues?: FieldValues;      // per-item field values keyed by FieldDefinition.id
   contextData?: {                 // context structure (optional)
     type?: ContextType;           // 'tree' | 'board' | 'canvas' (default: 'tree')
     viewStyle?: ViewStyle;        // view style for the type (default: 'list')
@@ -144,8 +168,8 @@ export interface ObjectItem {
   };
 }
 
-// Category for grouping projects
-export type ProjectCategory = 'Side Projects' | 'VCs' | 'Main' | string;
+// Category for grouping workspaces
+export type WorkspaceCategory = string;
 
 // AI Chat Types (Phase 5.1)
 export interface ChatMessage {
@@ -154,8 +178,8 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
   context?: {
-    projectId: string;
     workspaceId: string;
+    projectId: string;
     itemId?: string;
   };
   suggestedNodes?: ContextNode[];
@@ -175,7 +199,7 @@ export interface ChatState {
   isExpanded: boolean;
 }
 
-// Gradient options for projects
+// Gradient options for workspaces
 export const GRADIENT_OPTIONS = [
   'bg-gradient-to-br from-pink-400 via-rose-400 to-red-400',
   'bg-gradient-to-br from-orange-300 via-orange-400 to-amber-400',
@@ -186,10 +210,10 @@ export const GRADIENT_OPTIONS = [
   'bg-gradient-to-br from-purple-300 via-purple-400 to-violet-400',
 ] as const;
 
-// Icon options for projects
+// Icon options for workspaces
 export const ICON_OPTIONS = ['👾', '🍣', '🎏', '💡', '🔥', '🌌', '🌀', '🐹', '🚀', '📦', '🎨', '💻', '📊'] as const;
 
-// Category icon options (for workspaces)
+// Category icon options (for projects)
 export const CATEGORY_ICONS = {
   'Data': '📊',
   'Development': '💻',
@@ -234,5 +258,5 @@ export interface AIToolResult {
 export interface PendingToolCall {
   toolCall: AIToolCall;
   entityName: string;
-  entityType: 'project' | 'workspace' | 'object' | 'item' | 'context' | 'node';
+  entityType: 'workspace' | 'project' | 'object' | 'item' | 'context' | 'node';
 }

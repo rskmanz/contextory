@@ -41,24 +41,24 @@ export function ScopeColumnsView<T>({
 }: ScopeColumnsViewProps<T>) {
   const {
     global: globalText = 'No global items',
-    project: projectText = 'No project items',
-    workspace: workspaceText = 'No workspace items',
+    project: projectText = 'No workspace items',
+    workspace: workspaceText = 'No project items',
   } = emptyMessages;
 
-  const projectOptions = projects.map(p => ({
-    id: p.id,
-    label: p.name,
-    icon: p.icon,
+  const workspaceOptions = workspaces.map(ws => ({
+    id: ws.id,
+    label: ws.name,
+    icon: ws.icon,
   }));
 
-  const filteredWorkspaces = projectFilter === 'all'
-    ? workspaces
-    : workspaces.filter(w => w.projectId === projectFilter);
+  const filteredProjects = workspaceFilter === 'all'
+    ? projects
+    : projects.filter(p => p.workspaceId === workspaceFilter);
 
-  const workspaceOptions = filteredWorkspaces.map(w => ({
-    id: w.id,
-    label: w.name,
-    icon: w.categoryIcon,
+  const projectOptions = filteredProjects.map(p => ({
+    id: p.id,
+    label: p.name,
+    icon: p.categoryIcon || '📁',
   }));
 
   return (
@@ -84,7 +84,7 @@ export function ScopeColumnsView<T>({
         <FilterDropdown
           value={projectFilter}
           options={projectOptions}
-          allLabel="All Projects"
+          allLabel="All Workspaces"
           onChange={(value) => {
             onProjectFilterChange(value);
             if (value !== projectFilter) {
@@ -117,7 +117,7 @@ export function ScopeColumnsView<T>({
         <FilterDropdown
           value={workspaceFilter}
           options={workspaceOptions}
-          allLabel="All Workspaces"
+          allLabel="All Projects"
           onChange={onWorkspaceFilterChange}
         />
         {Object.keys(data.byWorkspace).length > 0 ? (

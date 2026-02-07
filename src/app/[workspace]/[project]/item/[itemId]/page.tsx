@@ -13,52 +13,38 @@ import { FlowView } from '@/components/views/FlowView';
 import { TableView } from '@/components/views/TableView';
 import { GanttView } from '@/components/views/GanttView';
 import { FloatingChat } from '@/components/ai/FloatingChat';
+import { TiptapEditor } from '@/components/editor';
+import { FieldValueCell } from '@/components/fields';
 import { useStore } from '@/lib/store';
-import { Context, ContextType, VIEW_STYLES, ViewStyle, DEFAULT_VIEW_STYLE, ItemViewLayout } from '@/types';
-
-// Simple markdown renderer
-const renderMarkdown = (md: string): string => {
-  if (!md) return '';
-  return md
-    .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold text-zinc-800 mt-4 mb-2">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-base font-semibold text-zinc-800 mt-4 mb-2">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-lg font-bold text-zinc-900 mt-4 mb-2">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-600 hover:underline" target="_blank">$1</a>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 text-sm text-zinc-600">• $1</li>')
-    .replace(/`(.+?)`/g, '<code class="px-1 py-0.5 bg-zinc-100 rounded text-xs font-mono">$1</code>')
-    .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p class="text-sm text-zinc-600 mb-2">$1</p>')
-    .replace(/<p class="[^"]*"><\/p>/g, '');
-};
+import { Context, ContextType, VIEW_STYLES, ViewStyle, DEFAULT_VIEW_STYLE, ItemViewLayout, FieldValue } from '@/types';
 
 export default function ItemContextPage() {
   const params = useParams();
   const router = useRouter();
-  const { project, subproject, itemId } = params as { project: string; subproject: string; itemId: string };
+  const { workspace, project, itemId } = params as { workspace: string; project: string; itemId: string };
 
-  const projects = useStore((state) => state.projects);
   const workspaces = useStore((state) => state.workspaces);
+  const projects = useStore((state) => state.projects);
   const objects = useStore((state) => state.objects);
   const items = useStore((state) => state.items);
   const loadData = useStore((state) => state.loadData);
   const isLoaded = useStore((state) => state.isLoaded);
   const updateItemContextType = useStore((state) => state.updateItemContextType);
   const updateItem = useStore((state) => state.updateItem);
+  const updateItemFieldValue = useStore((state) => state.updateItemFieldValue);
 
   const [contextType, setContextType] = useState<ContextType>('tree');
   const [viewLayout, setViewLayout] = useState<ItemViewLayout>('visualization');
   const [activeTab, setActiveTab] = useState<'markdown' | 'visualization'>('visualization');
   const [markdown, setMarkdown] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const currentProject = projects.find((p) => p.id === project);
-  const currentWorkspace = workspaces.find((w) => w.id === subproject);
+  const currentWorkspace = workspaces.find((p) => p.id === workspace);
+  const currentProject = projects.find((w) => w.id === project);
   const currentItem = items.find((i) => i.id === itemId);
   const currentObject = currentItem ? objects.find((o) => o.id === currentItem.objectId) : null;
 
@@ -96,7 +82,6 @@ export default function ItemContextPage() {
       if (!currentItem.markdownId) {
         await updateItem(currentItem.id, { markdownId });
       }
-      setIsEditing(false);
     } finally {
       setIsSaving(false);
     }
@@ -116,9 +101,9 @@ export default function ItemContextPage() {
     icon: currentObject.icon,
     type: currentItem.contextData?.type || 'tree',
     viewStyle: currentItem.contextData?.viewStyle || DEFAULT_VIEW_STYLE[currentItem.contextData?.type || 'tree'],
-    scope: 'local',
-    projectId: project,
-    workspaceId: currentItem.workspaceId || subproject,
+    scope: 'project',
+    workspaceId: workspace,
+    projectId: currentItem.projectId || project,
     data: {
       nodes: currentItem.contextData?.nodes || [],
       edges: currentItem.contextData?.edges,
@@ -179,50 +164,21 @@ export default function ItemContextPage() {
       <div className="flex items-center justify-between p-3 border-b border-zinc-200">
         <h3 className="text-sm font-medium text-zinc-700">Notes</h3>
         <button
-          onClick={() => setIsEditing(!isEditing)}
-          className={`text-xs px-2 py-1 rounded ${
-            isEditing ? 'bg-blue-100 text-blue-700' : 'text-zinc-500 hover:bg-zinc-100'
-          }`}
+          onClick={handleSaveMarkdown}
+          disabled={isSaving}
+          className="text-xs px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100"
         >
-          {isEditing ? 'Preview' : 'Edit'}
+          {isSaving ? 'Saving...' : 'Save'}
         </button>
       </div>
       <div className="flex-1 overflow-auto p-3">
-        {isEditing ? (
-          <textarea
-            value={markdown}
-            onChange={(e) => setMarkdown(e.target.value)}
-            placeholder="# Notes&#10;&#10;Add notes in markdown..."
-            className="w-full h-full min-h-[200px] p-3 text-sm bg-zinc-50 border border-zinc-200 rounded-lg outline-none focus:border-zinc-400 resize-none font-mono"
-          />
-        ) : markdown ? (
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
-          />
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-sm text-zinc-400 mb-2">No notes yet</p>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="text-xs text-blue-500 hover:underline"
-            >
-              Add notes
-            </button>
-          </div>
-        )}
+        <TiptapEditor
+          content={markdown}
+          onChange={setMarkdown}
+          onSave={handleSaveMarkdown}
+          placeholder="Add notes..."
+        />
       </div>
-      {isEditing && (
-        <div className="p-3 border-t border-zinc-200">
-          <button
-            onClick={handleSaveMarkdown}
-            disabled={isSaving}
-            className="w-full py-2 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      )}
     </div>
   );
 
@@ -297,7 +253,7 @@ export default function ItemContextPage() {
     );
   }
 
-  if (!currentProject || !currentWorkspace || !currentItem || !currentObject) {
+  if (!currentWorkspace || !currentProject || !currentItem || !currentObject) {
     return (
       <div className="flex h-screen bg-white font-sans overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
@@ -314,9 +270,9 @@ export default function ItemContextPage() {
         <div className="bg-white border-b border-zinc-100 px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push(`/${project}/${subproject}`)}
+              onClick={() => router.push(`/${workspace}/${project}`)}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all"
-              title="Back to workspace"
+              title="Back to project"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
@@ -334,8 +290,8 @@ export default function ItemContextPage() {
             </Link>
             <Breadcrumb
               items={[
-                { label: currentProject.name, icon: currentProject.icon, href: `/${project}/${subproject}` },
-                { label: currentWorkspace.name, icon: currentWorkspace.categoryIcon, href: `/${project}/${subproject}` },
+                { label: currentWorkspace.name, icon: currentWorkspace.icon, href: `/${workspace}/${project}` },
+                { label: currentProject.name, icon: currentProject.categoryIcon, href: `/${workspace}/${project}` },
                 { label: currentObject.name, icon: currentObject.icon },
                 { label: currentItem.name, icon: currentObject.icon },
               ]}
@@ -418,6 +374,27 @@ export default function ItemContextPage() {
           </div>
         </div>
 
+        {/* Properties */}
+        {currentObject?.fields && currentObject.fields.length > 0 && currentItem && (
+          <div className="border-b border-zinc-100 px-6 py-3 bg-white">
+            <div className="grid grid-cols-3 gap-x-6 gap-y-1.5">
+              {currentObject.fields.map((field) => (
+                <div key={field.id} className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-500 w-28 flex-shrink-0 truncate">{field.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <FieldValueCell
+                      field={field}
+                      value={currentItem.fieldValues?.[field.id] ?? null}
+                      onChange={(val: FieldValue) => updateItemFieldValue(currentItem.id, field.id, val)}
+                      compact
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Main Content */}
         <div className="flex-1 overflow-hidden bg-white">
           {renderContent()}
@@ -426,8 +403,8 @@ export default function ItemContextPage() {
 
       {/* Floating AI Chat */}
       <FloatingChat
-        project={currentProject}
         workspace={currentWorkspace}
+        project={currentProject}
         object={currentObject}
         item={currentItem}
       />

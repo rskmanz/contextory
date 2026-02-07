@@ -7,4 +7,4 @@ This is a test item created via MCP.
 - Feature B
 
 ## Notes
-Created to test Context OS MCP integration.
+Created to test Contextory MCP integration.

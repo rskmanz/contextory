@@ -16,11 +16,11 @@ export const CopyItemModal: React.FC<CopyItemModalProps> = ({ isOpen, onClose, i
 
     const { projects, workspaces, copyItem } = useStore();
 
-    // Filter workspaces based on selected project
-    const filteredWorkspaces = useMemo(() => {
+    // Filter projects based on selected workspace
+    const filteredProjects = useMemo(() => {
         if (!selectedProject) return [];
-        return workspaces.filter(w => w.projectId === selectedProject);
-    }, [selectedProject, workspaces]);
+        return projects.filter(p => p.workspaceId === selectedProject);
+    }, [selectedProject, projects]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,7 +65,7 @@ export const CopyItemModal: React.FC<CopyItemModalProps> = ({ isOpen, onClose, i
                             <option value="">Select project...</option>
                             {projects.map((p) => (
                                 <option key={p.id} value={p.id}>
-                                    {p.icon} {p.name}
+                                    {p.categoryIcon || '📁'} {p.name}
                                 </option>
                             ))}
                         </select>
@@ -83,7 +83,7 @@ export const CopyItemModal: React.FC<CopyItemModalProps> = ({ isOpen, onClose, i
                             <option value="">
                                 {selectedProject ? 'Select workspace...' : 'Select project first'}
                             </option>
-                            {filteredWorkspaces.map((w) => (
+                            {filteredProjects.map((w) => (
                                 <option key={w.id} value={w.id}>
                                     {w.categoryIcon || '📁'} {w.name}
                                 </option>

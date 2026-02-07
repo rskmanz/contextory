@@ -141,7 +141,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     </div>
                 ))}
                 {workspaces.length === 0 && (
-                    <p className={`text-sm ${styles.subText}`}>No workspaces</p>
+                    <p className={`text-sm ${styles.subText}`}>No projects</p>
                 )}
                 {/* Add Workspace button */}
                 {onAddWorkspace && (

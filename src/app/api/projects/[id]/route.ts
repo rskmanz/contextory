@@ -1,81 +1,114 @@
-import { NextResponse } from 'next/server';
-import { readDB, writeDB, success, error } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+function projectFromDb(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    gradient: row.gradient,
+    category: row.category,
+  };
+}
 
 // GET - Get single project
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const db = await readDB();
-    const project = db.projects.find((p) => p.id === id);
+    const supabase = await createClient();
 
-    if (!project) {
-      return NextResponse.json(error('Project not found'), { status: 404 });
+    // Allow unauthenticated access for MCP server compatibility
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('workspaces')
+      .select('*')
+      .eq('id', id);
+
+    if (user) {
+      query = query.eq('user_id', user.id);
     }
 
-    return NextResponse.json(success(project));
+    const { data, error: dbError } = await query.single();
+
+    if (dbError || !data) {
+      return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: projectFromDb(data) });
   } catch (e) {
-    console.error('Error getting project:', e);
-    return NextResponse.json(error('Failed to get project'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to get project' }, { status: 500 });
   }
 }
 
 // PUT - Update project
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const updates = await request.json();
-    const db = await readDB();
-
-    const index = db.projects.findIndex((p) => p.id === id);
-    if (index === -1) {
-      return NextResponse.json(error('Project not found'), { status: 404 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    db.projects[index] = { ...db.projects[index], ...updates, id };
-    await writeDB(db);
+    const updates = await request.json();
 
-    return NextResponse.json(success(db.projects[index]));
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+    if (updates.gradient !== undefined) dbUpdates.gradient = updates.gradient;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { data, error: dbError } = await supabase
+      .from('workspaces')
+      .update(dbUpdates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (dbError || !data) {
+      return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, data: projectFromDb(data) });
   } catch (e) {
-    console.error('Error updating project:', e);
-    return NextResponse.json(error('Failed to update project'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to update project' }, { status: 500 });
   }
 }
 
-// DELETE - Delete project
+// DELETE - Delete project (cascades to projects via FK)
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const db = await readDB();
-
-    const index = db.projects.findIndex((p) => p.id === id);
-    if (index === -1) {
-      return NextResponse.json(error('Project not found'), { status: 404 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    db.projects.splice(index, 1);
-    // Also delete related workspaces
-    db.workspaces = db.workspaces.filter((w) => w.projectId !== id);
-    // Delete objects that are ONLY available in this project
-    db.objects = db.objects.filter((o) =>
-      o.availableGlobal ||
-      o.availableInProjects.length !== 1 ||
-      o.availableInProjects[0] !== id
-    );
+    const { error: dbError } = await supabase
+      .from('workspaces')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
 
-    await writeDB(db);
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
 
-    return NextResponse.json(success({ deleted: true }));
+    return NextResponse.json({ success: true, data: { deleted: true } });
   } catch (e) {
-    console.error('Error deleting project:', e);
-    return NextResponse.json(error('Failed to delete project'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to delete project' }, { status: 500 });
   }
 }

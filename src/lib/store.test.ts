@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useStore } from './store';
+import type { Project } from '@/types';
 
 // Reset store state before each test
 beforeEach(() => {
@@ -57,7 +58,7 @@ describe('Store - Object Availability CRUD Functions', () => {
     it('addProjectObject creates object with availableInProjects=[projectId]', async () => {
       const store = useStore.getState();
 
-      const id = await store.addProjectObject('proj-1', {
+      const id = await store.addProjectObject('ws-1', 'proj-1', {
         name: 'Features',
         icon: '⭐',
         builtIn: false,
@@ -94,7 +95,7 @@ describe('Store - Object Availability CRUD Functions', () => {
     it('addLocalObject creates object with availableInWorkspaces=[workspaceId]', async () => {
       const store = useStore.getState();
 
-      const id = await store.addLocalObject('proj-1', 'ws-1', {
+      const id = await store.addWorkspaceObject('ws-1', {
         name: 'Tasks',
         icon: '✅',
         builtIn: false,
@@ -121,7 +122,7 @@ describe('Store - Object Availability CRUD Functions', () => {
       });
 
       const store = useStore.getState();
-      const localObjects = store.getLocalObjects('ws-1');
+      const localObjects = store.getWorkspaceObjects('ws-1');
 
       expect(localObjects).toHaveLength(2);
       expect(localObjects.map((o) => o.name)).toEqual(['Local Tasks', 'Local Notes']);
@@ -148,36 +149,36 @@ describe('Store - Object Availability CRUD Functions', () => {
     });
   });
 
-  describe('Sub-workspaces', () => {
-    it('createSubWorkspace creates workspace with parentItemId', async () => {
+  describe('Sub-projects', () => {
+    it('createSubProject creates project with parentItemId', async () => {
       const store = useStore.getState();
 
-      const id = await store.createSubWorkspace('item-123', 'proj-1', 'Sub Workspace');
+      const id = await store.createSubProject('item-123', 'ws-1', 'Sub Project');
 
-      const workspaces = useStore.getState().workspaces;
-      const createdWorkspace = workspaces.find((w) => w.id === id);
+      const projects = useStore.getState().projects;
+      const createdProject = projects.find((p) => p.id === id);
 
-      expect(createdWorkspace).toBeDefined();
-      expect(createdWorkspace?.parentItemId).toBe('item-123');
-      expect(createdWorkspace?.projectId).toBe('proj-1');
-      expect(createdWorkspace?.name).toBe('Sub Workspace');
+      expect(createdProject).toBeDefined();
+      expect(createdProject?.parentItemId).toBe('item-123');
+      expect(createdProject?.workspaceId).toBe('ws-1');
+      expect(createdProject?.name).toBe('Sub Project');
     });
 
-    it('getSubWorkspaces returns only workspaces with matching parentItemId', () => {
+    it('getSubProjects returns only projects with matching parentItemId', () => {
       useStore.setState({
-        workspaces: [
-          { id: 'ws-1', name: 'Main', projectId: 'proj-1' },
-          { id: 'ws-2', name: 'Sub 1', projectId: 'proj-1', parentItemId: 'item-123' },
-          { id: 'ws-3', name: 'Sub 2', projectId: 'proj-1', parentItemId: 'item-123' },
-          { id: 'ws-4', name: 'Other Sub', projectId: 'proj-1', parentItemId: 'item-456' },
+        projects: [
+          { id: 'p-1', name: 'Main', workspaceId: 'ws-1' },
+          { id: 'p-2', name: 'Sub 1', workspaceId: 'ws-1', parentItemId: 'item-123' },
+          { id: 'p-3', name: 'Sub 2', workspaceId: 'ws-1', parentItemId: 'item-123' },
+          { id: 'p-4', name: 'Other Sub', workspaceId: 'ws-1', parentItemId: 'item-456' },
         ],
       });
 
       const store = useStore.getState();
-      const subWorkspaces = store.getSubWorkspaces('item-123');
+      const subProjects = store.getSubProjects('item-123');
 
-      expect(subWorkspaces).toHaveLength(2);
-      expect(subWorkspaces.map((w) => w.name)).toEqual(['Sub 1', 'Sub 2']);
+      expect(subProjects).toHaveLength(2);
+      expect(subProjects.map((p: Project) => p.name)).toEqual(['Sub 1', 'Sub 2']);
     });
   });
 
@@ -185,7 +186,7 @@ describe('Store - Object Availability CRUD Functions', () => {
     beforeEach(() => {
       useStore.setState({
         items: [
-          { id: 'item-1', name: 'Test Item', objectId: 'obj-1', workspaceId: 'ws-1' },
+          { id: 'item-1', name: 'Test Item', objectId: 'obj-1', projectId: 'proj-1' },
         ],
       });
     });
@@ -214,7 +215,7 @@ describe('Store - Object Availability CRUD Functions', () => {
             id: 'item-1',
             name: 'Test Item',
             objectId: 'obj-1',
-            workspaceId: 'ws-1',
+            projectId: 'proj-1',
             contextData: { nodes: [{ id: 'existing', content: 'Existing', parentId: null }] },
           },
         ],
@@ -248,7 +249,7 @@ describe('Store - Object Availability CRUD Functions', () => {
             id: 'item-1',
             name: 'Test Item',
             objectId: 'obj-1',
-            workspaceId: 'ws-1',
+            projectId: 'proj-1',
             contextData: {
               nodes: [
                 { id: 'root', content: 'Root', parentId: null },
@@ -284,7 +285,7 @@ describe('Store - Context CRUD Functions', () => {
         icon: '🗺️',
         type: 'tree',
         viewStyle: 'mindmap',
-        scope: 'local',
+        scope: 'project',
         projectId: 'proj-1',
         workspaceId: 'ws-1',
         objectIds: ['obj-1', 'obj-2'],
@@ -308,7 +309,7 @@ describe('Store - Context CRUD Functions', () => {
             icon: '📝',
             type: 'tree',
             viewStyle: 'list',
-            scope: 'local',
+            scope: 'project',
             projectId: 'proj-1',
             workspaceId: 'ws-1',
             data: { nodes: [] },
@@ -332,8 +333,8 @@ describe('Store - Context CRUD Functions', () => {
     it('deleteContext removes context', async () => {
       useStore.setState({
         contexts: [
-          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
-          { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-1', name: 'Context 1', icon: '📝', type: 'tree', viewStyle: 'list', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
+          { id: 'ctx-2', name: 'Context 2', icon: '📊', type: 'board', viewStyle: 'kanban', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } },
         ],
       });
 
@@ -356,7 +357,7 @@ describe('Store - Context CRUD Functions', () => {
             icon: '📝',
             type: 'tree',
             viewStyle: 'list',
-            scope: 'local',
+            scope: 'project',
             projectId: 'proj-1',
             workspaceId: 'ws-1',
             data: { nodes: [{ id: 'n1', content: 'Root', parentId: null }] },
@@ -427,7 +428,7 @@ describe('Store - Basic CRUD Functions', () => {
         workspaces: [{ id: 'ws-1', name: 'Workspace', projectId: 'proj-1' }],
         objects: [{ id: 'obj-1', name: 'Object', icon: '📋', availableGlobal: false, availableInProjects: ['proj-1'], availableInWorkspaces: [], builtIn: false }],
         items: [{ id: 'item-1', name: 'Item', objectId: 'obj-1', workspaceId: 'ws-1' }],
-        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'list', scope: 'local', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } }],
+        contexts: [{ id: 'ctx-1', name: 'Context', icon: '🎯', type: 'tree', viewStyle: 'list', scope: 'project', projectId: 'proj-1', workspaceId: 'ws-1', data: { nodes: [] } }],
       });
 
       const store = useStore.getState();

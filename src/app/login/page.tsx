@@ -66,8 +66,8 @@ export default function LoginPage() {
           </h1>
           <p className="text-sm text-zinc-500 mb-6">
             {isSignUp
-              ? 'Get started with Context OS'
-              : 'Welcome back to Context OS'}
+              ? 'Get started with Contextory'
+              : 'Welcome back to Contextory'}
           </p>
 
           {/* OAuth Buttons */}

@@ -2,14 +2,16 @@
 
 import React, { useState, useMemo } from 'react';
 import { useStore } from '@/lib/store';
+import { FieldDefinition } from '@/types';
+import { FieldSchemaEditor } from '@/components/fields';
 
 interface AddObjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     projectId: string | null;
     workspaceId: string | null;
-    defaultScope: 'global' | 'project' | 'local';
-    allowedScopes?: ('global' | 'project' | 'local')[];
+    defaultScope: 'global' | 'workspace' | 'project';
+    allowedScopes?: ('global' | 'workspace' | 'project')[];
 }
 
 const icons = ['👤', '🏢', '📄', '🎯', '💰', '📧', '🔗', '📋'];
@@ -20,20 +22,21 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
     projectId,
     workspaceId,
     defaultScope,
-    allowedScopes = ['global', 'project', 'local'],
+    allowedScopes = ['global', 'workspace', 'project'],
 }) => {
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('👤');
+    const [fields, setFields] = useState<FieldDefinition[]>([]);
 
     // Availability state
     const [availableGlobal, setAvailableGlobal] = useState(defaultScope === 'global');
     const [allProjects, setAllProjects] = useState(defaultScope === 'global');
     const [allWorkspaces, setAllWorkspaces] = useState(defaultScope === 'global');
     const [selectedProjects, setSelectedProjects] = useState<string[]>(
-        defaultScope === 'project' && projectId ? [projectId] : []
+        defaultScope === 'workspace' && projectId ? [projectId] : []
     );
     const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>(
-        defaultScope === 'local' && workspaceId ? [workspaceId] : []
+        defaultScope === 'project' && workspaceId ? [workspaceId] : []
     );
 
     const { addObject, objects, updateObject, projects, workspaces } = useStore();
@@ -48,8 +51,8 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
     // Get display label for object's availability
     const getAvailabilityLabel = (obj: typeof objects[0]) => {
         if (obj.availableGlobal) return '🌐 Global';
-        if (obj.availableInProjects.length > 0) return '📁 Project';
-        return '📍 Workspace';
+        if (obj.availableInProjects.length > 0) return '📁 Workspace';
+        return '📍 Project';
     };
 
     // Use existing object by extending its availability
@@ -74,11 +77,12 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
     const resetAndClose = () => {
         setName('');
         setIcon('👤');
+        setFields([]);
         setAvailableGlobal(defaultScope === 'global');
         setAllProjects(defaultScope === 'global');
         setAllWorkspaces(defaultScope === 'global');
-        setSelectedProjects(defaultScope === 'project' && projectId ? [projectId] : []);
-        setSelectedWorkspaces(defaultScope === 'local' && workspaceId ? [workspaceId] : []);
+        setSelectedProjects(defaultScope === 'workspace' && projectId ? [projectId] : []);
+        setSelectedWorkspaces(defaultScope === 'project' && workspaceId ? [workspaceId] : []);
         onClose();
     };
 
@@ -93,6 +97,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
             availableGlobal,
             availableInProjects: allProjects ? ['*'] : selectedProjects,
             availableInWorkspaces: allWorkspaces ? ['*'] : selectedWorkspaces,
+            fields: fields.length > 0 ? fields : undefined,
         });
 
         resetAndClose();
@@ -112,8 +117,8 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
 
     // Check if scope is allowed
     const canShowGlobal = allowedScopes.includes('global');
-    const canShowProject = allowedScopes.includes('project') && projectId;
-    const canShowWorkspace = allowedScopes.includes('local') && workspaceId;
+    const canShowProject = allowedScopes.includes('workspace') && projectId;
+    const canShowWorkspace = allowedScopes.includes('project') && workspaceId;
 
     if (!isOpen) return null;
 
@@ -201,7 +206,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                         }}
                                         className="rounded border-zinc-300"
                                     />
-                                    <span className="text-sm">📁 Available in this project</span>
+                                    <span className="text-sm">📁 Available in this workspace</span>
                                 </label>
                             )}
                             {canShowWorkspace && (
@@ -218,7 +223,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                         }}
                                         className="rounded border-zinc-300"
                                     />
-                                    <span className="text-sm">📍 Available in this workspace</span>
+                                    <span className="text-sm">📍 Available in this project</span>
                                 </label>
                             )}
                         </div>
@@ -228,7 +233,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                         <>
                             {/* Projects availability */}
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Projects</label>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Workspaces</label>
                                 <label className="flex items-center gap-2 mb-2">
                                     <input
                                         type="checkbox"
@@ -239,7 +244,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                         }}
                                         className="rounded border-zinc-300"
                                     />
-                                    <span className="text-sm text-zinc-700">All Projects</span>
+                                    <span className="text-sm text-zinc-700">All Workspaces</span>
                                 </label>
                                 {!allProjects && (
                                     <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
@@ -251,7 +256,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                                     onChange={() => toggleProject(p.id)}
                                                     className="rounded border-zinc-300"
                                                 />
-                                                <span className="text-sm">{p.icon} {p.name}</span>
+                                                <span className="text-sm">{p.categoryIcon || '📁'} {p.name}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -260,7 +265,7 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
 
                             {/* Workspaces availability */}
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Workspaces</label>
+                                <label className="block text-sm font-medium text-zinc-700 mb-2">Available in Projects</label>
                                 <label className="flex items-center gap-2 mb-2">
                                     <input
                                         type="checkbox"
@@ -271,13 +276,11 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                         }}
                                         className="rounded border-zinc-300"
                                     />
-                                    <span className="text-sm text-zinc-700">All Workspaces</span>
+                                    <span className="text-sm text-zinc-700">All Projects</span>
                                 </label>
                                 {!allWorkspaces && (
                                     <div className="border border-zinc-200 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
-                                        {workspaces.map((w) => {
-                                            const project = projects.find(p => p.id === w.projectId);
-                                            return (
+                                        {workspaces.map((w) => (
                                                 <label key={w.id} className="flex items-center gap-2 px-2 py-1 hover:bg-zinc-50 rounded">
                                                     <input
                                                         type="checkbox"
@@ -285,16 +288,19 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
                                                         onChange={() => toggleWorkspace(w.id)}
                                                         className="rounded border-zinc-300"
                                                     />
-                                                    <span className="text-sm">{w.name}</span>
-                                                    <span className="text-xs text-zinc-400">({project?.name})</span>
+                                                    <span className="text-sm">{w.icon} {w.name}</span>
                                                 </label>
-                                            );
-                                        })}
+                                        ))}
                                     </div>
                                 )}
                             </div>
                         </>
                     )}
+
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 mb-2">Properties</label>
+                        <FieldSchemaEditor fields={fields} onChange={setFields} />
+                    </div>
 
                     <div className="flex gap-3 justify-end pt-4">
                         <button

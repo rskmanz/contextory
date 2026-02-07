@@ -1,26 +1,12 @@
 import { create } from 'zustand';
-import { Project, Workspace, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, ChatMessage, AISettings, AIProvider } from '@/types';
+import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, ChatMessage, AISettings, AIProvider, FieldDefinition, FieldValue } from '@/types';
 import { createClient } from '@/lib/supabase';
-
-// Generate unique ID
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
-// === camelCase ↔ snake_case conversion ===
-const toSnake = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-const toCamel = (str: string) => str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toSnakeKeys = (obj: Record<string, any>): Record<string, any> =>
-    Object.fromEntries(Object.entries(obj).map(([k, v]) => [toSnake(k), v]));
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toCamelKeys = <T>(obj: Record<string, any>): T =>
-    Object.fromEntries(Object.entries(obj).map(([k, v]) => [toCamel(k), v])) as T;
+import { generateId, toSnakeKeys, toCamelKeys } from '@/lib/utils';
 
 interface AppState {
     // Data
-    projects: Project[];
     workspaces: Workspace[];
+    projects: Project[];
     contexts: Context[];
     objects: ObjectType[];
     items: ObjectItem[];
@@ -39,23 +25,23 @@ interface AppState {
     // Load data from Supabase
     loadData: () => Promise<void>;
 
-    // Projects
-    addProject: (project: Omit<Project, 'id'>) => Promise<string>;
-    updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
-    deleteProject: (id: string) => Promise<void>;
-
     // Workspaces
     addWorkspace: (workspace: Omit<Workspace, 'id'>) => Promise<string>;
     updateWorkspace: (id: string, updates: Partial<Workspace>) => Promise<void>;
     deleteWorkspace: (id: string) => Promise<void>;
+
+    // Projects
+    addProject: (project: Omit<Project, 'id'>) => Promise<string>;
+    updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+    deleteProject: (id: string) => Promise<void>;
 
     // Contexts
     addContext: (context: Omit<Context, 'id'>) => Promise<string>;
     updateContext: (id: string, updates: Partial<Context>) => Promise<void>;
     deleteContext: (id: string) => Promise<void>;
     getGlobalContexts: () => Context[];
+    getWorkspaceContexts: (workspaceId: string) => Context[];
     getProjectContexts: (projectId: string) => Context[];
-    getLocalContexts: (workspaceId: string) => Context[];
 
     // Context Nodes
     addNode: (contextId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
@@ -75,20 +61,28 @@ interface AppState {
     addItem: (item: Omit<ObjectItem, 'id'>) => Promise<string>;
     updateItem: (id: string, updates: Partial<ObjectItem>) => Promise<void>;
     deleteItem: (id: string) => Promise<void>;
-    copyItem: (itemId: string, workspaceId: string) => Promise<string | null>;
+    copyItem: (itemId: string, projectId: string) => Promise<string | null>;
+
+    // Field Schema Management (on Objects)
+    addObjectField: (objectId: string, field: FieldDefinition) => Promise<void>;
+    updateObjectField: (objectId: string, fieldId: string, updates: Partial<FieldDefinition>) => Promise<void>;
+    deleteObjectField: (objectId: string, fieldId: string) => Promise<void>;
+
+    // Field Value Management (on Items)
+    updateItemFieldValue: (itemId: string, fieldId: string, value: FieldValue) => Promise<void>;
 
     // Object Availability Operations
-    addGlobalObject: (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
+    addGlobalObject: (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'>) => Promise<string>;
     getGlobalObjects: () => ObjectType[];
-    addProjectObject: (projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
+    addWorkspaceObject: (workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'>) => Promise<string>;
+    getWorkspaceObjects: (workspaceId: string) => ObjectType[];
+    addProjectObject: (workspaceId: string, projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'>) => Promise<string>;
     getProjectObjects: (projectId: string) => ObjectType[];
-    addLocalObject: (projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => Promise<string>;
-    getLocalObjects: (workspaceId: string) => ObjectType[];
-    getVisibleObjects: (projectId: string, workspaceId: string) => ObjectType[];
+    getVisibleObjects: (workspaceId: string, projectId: string) => ObjectType[];
 
-    // Sub-workspaces
-    createSubWorkspace: (parentItemId: string, projectId: string, name: string) => Promise<string>;
-    getSubWorkspaces: (parentItemId: string) => Workspace[];
+    // Sub-projects
+    createSubProject: (parentItemId: string, workspaceId: string, name: string) => Promise<string>;
+    getSubProjects: (parentItemId: string) => Project[];
 
     // Item contextData
     updateItemContext: (itemId: string, nodes: ContextNode[]) => Promise<void>;
@@ -100,9 +94,9 @@ interface AppState {
     deleteItemEdge: (itemId: string, edgeId: string) => Promise<void>;
 
     // AI Chat
-    addChatMessage: (workspaceId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => string;
-    getChatMessages: (workspaceId: string) => ChatMessage[];
-    clearChatMessages: (workspaceId: string) => void;
+    addChatMessage: (projectId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => string;
+    getChatMessages: (projectId: string) => ChatMessage[];
+    clearChatMessages: (projectId: string) => void;
     setAISettings: (settings: Partial<AISettings>) => void;
     setChatOpen: (isOpen: boolean) => void;
     setChatExpanded: (isExpanded: boolean) => void;
@@ -125,8 +119,8 @@ const getSupabase = () => {
 };
 
 export const useStore = create<AppState>((set, get) => ({
-    projects: [],
     workspaces: [],
+    projects: [],
     contexts: [],
     objects: [],
     items: [],
@@ -156,9 +150,9 @@ export const useStore = create<AppState>((set, get) => ({
             }
 
             const sb = getSupabase();
-            const [projectsRes, workspacesRes, contextsRes, objectsRes, itemsRes, pinnedRes] = await Promise.all([
-                sb.from('projects').select('*'),
+            const [workspacesRes, projectsRes, contextsRes, objectsRes, itemsRes, pinnedRes] = await Promise.all([
                 sb.from('workspaces').select('*'),
+                sb.from('projects').select('*'),
                 sb.from('contexts').select('*'),
                 sb.from('objects').select('*'),
                 sb.from('items').select('*'),
@@ -167,8 +161,8 @@ export const useStore = create<AppState>((set, get) => ({
 
             set({
                 userId: user.id,
-                projects: (projectsRes.data ?? []).map(r => toCamelKeys<Project>(r)),
                 workspaces: (workspacesRes.data ?? []).map(r => toCamelKeys<Workspace>(r)),
+                projects: (projectsRes.data ?? []).map(r => toCamelKeys<Project>(r)),
                 contexts: (contextsRes.data ?? []).map(r => toCamelKeys<Context>(r)),
                 objects: (objectsRes.data ?? []).map(r => toCamelKeys<ObjectType>(r)),
                 items: (itemsRes.data ?? []).map(r => toCamelKeys<ObjectItem>(r)),
@@ -182,53 +176,7 @@ export const useStore = create<AppState>((set, get) => ({
         }
     },
 
-    // Projects
-    addProject: async (project) => {
-        const id = generateId();
-        const userId = get().userId;
-        set((state) => ({ projects: [...state.projects, { ...project, id }] }));
-        await getSupabase().from('projects').insert({ ...toSnakeKeys({ ...project, id }), user_id: userId });
-        return id;
-    },
-
-    updateProject: async (id, updates) => {
-        set((state) => ({
-            projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-        }));
-        await getSupabase().from('projects').update(toSnakeKeys(updates)).eq('id', id);
-    },
-
-    deleteProject: async (id) => {
-        const workspaceIds = get().workspaces
-            .filter((w) => w.projectId === id)
-            .map((w) => w.id);
-        const objectsToDelete = get().objects.filter((o) =>
-            !o.availableGlobal &&
-            o.availableInProjects.length === 1 &&
-            o.availableInProjects[0] === id &&
-            o.availableInWorkspaces.length === 0
-        );
-        const objectIds = objectsToDelete.map((o) => o.id);
-
-        set((state) => ({
-            projects: state.projects.filter((p) => p.id !== id),
-            workspaces: state.workspaces.filter((w) => w.projectId !== id),
-            contexts: state.contexts.filter((c) =>
-                c.projectId !== id && (c.workspaceId === null || !workspaceIds.includes(c.workspaceId))
-            ),
-            objects: state.objects.filter((o) => !objectIds.includes(o.id)),
-            items: state.items.filter((i) => !objectIds.includes(i.objectId)),
-        }));
-
-        // Delete orphaned objects first (items cascade from objects)
-        if (objectIds.length > 0) {
-            await getSupabase().from('objects').delete().in('id', objectIds);
-        }
-        // Project delete cascades to workspaces → contexts
-        await getSupabase().from('projects').delete().eq('id', id);
-    },
-
-    // Workspaces
+    // Workspaces (was Projects - top container)
     addWorkspace: async (workspace) => {
         const id = generateId();
         const userId = get().userId;
@@ -245,27 +193,73 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     deleteWorkspace: async (id) => {
+        const projectIds = get().projects
+            .filter((p) => p.workspaceId === id)
+            .map((p) => p.id);
         const objectsToDelete = get().objects.filter((o) =>
             !o.availableGlobal &&
-            o.availableInProjects.length === 0 &&
             o.availableInWorkspaces.length === 1 &&
-            o.availableInWorkspaces[0] === id
+            o.availableInWorkspaces[0] === id &&
+            o.availableInProjects.length === 0
         );
-        const localObjectIds = objectsToDelete.map((o) => o.id);
+        const objectIds = objectsToDelete.map((o) => o.id);
 
         set((state) => ({
             workspaces: state.workspaces.filter((w) => w.id !== id),
-            contexts: state.contexts.filter((c) => c.workspaceId !== id),
-            objects: state.objects.filter((o) => !localObjectIds.includes(o.id)),
+            projects: state.projects.filter((p) => p.workspaceId !== id),
+            contexts: state.contexts.filter((c) =>
+                c.workspaceId !== id && (c.projectId === null || !projectIds.includes(c.projectId))
+            ),
+            objects: state.objects.filter((o) => !objectIds.includes(o.id)),
+            items: state.items.filter((i) => !objectIds.includes(i.objectId)),
+        }));
+
+        // Delete orphaned objects first (items cascade from objects)
+        if (objectIds.length > 0) {
+            await getSupabase().from('objects').delete().in('id', objectIds);
+        }
+        // Workspace delete cascades to projects -> contexts
+        await getSupabase().from('workspaces').delete().eq('id', id);
+    },
+
+    // Projects (was Workspaces - sub-unit)
+    addProject: async (project) => {
+        const id = generateId();
+        const userId = get().userId;
+        set((state) => ({ projects: [...state.projects, { ...project, id }] }));
+        await getSupabase().from('projects').insert({ ...toSnakeKeys({ ...project, id }), user_id: userId });
+        return id;
+    },
+
+    updateProject: async (id, updates) => {
+        set((state) => ({
+            projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+        }));
+        await getSupabase().from('projects').update(toSnakeKeys(updates)).eq('id', id);
+    },
+
+    deleteProject: async (id) => {
+        const objectsToDelete = get().objects.filter((o) =>
+            !o.availableGlobal &&
+            o.availableInWorkspaces.length === 0 &&
+            o.availableInProjects.length === 1 &&
+            o.availableInProjects[0] === id
+        );
+        const projectObjectIds = objectsToDelete.map((o) => o.id);
+
+        set((state) => ({
+            projects: state.projects.filter((p) => p.id !== id),
+            contexts: state.contexts.filter((c) => c.projectId !== id),
+            objects: state.objects.filter((o) => !projectObjectIds.includes(o.id)),
             items: state.items.filter((i) =>
-                !localObjectIds.includes(i.objectId) && i.workspaceId !== id
+                !projectObjectIds.includes(i.objectId) && i.projectId !== id
             ),
         }));
 
-        if (localObjectIds.length > 0) {
-            await getSupabase().from('objects').delete().in('id', localObjectIds);
+        if (projectObjectIds.length > 0) {
+            await getSupabase().from('objects').delete().in('id', projectObjectIds);
         }
-        await getSupabase().from('workspaces').delete().eq('id', id);
+        await getSupabase().from('projects').delete().eq('id', id);
     },
 
     // Contexts
@@ -300,12 +294,12 @@ export const useStore = create<AppState>((set, get) => ({
         return get().contexts.filter((c) => c.scope === 'global');
     },
 
-    getProjectContexts: (projectId: string) => {
-        return get().contexts.filter((c) => c.scope === 'project' && c.projectId === projectId);
+    getWorkspaceContexts: (workspaceId: string) => {
+        return get().contexts.filter((c) => c.scope === 'workspace' && c.workspaceId === workspaceId);
     },
 
-    getLocalContexts: (workspaceId: string) => {
-        return get().contexts.filter((c) => c.scope === 'local' && c.workspaceId === workspaceId);
+    getProjectContexts: (projectId: string) => {
+        return get().contexts.filter((c) => c.scope === 'project' && c.projectId === projectId);
     },
 
     // Context Nodes (update jsonb data column)
@@ -437,6 +431,69 @@ export const useStore = create<AppState>((set, get) => ({
         await getSupabase().from('objects').delete().eq('id', id);
     },
 
+    // Field Schema Management (on Objects)
+    addObjectField: async (objectId, field) => {
+        set((state) => ({
+            objects: state.objects.map((o) =>
+                o.id === objectId
+                    ? { ...o, fields: [...(o.fields || []), field] }
+                    : o
+            ),
+        }));
+        const obj = get().objects.find((o) => o.id === objectId);
+        if (obj) {
+            await getSupabase().from('objects').update({ fields: obj.fields }).eq('id', objectId);
+        }
+    },
+
+    updateObjectField: async (objectId, fieldId, updates) => {
+        set((state) => ({
+            objects: state.objects.map((o) =>
+                o.id === objectId
+                    ? {
+                        ...o,
+                        fields: (o.fields || []).map((f) =>
+                            f.id === fieldId ? { ...f, ...updates } : f
+                        ),
+                    }
+                    : o
+            ),
+        }));
+        const obj = get().objects.find((o) => o.id === objectId);
+        if (obj) {
+            await getSupabase().from('objects').update({ fields: obj.fields }).eq('id', objectId);
+        }
+    },
+
+    deleteObjectField: async (objectId, fieldId) => {
+        set((state) => ({
+            objects: state.objects.map((o) =>
+                o.id === objectId
+                    ? { ...o, fields: (o.fields || []).filter((f) => f.id !== fieldId) }
+                    : o
+            ),
+        }));
+        const obj = get().objects.find((o) => o.id === objectId);
+        if (obj) {
+            await getSupabase().from('objects').update({ fields: obj.fields }).eq('id', objectId);
+        }
+    },
+
+    // Field Value Management (on Items)
+    updateItemFieldValue: async (itemId, fieldId, value) => {
+        set((state) => ({
+            items: state.items.map((i) =>
+                i.id === itemId
+                    ? { ...i, fieldValues: { ...(i.fieldValues || {}), [fieldId]: value } }
+                    : i
+            ),
+        }));
+        const item = get().items.find((i) => i.id === itemId);
+        if (item) {
+            await getSupabase().from('items').update({ field_values: item.fieldValues }).eq('id', itemId);
+        }
+    },
+
     // Items
     addItem: async (item) => {
         const id = generateId();
@@ -460,7 +517,7 @@ export const useStore = create<AppState>((set, get) => ({
         await getSupabase().from('items').delete().eq('id', id);
     },
 
-    copyItem: async (itemId, workspaceId) => {
+    copyItem: async (itemId, projectId) => {
         const item = get().items.find(i => i.id === itemId);
         if (!item) return null;
 
@@ -469,7 +526,7 @@ export const useStore = create<AppState>((set, get) => ({
         const newItem: ObjectItem = {
             ...item,
             id: newId,
-            workspaceId,
+            projectId,
             contextData: item.contextData ? {
                 ...item.contextData,
                 nodes: item.contextData.nodes?.map(n => ({ ...n, id: generateId() })) || [],
@@ -483,15 +540,15 @@ export const useStore = create<AppState>((set, get) => ({
 
     // === Object Availability Operations ===
 
-    addGlobalObject: async (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'> & { availableInProjects?: string[]; availableInWorkspaces?: string[] }) => {
+    addGlobalObject: async (object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'> & { availableInWorkspaces?: string[]; availableInProjects?: string[] }) => {
         const id = generateId();
         const userId = get().userId;
         const newObject: ObjectType = {
             ...object,
             id,
             availableGlobal: true,
-            availableInProjects: object.availableInProjects || ['*'],
             availableInWorkspaces: object.availableInWorkspaces || ['*'],
+            availableInProjects: object.availableInProjects || ['*'],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
@@ -502,15 +559,37 @@ export const useStore = create<AppState>((set, get) => ({
         return get().objects.filter((o) => o.availableGlobal);
     },
 
-    addProjectObject: async (projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
+    addWorkspaceObject: async (workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'>) => {
         const id = generateId();
         const userId = get().userId;
         const newObject: ObjectType = {
             ...object,
             id,
             availableGlobal: false,
-            availableInProjects: [projectId],
+            availableInWorkspaces: [workspaceId],
+            availableInProjects: [],
+        };
+        set((state) => ({ objects: [...state.objects, newObject] }));
+        await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
+        return id;
+    },
+
+    getWorkspaceObjects: (workspaceId: string) => {
+        return get().objects.filter((o) =>
+            !o.availableGlobal &&
+            (o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(workspaceId))
+        );
+    },
+
+    addProjectObject: async (_workspaceId: string, projectId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInWorkspaces' | 'availableInProjects'>) => {
+        const id = generateId();
+        const userId = get().userId;
+        const newObject: ObjectType = {
+            ...object,
+            id,
+            availableGlobal: false,
             availableInWorkspaces: [],
+            availableInProjects: [projectId],
         };
         set((state) => ({ objects: [...state.objects, newObject] }));
         await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
@@ -520,60 +599,38 @@ export const useStore = create<AppState>((set, get) => ({
     getProjectObjects: (projectId: string) => {
         return get().objects.filter((o) =>
             !o.availableGlobal &&
+            o.availableInWorkspaces.length === 0 &&
             (o.availableInProjects.includes('*') || o.availableInProjects.includes(projectId))
         );
     },
 
-    addLocalObject: async (_projectId: string, workspaceId: string, object: Omit<ObjectType, 'id' | 'availableGlobal' | 'availableInProjects' | 'availableInWorkspaces'>) => {
-        const id = generateId();
-        const userId = get().userId;
-        const newObject: ObjectType = {
-            ...object,
-            id,
-            availableGlobal: false,
-            availableInProjects: [],
-            availableInWorkspaces: [workspaceId],
-        };
-        set((state) => ({ objects: [...state.objects, newObject] }));
-        await getSupabase().from('objects').insert({ ...toSnakeKeys(newObject), user_id: userId });
-        return id;
-    },
-
-    getLocalObjects: (workspaceId: string) => {
-        return get().objects.filter((o) =>
-            !o.availableGlobal &&
-            o.availableInProjects.length === 0 &&
-            (o.availableInWorkspaces.includes('*') || o.availableInWorkspaces.includes(workspaceId))
-        );
-    },
-
-    getVisibleObjects: (projectId: string, workspaceId: string) => {
+    getVisibleObjects: (workspaceId: string, projectId: string) => {
         return get().objects.filter((o) =>
             o.availableGlobal ||
-            o.availableInProjects.includes('*') ||
-            o.availableInProjects.includes(projectId) ||
             o.availableInWorkspaces.includes('*') ||
-            o.availableInWorkspaces.includes(workspaceId)
+            o.availableInWorkspaces.includes(workspaceId) ||
+            o.availableInProjects.includes('*') ||
+            o.availableInProjects.includes(projectId)
         );
     },
 
-    // Sub-workspaces
-    createSubWorkspace: async (parentItemId, projectId, name) => {
+    // Sub-projects (was Sub-workspaces)
+    createSubProject: async (parentItemId, workspaceId, name) => {
         const id = generateId();
         const userId = get().userId;
-        const newWorkspace: Workspace = {
+        const newProject: Project = {
             id,
             name,
-            projectId,
+            workspaceId,
             parentItemId,
         };
-        set((state) => ({ workspaces: [...state.workspaces, newWorkspace] }));
-        await getSupabase().from('workspaces').insert({ ...toSnakeKeys(newWorkspace), user_id: userId });
+        set((state) => ({ projects: [...state.projects, newProject] }));
+        await getSupabase().from('projects').insert({ ...toSnakeKeys(newProject), user_id: userId });
         return id;
     },
 
-    getSubWorkspaces: (parentItemId) => {
-        return get().workspaces.filter((w) => w.parentItemId === parentItemId);
+    getSubProjects: (parentItemId) => {
+        return get().projects.filter((p) => p.parentItemId === parentItemId);
     },
 
     // Item contextData (update jsonb context_data column)
@@ -716,7 +773,7 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     // AI Chat - with localStorage persistence (no DB needed)
-    addChatMessage: (workspaceId, message) => {
+    addChatMessage: (projectId, message) => {
         const id = generateId();
         const newMessage: ChatMessage = {
             ...message,
@@ -726,41 +783,41 @@ export const useStore = create<AppState>((set, get) => ({
         set((state) => {
             const updated = {
                 ...state.chatMessages,
-                [workspaceId]: [...(state.chatMessages[workspaceId] || []), newMessage],
+                [projectId]: [...(state.chatMessages[projectId] || []), newMessage],
             };
             if (typeof window !== 'undefined') {
-                localStorage.setItem('context-os-chat', JSON.stringify(updated));
+                localStorage.setItem('contextory-chat', JSON.stringify(updated));
             }
             return { chatMessages: updated };
         });
         return id;
     },
 
-    getChatMessages: (workspaceId) => {
+    getChatMessages: (projectId) => {
         const state = get();
         if (Object.keys(state.chatMessages).length === 0 && typeof window !== 'undefined') {
-            const saved = localStorage.getItem('context-os-chat');
+            const saved = localStorage.getItem('contextory-chat');
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
                     set({ chatMessages: parsed });
-                    return parsed[workspaceId] || [];
+                    return parsed[projectId] || [];
                 } catch {
                     // Invalid JSON, ignore
                 }
             }
         }
-        return state.chatMessages[workspaceId] || [];
+        return state.chatMessages[projectId] || [];
     },
 
-    clearChatMessages: (workspaceId) => {
+    clearChatMessages: (projectId) => {
         set((state) => {
             const updated = {
                 ...state.chatMessages,
-                [workspaceId]: [],
+                [projectId]: [],
             };
             if (typeof window !== 'undefined') {
-                localStorage.setItem('context-os-chat', JSON.stringify(updated));
+                localStorage.setItem('contextory-chat', JSON.stringify(updated));
             }
             return { chatMessages: updated };
         });
@@ -826,8 +883,8 @@ export const useStore = create<AppState>((set, get) => ({
     signOut: async () => {
         await getSupabase().auth.signOut();
         set({
-            projects: [],
             workspaces: [],
+            projects: [],
             contexts: [],
             objects: [],
             items: [],

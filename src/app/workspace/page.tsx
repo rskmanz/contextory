@@ -4,38 +4,38 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AddWorkspaceModal } from '@/components/modals/AddWorkspaceModal';
-import { EditWorkspaceModal } from '@/components/modals/EditWorkspaceModal';
+import { EditProjectModal } from '@/components/modals/EditProjectModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { useStore } from '@/lib/store';
-import { Workspace } from '@/types';
+import { Project } from '@/types';
 
 export default function WorkspacesPage() {
     const projects = useStore((state) => state.projects);
     const workspaces = useStore((state) => state.workspaces);
     const loadData = useStore((state) => state.loadData);
     const isLoaded = useStore((state) => state.isLoaded);
-    const deleteWorkspace = useStore((state) => state.deleteWorkspace);
+    const deleteProject = useStore((state) => state.deleteProject);
 
     const [isAddWorkspaceOpen, setIsAddWorkspaceOpen] = useState(false);
     const [addWorkspaceProjectId, setAddWorkspaceProjectId] = useState<string>('');
     const [isEditWorkspaceOpen, setIsEditWorkspaceOpen] = useState(false);
-    const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
+    const [editingWorkspace, setEditingWorkspace] = useState<Project | null>(null);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [deletingWorkspace, setDeletingWorkspace] = useState<Workspace | null>(null);
+    const [deletingWorkspace, setDeletingWorkspace] = useState<Project | null>(null);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
 
-    // Group workspaces by project
-    const workspacesByProject = workspaces.reduce((acc, ws) => {
-        if (!acc[ws.projectId]) acc[ws.projectId] = [];
-        acc[ws.projectId].push(ws);
+    // Group projects by workspace
+    const projectsByWorkspace = projects.reduce((acc, proj) => {
+        if (!acc[proj.workspaceId]) acc[proj.workspaceId] = [];
+        acc[proj.workspaceId].push(proj);
         return acc;
-    }, {} as Record<string, Workspace[]>);
+    }, {} as Record<string, typeof projects>);
 
-    const getProjectById = (projectId: string) => {
-        return projects.find(p => p.id === projectId);
+    const getWorkspaceById = (workspaceId: string) => {
+        return workspaces.find(w => w.id === workspaceId);
     };
 
     const handleAddWorkspace = (projectId: string) => {
@@ -43,19 +43,19 @@ export default function WorkspacesPage() {
         setIsAddWorkspaceOpen(true);
     };
 
-    const handleEditWorkspace = (workspace: Workspace) => {
+    const handleEditWorkspace = (workspace: Project) => {
         setEditingWorkspace(workspace);
         setIsEditWorkspaceOpen(true);
     };
 
-    const handleDeleteWorkspace = (workspace: Workspace) => {
+    const handleDeleteWorkspace = (workspace: Project) => {
         setDeletingWorkspace(workspace);
         setIsDeleteConfirmOpen(true);
     };
 
     const confirmDeleteWorkspace = async () => {
         if (deletingWorkspace) {
-            await deleteWorkspace(deletingWorkspace.id);
+            await deleteProject(deletingWorkspace.id);
             setDeletingWorkspace(null);
         }
     };
@@ -77,7 +77,7 @@ export default function WorkspacesPage() {
                 <div className="sticky top-0 bg-white border-b border-zinc-100 px-8 sm:px-12 py-3 z-10 flex items-center justify-between">
                     <Breadcrumb items={[
                         { label: 'Home', href: '/' },
-                        { label: 'Workspaces' }
+                        { label: 'Projects' }
                     ]} />
                     <Link
                         href="/settings"
@@ -96,81 +96,81 @@ export default function WorkspacesPage() {
                         {/* Page Header */}
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h1 className="text-2xl font-bold text-zinc-900">Workspaces</h1>
-                                <p className="text-sm text-zinc-500 mt-1">All workspaces across your projects</p>
+                                <h1 className="text-2xl font-bold text-zinc-900">Projects</h1>
+                                <p className="text-sm text-zinc-500 mt-1">All projects across your workspaces</p>
                             </div>
                         </div>
 
-                        {/* Workspaces by Project */}
-                        {Object.keys(workspacesByProject).length === 0 ? (
+                        {/* Projects by Workspace */}
+                        {Object.keys(projectsByWorkspace).length === 0 ? (
                             <div className="bg-zinc-50 rounded-xl p-12 text-center">
                                 <div className="text-4xl mb-4">📁</div>
-                                <p className="text-zinc-600 font-medium mb-2">No workspaces yet</p>
-                                <p className="text-zinc-400 text-sm mb-6">Create a workspace from a project page</p>
+                                <p className="text-zinc-600 font-medium mb-2">No projects yet</p>
+                                <p className="text-zinc-400 text-sm mb-6">Create a project from a workspace page</p>
                                 <Link
                                     href="/"
                                     className="inline-flex px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
                                 >
-                                    Go to Projects
+                                    Go to Workspaces
                                 </Link>
                             </div>
                         ) : (
                             <div className="space-y-8">
-                                {Object.entries(workspacesByProject).map(([projectId, projectWorkspaces]) => {
-                                    const project = getProjectById(projectId);
-                                    if (!project) return null;
+                                {Object.entries(projectsByWorkspace).map(([workspaceId, wsProjects]) => {
+                                    const workspace = getWorkspaceById(workspaceId);
+                                    if (!workspace) return null;
 
-                                    // Group by category within project
-                                    const byCategory = projectWorkspaces.reduce((acc, ws) => {
-                                        const cat = ws.category || 'General';
+                                    // Group by category within workspace
+                                    const byCategory = wsProjects.reduce((acc, proj) => {
+                                        const cat = proj.category || 'General';
                                         if (!acc[cat]) acc[cat] = [];
-                                        acc[cat].push(ws);
+                                        acc[cat].push(proj);
                                         return acc;
-                                    }, {} as Record<string, Workspace[]>);
+                                    }, {} as Record<string, typeof wsProjects>);
 
                                     return (
-                                        <div key={projectId} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
-                                            {/* Project Header */}
+                                        <div key={workspaceId} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+                                            {/* Workspace Header */}
                                             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-zinc-50/50">
-                                                <Link href={`/${projectId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                                                    <div className={`w-10 h-10 rounded-xl ${project.gradient} flex items-center justify-center text-lg`}>
-                                                        {project.icon}
+                                                <Link href={`/${workspaceId}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                                                    <div className={`w-10 h-10 rounded-xl ${workspace.gradient} flex items-center justify-center text-lg`}>
+                                                        {workspace.icon}
                                                     </div>
                                                     <div>
-                                                        <h2 className="font-semibold text-zinc-900">{project.name}</h2>
-                                                        <p className="text-xs text-zinc-500">{projectWorkspaces.length} workspace{projectWorkspaces.length !== 1 ? 's' : ''}</p>
+                                                        <h2 className="font-semibold text-zinc-900">{workspace.name}</h2>
+                                                        <p className="text-xs text-zinc-500">{wsProjects.length} project{wsProjects.length !== 1 ? 's' : ''}</p>
                                                     </div>
                                                 </Link>
                                                 <button
-                                                    onClick={() => handleAddWorkspace(projectId)}
+                                                    onClick={() => handleAddWorkspace(workspaceId)}
                                                     className="px-3 py-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                                                 >
                                                     + Add
                                                 </button>
                                             </div>
 
-                                            {/* Workspaces */}
+                                            {/* Projects */}
                                             <div className="p-5">
-                                                {Object.entries(byCategory).map(([category, categoryWorkspaces]) => (
+                                                {Object.entries(byCategory).map(([category, categoryProjects]) => (
                                                     <div key={category} className="mb-4 last:mb-0">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <span className="text-sm">{categoryWorkspaces[0]?.categoryIcon || '📁'}</span>
+                                                            <span className="text-sm">{categoryProjects[0]?.categoryIcon || '📁'}</span>
                                                             <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{category}</h3>
                                                         </div>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                            {categoryWorkspaces.map((ws) => (
+                                                            {categoryProjects.map((proj) => (
                                                                 <div
-                                                                    key={ws.id}
+                                                                    key={proj.id}
                                                                     className="group relative flex items-center gap-3 p-3 bg-white border border-zinc-100 rounded-xl hover:border-zinc-200 hover:shadow-sm transition-all"
                                                                 >
-                                                                    <Link href={`/${projectId}/${ws.id}`} className="flex-1 flex items-center gap-3">
-                                                                        <span className="text-lg">{ws.categoryIcon || '📁'}</span>
-                                                                        <span className="font-medium text-zinc-700 text-sm">{ws.name}</span>
+                                                                    <Link href={`/${workspaceId}/${proj.id}`} className="flex-1 flex items-center gap-3">
+                                                                        <span className="text-lg">{proj.categoryIcon || '📁'}</span>
+                                                                        <span className="font-medium text-zinc-700 text-sm">{proj.name}</span>
                                                                     </Link>
                                                                     {/* Actions */}
                                                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                                                         <button
-                                                                            onClick={() => handleEditWorkspace(ws)}
+                                                                            onClick={() => handleEditWorkspace(proj)}
                                                                             className="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600"
                                                                             title="Edit"
                                                                         >
@@ -180,7 +180,7 @@ export default function WorkspacesPage() {
                                                                             </svg>
                                                                         </button>
                                                                         <button
-                                                                            onClick={() => handleDeleteWorkspace(ws)}
+                                                                            onClick={() => handleDeleteWorkspace(proj)}
                                                                             className="p-1.5 rounded-md hover:bg-red-50 text-zinc-400 hover:text-red-500"
                                                                             title="Delete"
                                                                         >
@@ -213,17 +213,17 @@ export default function WorkspacesPage() {
                         setIsAddWorkspaceOpen(false);
                         setAddWorkspaceProjectId('');
                     }}
-                    projectId={addWorkspaceProjectId}
+                    workspaceId={addWorkspaceProjectId}
                 />
             )}
 
-            <EditWorkspaceModal
+            <EditProjectModal
                 isOpen={isEditWorkspaceOpen}
                 onClose={() => {
                     setIsEditWorkspaceOpen(false);
                     setEditingWorkspace(null);
                 }}
-                workspace={editingWorkspace}
+                project={editingWorkspace}
             />
 
             <DeleteConfirmModal
@@ -233,7 +233,7 @@ export default function WorkspacesPage() {
                     setDeletingWorkspace(null);
                 }}
                 onConfirm={confirmDeleteWorkspace}
-                title="Delete Workspace"
+                title="Delete Project"
                 message={`Are you sure you want to delete "${deletingWorkspace?.name}"? This will also delete all associated data.`}
             />
         </div>

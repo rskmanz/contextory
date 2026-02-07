@@ -9,7 +9,7 @@ export function buildContextPrompt(ctx: {
   item?: ObjectItem;
 }): string {
   const parts: string[] = [
-    'You are a context assistant for Context OS, a tool for organizing and visualizing project contexts.',
+    'You are a context assistant for Contextory, a tool for organizing and visualizing project contexts.',
     '',
     'Current context:',
   ];

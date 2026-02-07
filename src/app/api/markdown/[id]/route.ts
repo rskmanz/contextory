@@ -1,38 +1,26 @@
-import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 
-const MARKDOWN_DIR = path.join(process.cwd(), 'src/data/markdown');
-
-// Helper to get markdown path
-function getMarkdownPath(id: string): string {
-  // ID format: "items/item-name" or "contexts/context-name"
-  return path.join(MARKDOWN_DIR, `${id}.md`);
-}
-
-// GET - Get markdown content
+// GET - Get markdown content by ID
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const filePath = getMarkdownPath(id);
+    const supabase = await createClient();
 
-    const content = await fs.readFile(filePath, 'utf-8');
+    const { data } = await supabase
+      .from('markdown_content')
+      .select('content')
+      .eq('id', id)
+      .single();
 
     return NextResponse.json({
       success: true,
-      data: { id, content },
+      data: { id, content: data?.content ?? '' },
     });
   } catch (e) {
-    // File not found is OK, return empty
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-      return NextResponse.json({
-        success: true,
-        data: { id: (await params).id, content: '' },
-      });
-    }
     console.error('Error reading markdown:', e);
     return NextResponse.json(
       { success: false, error: 'Failed to read markdown' },
@@ -43,19 +31,32 @@ export async function GET(
 
 // PUT - Update markdown content
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
     const { content } = await request.json();
-    const filePath = getMarkdownPath(id);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
-    // Ensure directory exists
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    // Determine type from the id pattern (items/xxx or contexts/xxx)
+    const type = id.startsWith('contexts') ? 'contexts' : 'items';
 
-    // Write content
-    await fs.writeFile(filePath, content || '', 'utf-8');
+    await supabase
+      .from('markdown_content')
+      .upsert({
+        id,
+        user_id: user.id,
+        type,
+        content: content || '',
+      });
 
     return NextResponse.json({
       success: true,
@@ -70,29 +71,25 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete markdown file
+// DELETE - Delete markdown content
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const filePath = getMarkdownPath(id);
+    const supabase = await createClient();
 
-    await fs.unlink(filePath);
+    await supabase
+      .from('markdown_content')
+      .delete()
+      .eq('id', id);
 
     return NextResponse.json({
       success: true,
       data: { deleted: true },
     });
   } catch (e) {
-    // File not found is OK for delete
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
-      return NextResponse.json({
-        success: true,
-        data: { deleted: true },
-      });
-    }
     console.error('Error deleting markdown:', e);
     return NextResponse.json(
       { success: false, error: 'Failed to delete markdown' },

@@ -1,4 +1,4 @@
-const BASE_URL = process.env.CONTEXT_OS_URL || 'http://localhost:3000';
+const BASE_URL = process.env.CONTEXTORY_URL || 'http://localhost:3000';
 
 export interface ApiResponse {
   success: boolean;

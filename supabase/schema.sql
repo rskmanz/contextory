@@ -1,4 +1,4 @@
--- Context OS - Supabase Schema
+-- Contextory - Supabase Schema
 -- Run this in Supabase SQL Editor
 
 -- ============================================
@@ -88,6 +88,7 @@ CREATE TABLE objects (
   available_global boolean DEFAULT false,
   available_in_projects text[] DEFAULT '{}',
   available_in_workspaces text[] DEFAULT '{}',
+  fields jsonb DEFAULT '[]',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
@@ -101,6 +102,7 @@ CREATE TABLE items (
   markdown_id text,
   view_layout text DEFAULT 'visualization',
   context_data jsonb,
+  field_values jsonb DEFAULT '{}',
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );

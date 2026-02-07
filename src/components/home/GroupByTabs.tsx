@@ -12,7 +12,7 @@ interface GroupByTabsProps {
 
 const ALL_TAGS: { value: GroupByOption; label: string }[] = [
   { value: 'scope', label: 'Scope' },
-  { value: 'project', label: 'Project' },
+  { value: 'project', label: 'Workspace' },
   { value: 'category', label: 'Category' },
 ];
 

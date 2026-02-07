@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
-import { contextOSTools } from '@/lib/ai-tools';
+import { contextoryTools } from '@/lib/ai-tools';
 
 interface ChatRequest {
   messages: { role: 'user' | 'assistant'; content: string }[];
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         });
 
     // Bind tools if enabled
-    const llm = enableTools ? baseLlm.bindTools(contextOSTools) : baseLlm;
+    const llm = enableTools ? baseLlm.bindTools(contextoryTools) : baseLlm;
 
     // Invoke model (automatically traced to LangSmith)
     const response = await llm.invoke(lcMessages);

@@ -11,11 +11,13 @@ interface MetaSidebarProps {
 export const MetaSidebar: React.FC<MetaSidebarProps> = ({ activePage = 'home' }) => {
     const isWorkspace = activePage === 'workspace' || activePage === 'workspaces';
     const workspaces = useStore((state) => state.workspaces);
+    const projects = useStore((state) => state.projects);
 
-    // Get the first workspace to link directly to editor
-    const firstWorkspace = workspaces[0];
-    const workspaceHref = firstWorkspace
-        ? `/${firstWorkspace.projectId}/${firstWorkspace.id}`
+    // Get the first project to link directly to editor
+    const firstProject = projects[0];
+    const firstWorkspace = firstProject ? workspaces.find(ws => ws.id === firstProject.workspaceId) : workspaces[0];
+    const workspaceHref = firstWorkspace && firstProject
+        ? `/${firstWorkspace.id}/${firstProject.id}`
         : '/workspace';
 
     return (

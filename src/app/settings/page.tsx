@@ -198,11 +198,11 @@ export default function SettingsPage() {
         {/* About Section */}
         <div className="mt-6 bg-white rounded-xl border border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-zinc-100">
-            <h2 className="text-sm font-semibold text-zinc-900">About Context OS</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">About Contextory</h2>
           </div>
           <div className="p-6">
             <p className="text-sm text-zinc-600">
-              Context OS helps you shape and visualize the context of your work with AI.
+              Contextory helps you shape and visualize the context of your work with AI.
               Organize projects, workspaces, objects, and items to build comprehensive context views.
             </p>
             <div className="mt-4 text-xs text-zinc-400">

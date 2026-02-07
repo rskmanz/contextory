@@ -10,7 +10,7 @@ export default function DemoPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🧠</span>
-          <span className="text-xl font-bold text-zinc-900">Context OS</span>
+          <span className="text-xl font-bold text-zinc-900">Contextory</span>
         </div>
         <Link
           href="/"
@@ -42,12 +42,12 @@ export default function DemoPage() {
 
         {/* Column 2: Project */}
         <div className="flex-shrink-0 w-52 bg-white rounded-xl border border-zinc-200 p-4">
-          <div className="text-xs text-zinc-400 mb-2">PROJECT</div>
+          <div className="text-xs text-zinc-400 mb-2">WORKSPACE</div>
           <div className="flex items-center gap-2 mb-3">
             <span>🔥</span>
             <div className="font-semibold text-sm">Founder University</div>
           </div>
-          <div className="text-xs text-zinc-400 mb-1">Workspaces:</div>
+          <div className="text-xs text-zinc-400 mb-1">Projects:</div>
           <div className="space-y-1 text-xs">
             <div className="px-2 py-1 bg-blue-50 rounded text-blue-700 font-medium border border-blue-200">📣 Pitch Deck ←</div>
             <div className="px-2 py-1 bg-zinc-50 rounded text-zinc-500">⚙️ Weekly Report</div>
@@ -59,7 +59,7 @@ export default function DemoPage() {
 
         {/* Column 3: Workspace */}
         <div className="flex-shrink-0 w-64 bg-white rounded-xl border border-blue-200 p-4">
-          <div className="text-xs text-blue-500 mb-2">WORKSPACE</div>
+          <div className="text-xs text-blue-500 mb-2">PROJECT</div>
           <div className="flex items-center gap-2 mb-3">
             <span>📣</span>
             <div className="font-semibold text-sm">Pitch Deck</div>
@@ -99,7 +99,7 @@ export default function DemoPage() {
           <div className="space-y-1 text-xs">
             <div className="px-2 py-1.5 bg-blue-50 rounded border border-blue-200">
               <div className="font-medium text-blue-700">🌀 Bayond ←</div>
-              <div className="text-blue-400 text-[10px]">Context OS</div>
+              <div className="text-blue-400 text-[10px]">Contextory</div>
             </div>
             <div className="px-2 py-1.5 bg-zinc-50 rounded">
               <div className="text-zinc-600">🐹 HanRyo</div>
@@ -130,7 +130,7 @@ export default function DemoPage() {
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
               <div className="font-medium text-zinc-700">Solution</div>
-              <div className="text-zinc-500 text-[10px]">Context OS</div>
+              <div className="text-zinc-500 text-[10px]">Contextory</div>
               <div className="text-zinc-500 text-[10px]">8 views</div>
             </div>
             <div className="bg-zinc-50 p-1.5 rounded">
@@ -207,7 +207,7 @@ export default function DemoPage() {
 
       {/* Key Message */}
       <div className="mt-4 text-center text-sm text-zinc-400">
-        Every level has context: Project → Workspace → Object → Item → Item Context
+        Every level has context: Workspace → Project → Object → Item → Item Context
       </div>
     </div>
   );

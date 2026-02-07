@@ -1,61 +1,109 @@
-import { NextResponse } from 'next/server';
-import { readDB, writeDB, generateId, success, list, error } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 
-// GET - List contexts (filter by workspaceId)
-export async function GET(request: Request) {
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function contextFromDb(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    name: row.name,
+    icon: row.icon,
+    type: row.type,
+    viewStyle: row.view_style,
+    scope: row.scope,
+    workspaceId: row.project_id ?? null,
+    projectId: row.workspace_id ?? null,
+    objectIds: row.object_ids ?? [],
+    markdownId: row.markdown_id ?? null,
+    data: row.data ?? { nodes: [], edges: [] },
+  };
+}
+
+// GET - List contexts (filter by projectId)
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const workspaceId = searchParams.get('workspaceId');
+    const projectId = request.nextUrl.searchParams.get('projectId');
 
-    const db = await readDB();
-    let contexts = db.contexts;
+    const supabase = await createClient();
 
-    if (workspaceId) {
-      contexts = contexts.filter((c) => c.workspaceId === workspaceId);
+    // Allow unauthenticated access for MCP server compatibility
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
+      .from('contexts')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (user) {
+      query = query.eq('user_id', user.id);
     }
 
-    return NextResponse.json(list(contexts));
+    if (projectId) {
+      query = query.eq('workspace_id', projectId);
+    }
+
+    const { data, error: dbError } = await query;
+
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    const mapped = (data || []).map(contextFromDb);
+    return NextResponse.json({ success: true, data: mapped, total: mapped.length });
   } catch (e) {
-    console.error('Error listing contexts:', e);
-    return NextResponse.json(error('Failed to list contexts'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to list contexts' }, { status: 500 });
   }
 }
 
 // POST - Create context
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const db = await readDB();
 
     // Validate based on scope
-    const scope = body.scope || 'local';
-    if (scope === 'local' && !body.workspaceId) {
-      return NextResponse.json(error('workspaceId is required for local contexts'), { status: 400 });
+    const scope = body.scope || 'project';
+    if (scope === 'project' && !body.projectId) {
+      return NextResponse.json({ success: false, error: 'projectId is required for project contexts' }, { status: 400 });
     }
-    if ((scope === 'local' || scope === 'project') && !body.projectId) {
-      return NextResponse.json(error('projectId is required for project/local contexts'), { status: 400 });
+    if ((scope === 'project' || scope === 'workspace') && !body.workspaceId) {
+      return NextResponse.json({ success: false, error: 'workspaceId is required for workspace/project contexts' }, { status: 400 });
     }
 
     const newContext = {
       id: generateId(),
+      user_id: user.id,
       name: body.name || 'New Context',
-      icon: body.icon || '🗺️',
+      icon: body.icon || '',
       type: body.type || 'tree',
-      viewStyle: body.viewStyle || 'mindmap',
+      view_style: body.viewStyle || 'mindmap',
       scope: scope,
-      projectId: scope === 'global' ? null : body.projectId,
-      workspaceId: scope === 'local' ? body.workspaceId : null,
-      objectIds: body.objectIds || [],
-      markdownId: body.markdownId || null,
+      project_id: scope === 'global' ? null : body.workspaceId,
+      workspace_id: scope === 'project' ? body.projectId : null,
+      object_ids: body.objectIds || [],
+      markdown_id: body.markdownId || null,
       data: body.data || { nodes: [] },
     };
 
-    db.contexts.push(newContext);
-    await writeDB(db);
+    const { data, error: dbError } = await supabase
+      .from('contexts')
+      .insert(newContext)
+      .select()
+      .single();
 
-    return NextResponse.json(success(newContext), { status: 201 });
+    if (dbError) {
+      return NextResponse.json({ success: false, error: dbError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, data: contextFromDb(data) }, { status: 201 });
   } catch (e) {
-    console.error('Error creating context:', e);
-    return NextResponse.json(error('Failed to create context'), { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to create context' }, { status: 500 });
   }
 }

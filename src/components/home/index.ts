@@ -9,3 +9,8 @@ export { GroupByDropdown } from './GroupByDropdown';
 export { GroupByTabs } from './GroupByTabs';
 export type { GroupByOption } from './GroupByTabs';
 export { GroupedView } from './GroupedView';
+export { WorkspacesTab } from './WorkspacesTab';
+export { WorkspacesTab as ProjectsTab } from './WorkspacesTab';
+export { ObjectsTab } from './ObjectsTab';
+export { ContextsTab } from './ContextsTab';
+export { PinnedObjectTab } from './PinnedObjectTab';
