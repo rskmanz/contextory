@@ -511,8 +511,8 @@ function ObjectsList({
                   if (objectViewScope === 'project') {
                     return i.projectId === project;
                   }
-                  const proj = projects.find(p => p.id === i.projectId);
-                  return proj?.workspaceId === workspace;
+                  // Workspace scope: only items scoped to this workspace (not project-level)
+                  return i.workspaceId === workspace && !i.projectId;
                 });
                 const isObjExpanded = expandedObjects.has(obj.id);
                 return (

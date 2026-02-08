@@ -14,7 +14,12 @@ interface AddObjectModalProps {
     allowedScopes?: ('global' | 'workspace' | 'project')[];
 }
 
-const icons = ['👤', '🏢', '📄', '🎯', '💰', '📧', '🔗', '📋'];
+const icons = [
+  '👤', '🏢', '📄', '🎯', '💰', '📧', '🔗', '📋',
+  '📊', '💼', '🔧', '📝', '🌟', '💬', '🤖', '✅',
+  '📁', '🎨', '💡', '🔥', '🚀', '📦', '🎲', '🧩',
+  '📌', '🗂️', '📐', '🔬', '🎵', '📸', '🌍', '⚡',
+];
 
 export const AddObjectModal: React.FC<AddObjectModalProps> = ({
     isOpen,

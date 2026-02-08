@@ -16,6 +16,7 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const deleteItem = useStore((state) => state.deleteItem);
+  const wsId = useStore((state) => state.projects.find(p => p.id === workspaceId)?.workspaceId || null);
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -27,9 +28,10 @@ export const ObjectGridView: React.FC<ObjectGridViewProps> = ({ object, items, w
       name: 'New item',
       objectId: object.id,
       projectId: workspaceId,
+      workspaceId: wsId,
     });
     onItemClick?.(id);
-  }, [addItem, object.id, workspaceId, onItemClick]);
+  }, [addItem, object.id, workspaceId, wsId, onItemClick]);
 
   const handleItemClick = useCallback((itemId: string) => {
     onItemClick?.(itemId);

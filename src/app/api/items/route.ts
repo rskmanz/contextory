@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const objectId = request.nextUrl.searchParams.get('objectId');
     const contextId = request.nextUrl.searchParams.get('contextId');
     const projectId = request.nextUrl.searchParams.get('projectId');
+    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
 
     const auth = await authenticateRequest(request);
     const queryClient = createServiceClient();
@@ -30,6 +31,9 @@ export async function GET(request: NextRequest) {
     }
     if (projectId) {
       query = query.eq('project_id', projectId);
+    }
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
     }
 
     const { data, error: dbError } = await query;
@@ -63,6 +67,7 @@ export async function POST(request: NextRequest) {
       object_id: body.objectId || null,
       context_id: body.contextId || null,
       project_id: body.projectId || null,
+      workspace_id: body.workspaceId || null,
       markdown_id: body.markdownId || null,
       field_values: body.fieldValues || {},
       context_data: body.contextData || { nodes: [] },

@@ -99,6 +99,7 @@ CREATE TABLE items (
   object_id text REFERENCES objects(id) ON DELETE CASCADE,
   context_id text REFERENCES contexts(id) ON DELETE SET NULL,
   project_id text REFERENCES projects(id) ON DELETE SET NULL,
+  workspace_id text REFERENCES projects(id) ON DELETE SET NULL,
   name text NOT NULL,
   markdown_id text,
   view_layout text DEFAULT 'visualization',
@@ -174,6 +175,7 @@ CREATE INDEX idx_contexts_workspace ON contexts(workspace_id);
 CREATE INDEX idx_contexts_user ON contexts(user_id);
 CREATE INDEX idx_items_object ON items(object_id);
 CREATE INDEX idx_items_project ON items(project_id);
+CREATE INDEX idx_items_workspace ON items(workspace_id);
 CREATE INDEX idx_items_user ON items(user_id);
 CREATE INDEX idx_objects_user ON objects(user_id);
 CREATE INDEX idx_markdown_user ON markdown_content(user_id);

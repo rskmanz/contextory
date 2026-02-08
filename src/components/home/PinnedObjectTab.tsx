@@ -13,7 +13,7 @@ interface PinnedObjectTabProps {
   items: ObjectItemType[];
   projects: Project[];
   workspaces: Workspace[];
-  addItem: (data: { name: string; objectId: string; projectId: string | null }) => Promise<unknown>;
+  addItem: (data: { name: string; objectId: string; projectId: string | null; workspaceId?: string | null }) => Promise<unknown>;
 }
 
 export const PinnedObjectTab: React.FC<PinnedObjectTabProps> = ({
@@ -46,7 +46,8 @@ export const PinnedObjectTab: React.FC<PinnedObjectTabProps> = ({
 
   const handleSubmitItem = async () => {
     if (newItemName.trim() && newItemProjectId) {
-      await addItem({ name: newItemName.trim(), objectId, projectId: newItemProjectId });
+      const proj = projects.find(p => p.id === newItemProjectId);
+      await addItem({ name: newItemName.trim(), objectId, projectId: newItemProjectId, workspaceId: proj?.workspaceId || null });
       setNewItemName('');
       setIsAddingItem(false);
     }

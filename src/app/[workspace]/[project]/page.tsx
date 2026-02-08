@@ -56,7 +56,11 @@ export default function ProjectPage() {
   const [leftPinned, setLeftPinned] = useState(false);
   const [showWorkspaces, setShowWorkspaces] = useState(false);
   const [rightPinned, setRightPinned] = useState(false);
-  const [viewLevel, setViewLevel] = useState<'global' | 'workspace' | 'project'>('project');
+  const [viewLevel, setViewLevelRaw] = useState<'global' | 'workspace' | 'project'>('project');
+  const setViewLevel = React.useCallback((level: 'global' | 'workspace' | 'project') => {
+    setViewLevelRaw(level);
+    if (level !== 'project') setActiveTab(null);
+  }, []);
   const [objectViewScope, setObjectViewScope] = useState<'workspace' | 'project'>('project');
   const [contextViewScope, setContextViewScope] = useState<'workspace' | 'project'>('project');
   const userSettings = useStore((state) => state.userSettings);
@@ -106,16 +110,16 @@ export default function ProjectPage() {
     : displayedObjects.filter(obj =>
         obj.availableInWorkspaces.includes('*') || obj.availableInWorkspaces.includes(workspace));
 
-  // Auto-select first context or object
+  // Auto-select first context or object (only at project level)
   useEffect(() => {
-    if (!activeTab) {
+    if (!activeTab && viewLevel === 'project') {
       if (projectContexts.length > 0) {
         setActiveTab({ type: 'context', id: projectContexts[0].id });
       } else if (projectObjects.length > 0) {
         setActiveTab({ type: 'object', id: projectObjects[0].id });
       }
     }
-  }, [projectContexts, projectObjects, activeTab]);
+  }, [projectContexts, projectObjects, activeTab, viewLevel]);
 
   // Resolved selections
   const selectedContext = activeTab?.type === 'context'
@@ -181,7 +185,7 @@ export default function ProjectPage() {
       if (remainingProjects.length > 0) {
         window.location.href = `/${workspace}/${remainingProjects[0].id}`;
       } else {
-        window.location.href = '/';
+        window.location.href = '/dashboard';
       }
     } else if (deletingItem.type === 'item') {
       await deleteItem(deletingItem.item.id);
@@ -274,7 +278,7 @@ export default function ProjectPage() {
         <div className="bg-white border-b border-zinc-100 px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              href="/"
+              href="/dashboard"
               className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all"
               title="Home"
             >
@@ -440,6 +444,8 @@ export default function ProjectPage() {
             currentProject={currentProject}
             currentWorkspace={currentWorkspace}
             project={project}
+            workspace={workspace}
+            viewLevel={viewLevel}
             items={items}
             isMarkdownSidebarOpen={isMarkdownSidebarOpen}
             onCloseMarkdownSidebar={() => setIsMarkdownSidebarOpen(false)}

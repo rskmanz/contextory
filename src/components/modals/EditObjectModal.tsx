@@ -11,7 +11,12 @@ interface EditObjectModalProps {
     object: ObjectType | null;
 }
 
-const objectIcons = ['📁', '📋', '📊', '🎯', '💼', '🔧', '📝', '🌟', '💬', '🤖', '✅', '📄'];
+const objectIcons = [
+  '👤', '🏢', '📄', '🎯', '💰', '📧', '🔗', '📋',
+  '📊', '💼', '🔧', '📝', '🌟', '💬', '🤖', '✅',
+  '📁', '🎨', '💡', '🔥', '🚀', '📦', '🎲', '🧩',
+  '📌', '🗂️', '📐', '🔬', '🎵', '📸', '🌍', '⚡',
+];
 
 export const EditObjectModal: React.FC<EditObjectModalProps> = ({ isOpen, onClose, object }) => {
     const [name, setName] = useState('');

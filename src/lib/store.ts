@@ -377,6 +377,7 @@ export const useStore = create<AppState>((set, get) => ({
             objectId: null,
             contextId,
             projectId: ctx?.projectId || null,
+            workspaceId: ctx?.workspaceId || null,
             fieldValues: {},
         };
         set((state) => ({ items: [...state.items, newItem] }));
@@ -673,10 +674,12 @@ export const useStore = create<AppState>((set, get) => ({
 
         const newId = generateId();
         const userId = get().userId;
+        const proj = get().projects.find(p => p.id === projectId);
         const newItem: ObjectItem = {
             ...item,
             id: newId,
             projectId,
+            workspaceId: proj?.workspaceId || item.workspaceId || null,
             contextData: item.contextData ? {
                 ...item.contextData,
                 nodes: item.contextData.nodes?.map(n => ({ ...n, id: generateId() })) || [],
@@ -829,6 +832,7 @@ export const useStore = create<AppState>((set, get) => ({
             objectId: null,
             contextId: null,
             projectId: parentItem?.projectId || null,
+            workspaceId: parentItem?.workspaceId || null,
             fieldValues: {},
         };
         set((state) => ({ items: [...state.items, newItem] }));

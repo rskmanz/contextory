@@ -48,7 +48,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        window.location.href = '/'
+        window.location.href = '/dashboard'
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

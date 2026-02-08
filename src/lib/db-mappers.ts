@@ -61,6 +61,7 @@ export function itemFromDb(row: Record<string, unknown>) {
     objectId: row.object_id ?? null,
     contextId: row.context_id ?? null,
     projectId: row.project_id ?? null,
+    workspaceId: row.workspace_id ?? null,
     markdownId: row.markdown_id ?? null,
     viewLayout: row.view_layout ?? 'visualization',
     fieldValues: row.field_values ?? {},

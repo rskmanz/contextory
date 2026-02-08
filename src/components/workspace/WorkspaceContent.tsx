@@ -32,6 +32,8 @@ interface WorkspaceContentProps {
   currentProject: Project;
   currentWorkspace: Workspace;
   project: string;
+  workspace: string;
+  viewLevel: 'global' | 'workspace' | 'project';
   items: ObjectItem[];
   isMarkdownSidebarOpen: boolean;
   onCloseMarkdownSidebar: () => void;
@@ -58,6 +60,8 @@ export function WorkspaceContent({
   currentProject,
   currentWorkspace,
   project,
+  workspace,
+  viewLevel,
   items,
   isMarkdownSidebarOpen,
   onCloseMarkdownSidebar,
@@ -96,6 +100,8 @@ export function WorkspaceContent({
           selectedObject={selectedObject}
           selectedItem={selectedItem}
           project={project}
+          workspace={workspace}
+          viewLevel={viewLevel}
           items={items}
           objectDisplayMode={objectDisplayMode}
           onObjectDisplayModeChange={onObjectDisplayModeChange}
@@ -121,6 +127,8 @@ interface ContentViewProps {
   selectedObject: ObjectType | null;
   selectedItem: ObjectItem | null;
   project: string;
+  workspace: string;
+  viewLevel: 'global' | 'workspace' | 'project';
   items: ObjectItem[];
   objectDisplayMode: ObjectDisplayMode;
   onObjectDisplayModeChange: (mode: ObjectDisplayMode) => void;
@@ -140,6 +148,8 @@ function ContentView({
   selectedObject,
   selectedItem,
   project,
+  workspace,
+  viewLevel,
   items,
   objectDisplayMode,
   onObjectDisplayModeChange,
@@ -167,6 +177,8 @@ function ContentView({
         object={selectedObject}
         items={items}
         project={project}
+        workspace={workspace}
+        viewLevel={viewLevel}
         objectDisplayMode={objectDisplayMode}
         onObjectDisplayModeChange={onObjectDisplayModeChange}
         setActiveTab={setActiveTab}
@@ -319,16 +331,20 @@ interface ObjectViewProps {
   object: ObjectType;
   items: ObjectItem[];
   project: string;
+  workspace: string;
+  viewLevel: 'global' | 'workspace' | 'project';
   objectDisplayMode: ObjectDisplayMode;
   onObjectDisplayModeChange: (mode: ObjectDisplayMode) => void;
   setActiveTab: (tab: ActiveTab | null) => void;
 }
 
-function ObjectView({ object, items, project, objectDisplayMode, onObjectDisplayModeChange, setActiveTab }: ObjectViewProps) {
-  const isGlobalOrAllProjects = object.availableGlobal || object.availableInProjects.includes('*');
-  const objectItems = isGlobalOrAllProjects
-    ? items.filter((i) => i.objectId === object.id)
-    : items.filter((i) => i.objectId === object.id && i.projectId === project);
+function ObjectView({ object, items, project, workspace, viewLevel, objectDisplayMode, onObjectDisplayModeChange, setActiveTab }: ObjectViewProps) {
+  const objectItems = items.filter((i) => {
+    if (i.objectId !== object.id) return false;
+    if (viewLevel === 'project') return i.projectId === project;
+    if (viewLevel === 'workspace') return i.workspaceId === workspace && !i.projectId;
+    return !i.workspaceId && !i.projectId; // global
+  });
 
   const viewOptions: Array<'grid' | 'list' | 'table' | 'kanban' | 'gantt'> = ['grid', 'list', 'table', 'kanban', 'gantt'];
 

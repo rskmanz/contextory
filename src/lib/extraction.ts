@@ -100,6 +100,7 @@ export async function executeExtraction(
               name: item.name,
               objectId,
               projectId: scope.projectId || null,
+              workspaceId: scope.workspaceId || null,
               fieldValues: Object.keys(mappedValues).length > 0 ? mappedValues : undefined,
             });
             result.created.push({ type: 'item', name: item.name, id: itemId });
@@ -162,6 +163,7 @@ export async function executeExtraction(
               name: item.name,
               objectId: suggestion.targetObjectId,
               projectId: scope.projectId || null,
+              workspaceId: scope.workspaceId || null,
             });
             result.created.push({ type: 'item', name: item.name, id: itemId });
           }

@@ -13,7 +13,7 @@ export default function DemoPage() {
           <span className="text-xl font-bold text-zinc-900">Contextory</span>
         </div>
         <Link
-          href="/"
+          href="/dashboard"
           className="px-4 py-2 bg-zinc-900 text-white text-sm rounded-lg hover:bg-zinc-800"
         >
           Try Demo

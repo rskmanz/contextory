@@ -23,6 +23,7 @@ export const ObjectGanttView: React.FC<ObjectGanttViewProps> = ({
   const updateItemFieldValue = useStore((state) => state.updateItemFieldValue);
   const deleteItem = useStore((state) => state.deleteItem);
   const addObjectField = useStore((state) => state.addObjectField);
+  const wsId = useStore((state) => state.projects.find(p => p.id === workspaceId)?.workspaceId || null);
 
   // Find date and number fields for mapping
   const dateFields = useMemo(
@@ -209,6 +210,7 @@ export const ObjectGanttView: React.FC<ObjectGanttViewProps> = ({
       name: 'New item',
       objectId: object.id,
       projectId: workspaceId,
+      workspaceId: wsId,
       fieldValues,
     });
   }, [addItem, object.id, workspaceId, startFieldId, endFieldId]);

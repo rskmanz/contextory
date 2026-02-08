@@ -202,6 +202,8 @@ export const tools = [
       type: 'object' as const,
       properties: {
         objectId: { type: 'string', description: 'Object ID to filter by' },
+        workspaceId: { type: 'string', description: 'Filter by workspace ID' },
+        projectId: { type: 'string', description: 'Filter by project ID' },
       },
     },
   },
@@ -214,6 +216,7 @@ export const tools = [
         objectId: { type: 'string', description: 'Object ID' },
         name: { type: 'string', description: 'Item name' },
         projectId: { type: 'string', description: 'Project ID (optional)' },
+        workspaceId: { type: 'string', description: 'Workspace ID (optional)' },
         fieldValues: {
           type: 'object',
           description: 'Field values keyed by field definition ID',
@@ -543,7 +546,11 @@ export async function handleToolCall(
 
     // Items
     case 'list_items': {
-      const query = args.objectId ? `?objectId=${args.objectId}` : '';
+      const params = new URLSearchParams();
+      if (args.objectId) params.append('objectId', String(args.objectId));
+      if (args.workspaceId) params.append('workspaceId', String(args.workspaceId));
+      if (args.projectId) params.append('projectId', String(args.projectId));
+      const query = params.toString() ? `?${params.toString()}` : '';
       return callAPI('GET', `/api/items${query}`);
     }
     case 'create_item':

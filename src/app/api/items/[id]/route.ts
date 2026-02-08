@@ -54,6 +54,7 @@ export async function PUT(
     if (updates.objectId !== undefined) dbUpdates.object_id = updates.objectId;
     if (updates.contextId !== undefined) dbUpdates.context_id = updates.contextId;
     if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
+    if (updates.workspaceId !== undefined) dbUpdates.workspace_id = updates.workspaceId;
     if (updates.markdownId !== undefined) dbUpdates.markdown_id = updates.markdownId;
     if (updates.viewLayout !== undefined) dbUpdates.view_layout = updates.viewLayout;
     if (updates.fieldValues !== undefined) dbUpdates.field_values = updates.fieldValues;

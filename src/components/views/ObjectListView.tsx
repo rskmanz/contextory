@@ -15,6 +15,7 @@ export const ObjectListView: React.FC<ObjectListViewProps> = ({ object, items, w
   const addItem = useStore((state) => state.addItem);
   const updateItem = useStore((state) => state.updateItem);
   const deleteItem = useStore((state) => state.deleteItem);
+  const wsId = useStore((state) => state.projects.find(p => p.id === workspaceId)?.workspaceId || null);
 
   const [newItemName, setNewItemName] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -31,10 +32,11 @@ export const ObjectListView: React.FC<ObjectListViewProps> = ({ object, items, w
       name: newItemName.trim(),
       objectId: object.id,
       projectId: workspaceId,
+      workspaceId: wsId,
     });
     setNewItemName('');
     setIsAddingItem(false);
-  }, [addItem, newItemName, object.id, workspaceId]);
+  }, [addItem, newItemName, object.id, workspaceId, wsId]);
 
   const startEdit = useCallback((item: ObjectItem) => {
     setEditingId(item.id);

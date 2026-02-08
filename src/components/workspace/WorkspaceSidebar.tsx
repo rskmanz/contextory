@@ -262,6 +262,20 @@ function ProjectsList({
       </div>
       {isExpanded && (
         <div className="px-2 space-y-0.5">
+          <div
+            onClick={() => setViewLevel('workspace')}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+              viewLevel === 'workspace'
+                ? 'bg-white text-zinc-900 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-900 hover:bg-white/60'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span className="truncate flex-1">Home</span>
+          </div>
           {topLevelProjects.map((proj) => (
             <ProjectItem
               key={proj.id}

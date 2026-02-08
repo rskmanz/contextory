@@ -168,7 +168,7 @@ export default function SettingsPage() {
       <div className="bg-white border-b border-zinc-200 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <Link
-            href="/"
+            href="/dashboard"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all"
             title="Back to Home"
           >

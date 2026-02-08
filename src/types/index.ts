@@ -235,7 +235,8 @@ export interface ObjectItem {
   name: string;
   objectId: string | null;      // null = not in any Object (e.g., context-only item)
   contextId?: string | null;    // belongs to a Context (node = Markdown + Property)
-  projectId: string | null;     // null = global object item
+  projectId: string | null;     // null = workspace or global item
+  workspaceId?: string | null;  // null = global item; set = workspace or project item
   markdownId?: string;            // reference to .md file (optional)
   viewLayout?: ItemViewLayout;    // layout for markdown + visualization (default: 'visualization')
   fieldValues?: FieldValues;      // per-item field values keyed by FieldDefinition.id

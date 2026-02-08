@@ -30,6 +30,7 @@ export const ObjectTableView: React.FC<ObjectTableViewProps> = ({ object, items,
   const updateItemFieldValue = useStore((state) => state.updateItemFieldValue);
   const deleteItem = useStore((state) => state.deleteItem);
   const addObjectField = useStore((state) => state.addObjectField);
+  const wsId = useStore((state) => state.projects.find(p => p.id === workspaceId)?.workspaceId || null);
 
   const [sort, setSort] = useState<SortState | null>(null);
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
@@ -105,10 +106,11 @@ export const ObjectTableView: React.FC<ObjectTableViewProps> = ({ object, items,
       name: newItemName.trim(),
       objectId: object.id,
       projectId: workspaceId,
+      workspaceId: wsId,
     });
     setNewItemName('');
     setIsAddingItem(false);
-  }, [addItem, newItemName, object.id, workspaceId]);
+  }, [addItem, newItemName, object.id, workspaceId, wsId]);
 
   const handleDeleteItem = useCallback(async (itemId: string) => {
     await deleteItem(itemId);

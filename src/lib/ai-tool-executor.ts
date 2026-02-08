@@ -151,6 +151,7 @@ async function executeAction(
         name: args.name as string,
         objectId: args.objectId as string,
         projectId: (args.projectId as string) || null,
+        workspaceId: (args.workspaceId as string) || null,
       });
       return { id, message: `Created item "${args.name}"` };
     }

@@ -545,18 +545,24 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
+            workspaceId: {
+                type: string;
+                description: string;
+            };
+            projectId: {
+                type: string;
+                description: string;
+            };
             name?: undefined;
             icon?: undefined;
             category?: undefined;
             gradient?: undefined;
             resources?: undefined;
             id?: undefined;
-            workspaceId?: undefined;
             parentItemId?: undefined;
             categoryIcon?: undefined;
             type?: undefined;
             scope?: undefined;
-            projectId?: undefined;
             fields?: undefined;
             fieldValues?: undefined;
             viewLayout?: undefined;
@@ -589,6 +595,10 @@ export declare const tools: ({
                 type: string;
                 description: string;
             };
+            workspaceId: {
+                type: string;
+                description: string;
+            };
             fieldValues: {
                 type: string;
                 description: string;
@@ -598,7 +608,6 @@ export declare const tools: ({
             gradient?: undefined;
             resources?: undefined;
             id?: undefined;
-            workspaceId?: undefined;
             parentItemId?: undefined;
             categoryIcon?: undefined;
             type?: undefined;

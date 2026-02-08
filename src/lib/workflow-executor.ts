@@ -75,6 +75,7 @@ async function executeStep(
         name: itemName.trim().slice(0, 60),
         objectId: step.config.objectId,
         projectId: config.projectId || null,
+        workspaceId: config.workspaceId || null,
       });
 
       // Save content as item markdown

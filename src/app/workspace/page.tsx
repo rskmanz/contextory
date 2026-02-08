@@ -108,7 +108,7 @@ export default function WorkspacesPage() {
                                 <p className="text-zinc-600 font-medium mb-2">No projects yet</p>
                                 <p className="text-zinc-400 text-sm mb-6">Create a project from a workspace page</p>
                                 <Link
-                                    href="/"
+                                    href="/dashboard"
                                     className="inline-flex px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
                                 >
                                     Go to Workspaces
