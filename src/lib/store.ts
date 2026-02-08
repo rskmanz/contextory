@@ -381,7 +381,11 @@ export const useStore = create<AppState>((set, get) => ({
             fieldValues: {},
         };
         set((state) => ({ items: [...state.items, newItem] }));
-        getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+        const { error: itemError } = await getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+        if (itemError) {
+            console.error('Failed to create backing item for node:', itemError.message);
+            set((state) => ({ items: state.items.filter((i) => i.id !== itemId) }));
+        }
 
         // Create the ContextNode with sourceItemId
         const newNode = {
@@ -681,6 +685,19 @@ export const useStore = create<AppState>((set, get) => ({
                 items: state.items.map((i) => (i.id === id ? prev : i)),
             }));
         }
+
+        // Sync name change to context nodes that reference this item
+        if (updates.name) {
+            const contexts = get().contexts;
+            for (const ctx of contexts) {
+                const node = (ctx.data?.nodes || []).find(
+                    (n: ContextNode) => n.metadata?.sourceItemId === id
+                );
+                if (node && node.content !== updates.name) {
+                    get().updateNode(ctx.id, node.id, { content: updates.name });
+                }
+            }
+        }
     },
 
     deleteItem: async (id) => {
@@ -858,7 +875,11 @@ export const useStore = create<AppState>((set, get) => ({
             fieldValues: {},
         };
         set((state) => ({ items: [...state.items, newItem] }));
-        getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+        const { error: itemError } = await getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+        if (itemError) {
+            console.error('Failed to create backing item for item node:', itemError.message);
+            set((state) => ({ items: state.items.filter((i) => i.id !== childItemId) }));
+        }
 
         // Create the ContextNode with sourceItemId
         const newNode: ContextNode = {
