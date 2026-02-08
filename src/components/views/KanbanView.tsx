@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Context, ContextNode } from '@/types';
+import { Context, ContextNode, FieldValue } from '@/types';
 import { useStore } from '@/lib/store';
 
 interface KanbanViewProps {
   context: Context;
   isItemContext?: boolean;
   itemId?: string;
+  onOpenNode?: (nodeId: string) => void;
 }
 
 interface CardPosition {
@@ -17,13 +18,20 @@ interface CardPosition {
   height: number;
 }
 
-export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, itemId }) => {
+export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, itemId, onOpenNode }) => {
   // Context functions
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
   const deleteContextNode = useStore((state) => state.deleteNode);
   const addContextEdge = useStore((state) => state.addEdge);
   const deleteContextEdge = useStore((state) => state.deleteEdge);
+
+  // For type badges
+  const allItems = useStore((state) => state.items);
+  const allObjects = useStore((state) => state.objects);
+
+  // For sidebar item drop
+  const addNodeForItem = useStore((state) => state.addNodeForItem);
 
   // Item functions
   const addItemNode = useStore((state) => state.addItemNode);
@@ -163,10 +171,27 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, 
     e.preventDefault();
   };
 
-  const handleDrop = async (columnId: string) => {
+  const handleDrop = async (e: React.DragEvent, columnId: string) => {
     if (draggedCard) {
       await updateNode(draggedCard, { parentId: columnId });
       setDraggedCard(null);
+      return;
+    }
+    // Sidebar item drop
+    if (!isItemContext) {
+      const raw = e.dataTransfer.getData('application/json');
+      if (raw) {
+        try {
+          const { itemId } = JSON.parse(raw);
+          if (itemId) {
+            const nodes = context.data?.nodes || [];
+            const alreadyExists = nodes.some(n => n.metadata?.sourceItemId === itemId);
+            if (!alreadyExists) {
+              await addNodeForItem(context.id, itemId, columnId);
+            }
+          }
+        } catch { /* ignore */ }
+      }
     }
   };
 
@@ -256,7 +281,7 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, 
             key={column.id}
             className="w-72 flex-shrink-0 bg-zinc-100 rounded-xl p-3 flex flex-col"
             onDragOver={handleDragOver}
-            onDrop={() => handleDrop(column.id)}
+            onDrop={(e) => handleDrop(e, column.id)}
           >
             {/* Column Header */}
             <div className="flex items-center justify-between mb-3 px-1">
@@ -296,6 +321,9 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, 
             <div className="flex-1 overflow-y-auto space-y-2">
               {(cardsByColumn[column.id] || []).map((card) => {
                 const isEdgeSource = edgeSource === card.id;
+                const cardSourceItemId = card.metadata?.sourceItemId as string | undefined;
+                const cardItem = cardSourceItemId ? allItems.find(i => i.id === cardSourceItemId) : null;
+                const cardObjType = cardItem?.objectId ? allObjects.find(o => o.id === cardItem.objectId) : null;
 
                 return (
                   <div
@@ -322,24 +350,54 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, 
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
-                      <div className="flex items-start justify-between">
-                        <p
-                          className="text-sm text-zinc-800 cursor-pointer flex-1"
-                          onDoubleClick={() => handleDoubleClick(card)}
-                        >
-                          {card.content}
-                        </p>
-                        <button
-                          className="w-5 h-5 flex items-center justify-center text-zinc-300 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(card.id);
-                          }}
-                          title="Delete card"
-                        >
-                          ×
-                        </button>
-                      </div>
+                      <>
+                        <div className="flex items-start justify-between">
+                          <p
+                            className="text-sm text-zinc-800 cursor-pointer flex-1"
+                            onDoubleClick={() => handleDoubleClick(card)}
+                          >
+                            {card.content}
+                          </p>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {onOpenNode && (
+                              <button
+                                className="w-5 h-5 flex items-center justify-center text-zinc-300 hover:text-blue-500 rounded"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenNode(card.id);
+                                }}
+                                title="Open"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                  <polyline points="15 3 21 3 21 9" />
+                                  <line x1="10" y1="14" x2="21" y2="3" />
+                                </svg>
+                              </button>
+                            )}
+                            <button
+                              className="w-5 h-5 flex items-center justify-center text-zinc-300 hover:text-red-500 rounded"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(card.id);
+                              }}
+                              title="Delete card"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                        {cardObjType && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded-full mt-1.5">
+                            <span>{cardObjType.icon}</span>
+                            <span>{cardObjType.name}</span>
+                          </span>
+                        )}
+                        {/* Imported item badge + field previews */}
+                        {card.metadata?.sourceItemId && (
+                          <ImportedCardMeta metadata={card.metadata} />
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -367,3 +425,31 @@ export const KanbanView: React.FC<KanbanViewProps> = ({ context, isItemContext, 
     </div>
   );
 };
+
+/** Shows a synced badge and field value previews for imported cards */
+function ImportedCardMeta({ metadata }: { metadata: Record<string, unknown> }) {
+  const fieldValues = metadata.fieldValues as Record<string, FieldValue> | undefined;
+  const entries = fieldValues
+    ? Object.entries(fieldValues).filter(([, v]) => v != null && v !== '').slice(0, 3)
+    : [];
+
+  return (
+    <div className="mt-1.5">
+      <span className="inline-flex items-center gap-1 text-[10px] text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        synced
+      </span>
+      {entries.length > 0 && (
+        <div className="mt-1 space-y-0.5">
+          {entries.map(([key, val]) => (
+            <div key={key} className="text-[11px] text-zinc-500 truncate">
+              {String(val)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

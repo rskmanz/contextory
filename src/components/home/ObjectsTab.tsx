@@ -68,7 +68,7 @@ export const ObjectsTab: React.FC<ObjectsTabProps> = ({
 }) => {
   const router = useRouter();
   const [expandedObjects, setExpandedObjects] = useState<Set<string>>(new Set());
-  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table'>('grid');
+  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table' | 'kanban' | 'gantt'>('grid');
   const [availabilityExpanded, setAvailabilityExpanded] = useState(false);
 
   const navigateToItem = (itemId: string) => {
@@ -230,8 +230,8 @@ interface SelectedObjectViewProps {
   items: ObjectItemType[];
   projects: Project[];
   workspaces: Workspace[];
-  objectDisplayMode: 'grid' | 'list' | 'table';
-  onDisplayModeChange: (mode: 'grid' | 'list' | 'table') => void;
+  objectDisplayMode: 'grid' | 'list' | 'table' | 'kanban' | 'gantt';
+  onDisplayModeChange: (mode: 'grid' | 'list' | 'table' | 'kanban' | 'gantt') => void;
   availabilityExpanded: boolean;
   onAvailabilityToggle: () => void;
   selectedObjectItems: Record<string, ObjectItemType[]>;

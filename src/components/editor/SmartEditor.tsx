@@ -127,13 +127,6 @@ export const SmartEditor: React.FC<SmartEditorProps> = ({
 
   return (
     <div className="flex h-full w-full relative">
-      <SmartPanel
-        content={content}
-        workspaceId={workspaceId}
-        projectId={projectId}
-        isOpen={panelOpen}
-        onToggle={() => setPanelOpen((v) => !v)}
-      />
       <div className="flex-1 overflow-auto min-w-0">
         <div className="max-w-3xl mx-auto px-6 py-8">
           {title && (
@@ -151,12 +144,21 @@ export const SmartEditor: React.FC<SmartEditorProps> = ({
             content={content}
             onChange={handleChange}
             onExtract={handleExtract}
+            onToggleSmartPanel={() => setPanelOpen((v) => !v)}
+            isSmartPanelOpen={panelOpen}
             minimal={minimal}
             compact={compact}
             placeholder={placeholder}
           />
         </div>
       </div>
+      <SmartPanel
+        content={content}
+        workspaceId={workspaceId}
+        projectId={projectId}
+        isOpen={panelOpen}
+        onToggle={() => setPanelOpen((v) => !v)}
+      />
     </div>
   );
 };

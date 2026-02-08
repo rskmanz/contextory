@@ -259,21 +259,11 @@ export const SmartPanel: React.FC<SmartPanelProps> = ({
   const selectedCount = selectedIds.size;
 
   if (!isOpen) {
-    return (
-      <button
-        onClick={onToggle}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-zinc-200 rounded-r-lg px-1.5 py-3 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 shadow-sm transition-colors"
-        title="Open Smart Panel"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    );
+    return null;
   }
 
   return (
-    <div className="w-64 border-r border-zinc-200 bg-zinc-50/50 flex flex-col h-full overflow-hidden shrink-0">
+    <div className="w-64 border-l border-zinc-200 bg-zinc-50/50 flex flex-col h-full overflow-hidden shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100">
         <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wider">Smart Panel</span>
@@ -283,7 +273,7 @@ export const SmartPanel: React.FC<SmartPanelProps> = ({
           title="Close panel"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>

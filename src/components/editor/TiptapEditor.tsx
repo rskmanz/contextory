@@ -20,6 +20,8 @@ interface TiptapEditorProps {
   onBlur?: (html: string) => void;
   onSave?: () => void;
   onExtract?: () => void;
+  onToggleSmartPanel?: () => void;
+  isSmartPanelOpen?: boolean;
   editable?: boolean;
   placeholder?: string;
   className?: string;
@@ -132,6 +134,8 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   onBlur,
   onSave,
   onExtract,
+  onToggleSmartPanel,
+  isSmartPanelOpen,
   editable = true,
   placeholder = 'Start writing...',
   className = '',
@@ -240,7 +244,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             </button>
           </div>
         )}
-        {editable && showToolbar && <EditorToolbar editor={editor} onExtract={onExtract} />}
+        {editable && showToolbar && <EditorToolbar editor={editor} onExtract={onExtract} onToggleSmartPanel={onToggleSmartPanel} isSmartPanelOpen={isSmartPanelOpen} />}
         <div className="overflow-auto">
           <EditorContent editor={editor} />
         </div>
@@ -252,7 +256,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     <div
       className={`flex flex-col border border-zinc-200 rounded-lg overflow-hidden bg-white ${className}`}
     >
-      {editable && <EditorToolbar editor={editor} onExtract={onExtract} />}
+      {editable && <EditorToolbar editor={editor} onExtract={onExtract} onToggleSmartPanel={onToggleSmartPanel} isSmartPanelOpen={isSmartPanelOpen} />}
       <div className={`${compact ? 'p-3' : 'px-6 py-4'} overflow-auto`}>
         <EditorContent editor={editor} />
       </div>

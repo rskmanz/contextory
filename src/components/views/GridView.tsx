@@ -8,6 +8,7 @@ interface GridViewProps {
   context: Context;
   isItemContext?: boolean;
   itemId?: string;
+  onOpenNode?: (nodeId: string) => void;
 }
 
 interface CardPosition {
@@ -17,13 +18,20 @@ interface CardPosition {
   height: number;
 }
 
-export const GridView: React.FC<GridViewProps> = ({ context, isItemContext, itemId }) => {
+export const GridView: React.FC<GridViewProps> = ({ context, isItemContext, itemId, onOpenNode }) => {
   // Context functions
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
   const deleteContextNode = useStore((state) => state.deleteNode);
   const addContextEdge = useStore((state) => state.addEdge);
   const deleteContextEdge = useStore((state) => state.deleteEdge);
+
+  // For type badges
+  const allItems = useStore((state) => state.items);
+  const allObjects = useStore((state) => state.objects);
+
+  // For sidebar item drop
+  const addNodeForItem = useStore((state) => state.addNodeForItem);
 
   // Item functions
   const addItemNode = useStore((state) => state.addItemNode);
@@ -101,6 +109,27 @@ export const GridView: React.FC<GridViewProps> = ({ context, isItemContext, item
     window.addEventListener('resize', updatePositions);
     return () => window.removeEventListener('resize', updatePositions);
   }, [nodes, context.id, isItemContext, itemId]);
+
+  const handleItemDrop = useCallback(async (e: React.DragEvent, parentId: string | null = null) => {
+    e.preventDefault();
+    if (isItemContext) return;
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    try {
+      const { itemId } = JSON.parse(raw);
+      if (!itemId) return;
+      const nodes = context.data?.nodes || [];
+      const alreadyExists = nodes.some(n => n.metadata?.sourceItemId === itemId);
+      if (!alreadyExists) {
+        await addNodeForItem(context.id, itemId, parentId);
+      }
+    } catch { /* ignore */ }
+  }, [isItemContext, context.id, context.data?.nodes, addNodeForItem]);
+
+  const handleItemDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
 
   const handleAddGroup = useCallback(async () => {
     await addNode({
@@ -203,6 +232,9 @@ export const GridView: React.FC<GridViewProps> = ({ context, isItemContext, item
     const isSelected = selectedNodeId === node.id;
     const isEditing = editingNodeId === node.id;
     const isEdgeSource = edgeSource === node.id;
+    const nodeSourceItemId = node.metadata?.sourceItemId as string | undefined;
+    const nodeItem = nodeSourceItemId ? allItems.find(i => i.id === nodeSourceItemId) : null;
+    const nodeObjType = nodeItem?.objectId ? allObjects.find(o => o.id === nodeItem.objectId) : null;
 
     return (
       <div
@@ -239,22 +271,46 @@ export const GridView: React.FC<GridViewProps> = ({ context, isItemContext, item
         ) : (
           <p className="text-sm text-zinc-700 whitespace-pre-wrap">{node.content}</p>
         )}
+        {nodeObjType && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded-full mt-1.5">
+            <span>{nodeObjType.icon}</span>
+            <span>{nodeObjType.name}</span>
+          </span>
+        )}
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDelete(node.id);
-          }}
-          className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-        >
-          ×
-        </button>
+        <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onOpenNode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenNode(node.id);
+              }}
+              className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-blue-500 rounded text-xs"
+              title="Open"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(node.id);
+            }}
+            className="w-5 h-5 flex items-center justify-center text-zinc-400 hover:text-red-500 rounded text-xs"
+          >
+            ×
+          </button>
+        </div>
       </div>
     );
   };
 
   return (
-    <div ref={containerRef} className="h-full overflow-auto p-4 relative">
+    <div ref={containerRef} className="h-full overflow-auto p-4 relative" onDragOver={handleItemDragOver} onDrop={(e) => handleItemDrop(e)}>
       {/* SVG layer for edges */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
         <g className="pointer-events-auto">{renderEdges()}</g>

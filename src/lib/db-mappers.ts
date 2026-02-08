@@ -58,7 +58,8 @@ export function itemFromDb(row: Record<string, unknown>) {
   return {
     id: row.id,
     name: row.name,
-    objectId: row.object_id,
+    objectId: row.object_id ?? null,
+    contextId: row.context_id ?? null,
     projectId: row.project_id ?? null,
     markdownId: row.markdown_id ?? null,
     viewLayout: row.view_layout ?? 'visualization',

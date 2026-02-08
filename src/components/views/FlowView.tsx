@@ -8,9 +8,10 @@ interface FlowViewProps {
   context: Context;
   isItemContext?: boolean;
   itemId?: string;
+  onOpenNode?: (nodeId: string) => void;
 }
 
-export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, itemId }) => {
+export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, itemId, onOpenNode }) => {
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
   const deleteContextNode = useStore((state) => state.deleteNode);
@@ -18,6 +19,13 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
   const addItemNode = useStore((state) => state.addItemNode);
   const updateItemNode = useStore((state) => state.updateItemNode);
   const deleteItemNode = useStore((state) => state.deleteItemNode);
+
+  // For type badges
+  const allItems = useStore((state) => state.items);
+  const allObjects = useStore((state) => state.objects);
+
+  // For sidebar item drop
+  const addNodeForItem = useStore((state) => state.addNodeForItem);
 
   const addNode = isItemContext && itemId
     ? (node: { content: string; parentId: string | null }) => addItemNode(itemId, node)
@@ -37,6 +45,27 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
   const nodes = context.data?.nodes || [];
   const mainSteps = nodes.filter((n) => !n.parentId);
   const getSubSteps = (parentId: string) => nodes.filter((n) => n.parentId === parentId);
+
+  const handleItemDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isItemContext) return;
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    try {
+      const { itemId } = JSON.parse(raw);
+      if (!itemId) return;
+      const nodes = context.data?.nodes || [];
+      const alreadyExists = nodes.some(n => n.metadata?.sourceItemId === itemId);
+      if (!alreadyExists) {
+        await addNodeForItem(context.id, itemId, null);
+      }
+    } catch { /* ignore */ }
+  }, [isItemContext, context.id, context.data?.nodes, addNodeForItem]);
+
+  const handleItemDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
 
   const handleAddStep = useCallback(async () => {
     await addNode({ content: 'New Step', parentId: null });
@@ -65,7 +94,7 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
   }, [deleteNode]);
 
   return (
-    <div className="h-full overflow-auto bg-gradient-to-br from-slate-50 to-zinc-100 p-8 flex flex-col">
+    <div className="h-full overflow-auto bg-gradient-to-br from-slate-50 to-zinc-100 p-8 flex flex-col" onDragOver={handleItemDragOver} onDrop={handleItemDrop}>
       {/* Empty state */}
       {mainSteps.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center text-zinc-400">
@@ -95,6 +124,9 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
             {mainSteps.map((step, index) => {
               const subSteps = getSubSteps(step.id);
               const isEditing = editingNodeId === step.id;
+              const stepSourceItemId = step.metadata?.sourceItemId as string | undefined;
+              const stepItem = stepSourceItemId ? allItems.find(i => i.id === stepSourceItemId) : null;
+              const stepObjType = stepItem?.objectId ? allObjects.find(o => o.id === stepItem.objectId) : null;
 
               return (
                 <React.Fragment key={step.id}>
@@ -113,14 +145,32 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
                           {index + 1}
                         </div>
                         <span className="text-[10px] uppercase tracking-wide text-zinc-400 font-medium">Step</span>
-                        <button
-                          className="ml-auto p-1 text-zinc-300 hover:text-red-500 rounded transition-colors"
-                          onClick={(e) => handleDelete(step.id, e)}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                          </svg>
-                        </button>
+                        <div className="ml-auto flex items-center gap-0.5">
+                          {onOpenNode && (
+                            <button
+                              className="p-1 text-zinc-300 hover:text-blue-500 rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenNode(step.id);
+                              }}
+                              title="Open"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                                <polyline points="15 3 21 3 21 9" />
+                                <line x1="10" y1="14" x2="21" y2="3" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            className="p-1 text-zinc-300 hover:text-red-500 rounded transition-colors"
+                            onClick={(e) => handleDelete(step.id, e)}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
 
                       {/* Content */}
@@ -144,6 +194,12 @@ export const FlowView: React.FC<FlowViewProps> = ({ context, isItemContext, item
                           />
                         ) : (
                           <p className="text-sm font-medium text-zinc-700">{step.content}</p>
+                        )}
+                        {stepObjType && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded-full">
+                            <span>{stepObjType.icon}</span>
+                            <span>{stepObjType.name}</span>
+                          </span>
                         )}
                       </div>
 

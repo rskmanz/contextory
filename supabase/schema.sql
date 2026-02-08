@@ -96,7 +96,8 @@ CREATE TABLE objects (
 CREATE TABLE items (
   id text PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  object_id text NOT NULL REFERENCES objects(id) ON DELETE CASCADE,
+  object_id text REFERENCES objects(id) ON DELETE CASCADE,
+  context_id text REFERENCES contexts(id) ON DELETE SET NULL,
   project_id text REFERENCES projects(id) ON DELETE SET NULL,
   name text NOT NULL,
   markdown_id text,

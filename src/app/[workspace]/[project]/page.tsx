@@ -12,6 +12,8 @@ import { EditProjectModal } from '@/components/modals/EditProjectModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { WorkspacesPanel, ContextsObjectsPanel } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceContent } from '@/components/workspace/WorkspaceContent';
+import { RightSidebar } from '@/components/views/RightSidebar';
+import { CollapsibleSidebar } from '@/components/ui/CollapsibleSidebar';
 import { useModalState } from '@/hooks/useModalState';
 import { useStore } from '@/lib/store';
 import { Context, ObjectType, ObjectItem, Project, Workspace, ViewStyle, ContextType } from '@/types';
@@ -35,12 +37,12 @@ export default function ProjectPage() {
   const updateContext = useStore((state) => state.updateContext);
   const deleteContext = useStore((state) => state.deleteContext);
   const deleteObject = useStore((state) => state.deleteObject);
+  const addProject = useStore((state) => state.addProject);
   const deleteProject = useStore((state) => state.deleteProject);
   const deleteItem = useStore((state) => state.deleteItem);
   const updateObject = useStore((state) => state.updateObject);
   const updateItemContextType = useStore((state) => state.updateItemContextType);
   const updateItem = useStore((state) => state.updateItem);
-
   // Scope-based getters (subscribe to contexts/objects above to trigger re-renders)
   const getGlobalObjects = useStore((state) => state.getGlobalObjects);
   const getWorkspaceObjects = useStore((state) => state.getWorkspaceObjects);
@@ -51,13 +53,14 @@ export default function ProjectPage() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab | null>(null);
   const [isMarkdownSidebarOpen, setIsMarkdownSidebarOpen] = useState(false);
-  const [isProjectsSidebarOpen, setIsProjectsSidebarOpen] = useState(true);
-  const [isObjectsSidebarOpen, setIsObjectsSidebarOpen] = useState(true);
+  const [leftPinned, setLeftPinned] = useState(false);
+  const [showWorkspaces, setShowWorkspaces] = useState(false);
+  const [rightPinned, setRightPinned] = useState(false);
   const [viewLevel, setViewLevel] = useState<'global' | 'workspace' | 'project'>('project');
   const [objectViewScope, setObjectViewScope] = useState<'workspace' | 'project'>('project');
   const [contextViewScope, setContextViewScope] = useState<'workspace' | 'project'>('project');
   const userSettings = useStore((state) => state.userSettings);
-  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table'>(userSettings.defaultViewMode);
+  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table' | 'kanban' | 'gantt'>(userSettings.defaultViewMode);
 
   const modal = useModalState<ModalName>();
 
@@ -185,6 +188,15 @@ export default function ProjectPage() {
       if (activeTab?.type === 'item' && activeTab.id === deletingItem.item.id) setActiveTab(null);
     }
     modal.close();
+  };
+
+  const handleAddProject = async () => {
+    const id = await addProject({
+      name: 'Untitled Project',
+      workspaceId: workspace,
+      categoryIcon: '📁',
+    });
+    window.location.href = `/${workspace}/${id}`;
   };
 
   const handleQuickCreateContext = async () => {
@@ -356,47 +368,70 @@ export default function ProjectPage() {
 
         {/* Content area */}
         <div className="flex-1 flex overflow-hidden">
-          <WorkspacesPanel
-            isOpen={isProjectsSidebarOpen}
-            onToggle={setIsProjectsSidebarOpen}
-            viewLevel={viewLevel}
-            setViewLevel={setViewLevel}
-            workspace={workspace}
-            project={project}
-            currentWorkspace={currentWorkspace}
-            workspaces={workspaces}
-            projects={projects}
-            workspaceProjects={workspaceProjects}
-            items={items}
-            onEditProject={(proj) => modal.open('editProject', proj)}
-            onDeleteProject={(proj) => modal.open('deleteConfirm', { type: 'project', item: proj })}
-          />
-
-          <ContextsObjectsPanel
-            isOpen={isObjectsSidebarOpen}
-            onToggle={setIsObjectsSidebarOpen}
-            viewLevel={viewLevel}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            filteredContexts={filteredContexts}
-            contextViewScope={contextViewScope}
-            setContextViewScope={setContextViewScope}
-            onQuickCreateContext={handleQuickCreateContext}
-            onEditContext={(ctx) => modal.open('editContext', ctx)}
-            onDeleteContext={(ctx) => modal.open('deleteConfirm', { type: 'context', item: ctx })}
-            filteredObjects={filteredObjects}
-            objectViewScope={objectViewScope}
-            setObjectViewScope={setObjectViewScope}
-            onAddObject={() => modal.open('addObject')}
-            onEditObject={(obj) => modal.open('editObject', obj)}
-            onRemoveObject={handleRemoveObjectFromProject}
-            items={items}
-            projects={projects}
-            workspace={workspace}
-            project={project}
-            onUpdateItem={(id, data) => updateItem(id, data)}
-            onDeleteItem={(item) => modal.open('deleteConfirm', { type: 'item', item })}
-          />
+          <CollapsibleSidebar
+            side="left"
+            defaultWidth={showWorkspaces ? 420 : 240}
+            resizable
+            pinned={leftPinned}
+            onPinnedChange={setLeftPinned}
+            label="Navigation"
+            icon={
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            }
+          >
+            <div className="flex h-full w-full">
+              {showWorkspaces && (
+                <div className="w-48 flex-shrink-0 overflow-hidden">
+                  <WorkspacesPanel
+                    viewLevel={viewLevel}
+                    setViewLevel={setViewLevel}
+                    workspace={workspace}
+                    project={project}
+                    currentWorkspace={currentWorkspace}
+                    workspaces={workspaces}
+                    projects={projects}
+                    workspaceProjects={workspaceProjects}
+                    items={items}
+                    onEditProject={(proj) => modal.open('editProject', proj)}
+                    onDeleteProject={(proj) => modal.open('deleteConfirm', { type: 'project', item: proj })}
+                    onAddProject={handleAddProject}
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <ContextsObjectsPanel
+                  viewLevel={viewLevel}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  filteredContexts={filteredContexts}
+                  contextViewScope={contextViewScope}
+                  setContextViewScope={setContextViewScope}
+                  onQuickCreateContext={handleQuickCreateContext}
+                  onEditContext={(ctx) => modal.open('editContext', ctx)}
+                  onDeleteContext={(ctx) => modal.open('deleteConfirm', { type: 'context', item: ctx })}
+                  filteredObjects={filteredObjects}
+                  objectViewScope={objectViewScope}
+                  setObjectViewScope={setObjectViewScope}
+                  onAddObject={() => modal.open('addObject')}
+                  onEditObject={(obj) => modal.open('editObject', obj)}
+                  onRemoveObject={handleRemoveObjectFromProject}
+                  items={items}
+                  projects={projects}
+                  workspace={workspace}
+                  project={project}
+                  onUpdateItem={(id, data) => updateItem(id, data)}
+                  onDeleteItem={(item) => modal.open('deleteConfirm', { type: 'item', item })}
+                  showWorkspacesToggle
+                  isWorkspacesOpen={showWorkspaces}
+                  onToggleWorkspaces={() => setShowWorkspaces(!showWorkspaces)}
+                />
+              </div>
+            </div>
+          </CollapsibleSidebar>
 
           <WorkspaceContent
             selectedContext={selectedContext || null}
@@ -420,6 +455,29 @@ export default function ProjectPage() {
             workspaceObjects={workspaceObjects}
             projectObjects={projectObjects}
           />
+
+          {/* Right Sidebar */}
+          <CollapsibleSidebar
+            side="right"
+            defaultWidth={320}
+            resizable
+            pinned={rightPinned}
+            onPinnedChange={setRightPinned}
+            label="AI Chat"
+            icon={
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            }
+          >
+            <RightSidebar
+              workspace={currentWorkspace}
+              project={currentProject}
+              context={selectedContext || undefined}
+              object={selectedObject || undefined}
+              item={selectedItem || undefined}
+            />
+          </CollapsibleSidebar>
         </div>
       </div>
 
@@ -431,12 +489,14 @@ export default function ProjectPage() {
         projectId={project}
         defaultScope="project"
         allowedScopes={['global', 'workspace', 'project']}
+        objects={objects}
       />
 
       <EditContextModal
         isOpen={modal.isOpen('editContext')}
         onClose={modal.close}
         context={modal.isOpen('editContext') ? modal.getData<Context>() ?? null : null}
+        objects={objects}
       />
 
       <AddObjectModal

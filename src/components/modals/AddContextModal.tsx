@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { CONTEXT_TYPES, ContextType, DEFAULT_VIEW_STYLE, ObjectScope } from '@/types';
+import { CONTEXT_TYPES, ContextType, DEFAULT_VIEW_STYLE, ObjectScope, ObjectType } from '@/types';
 
 interface AddContextModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface AddContextModalProps {
   workspaceId: string;
   defaultScope?: ObjectScope;
   allowedScopes?: ObjectScope[];
+  objects?: ObjectType[];
 }
 
 const TYPE_INFO: Record<ContextType, { label: string; icon: string; description: string }> = {
@@ -28,14 +29,26 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
   workspaceId,
   defaultScope = 'project',
   allowedScopes = ['global', 'workspace', 'project'],
+  objects = [],
 }) => {
   const addContext = useStore((state) => state.addContext);
+  const syncObjectsToContext = useStore((state) => state.syncObjectsToContext);
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('📝');
   const [type, setType] = useState<ContextType>('tree');
   const [scope, setScope] = useState<ObjectScope>(defaultScope);
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([]);
+  const [showObjectPicker, setShowObjectPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const toggleObject = (objectId: string) => {
+    setSelectedObjectIds((prev) =>
+      prev.includes(objectId)
+        ? prev.filter((id) => id !== objectId)
+        : [...prev, objectId]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +56,7 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      await addContext({
+      const contextId = await addContext({
         name: name.trim(),
         icon,
         type,
@@ -51,12 +64,21 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
         scope,
         workspaceId: scope === 'global' ? null : workspaceId,
         projectId: scope === 'project' ? projectId : null,
+        objectIds: selectedObjectIds.length > 0 ? selectedObjectIds : undefined,
         data: { nodes: [], edges: [] },
       });
+
+      // Auto-sync imported objects to populate initial nodes
+      if (selectedObjectIds.length > 0 && contextId) {
+        await syncObjectsToContext(contextId);
+      }
+
       setName('');
       setIcon('📝');
       setType('tree');
       setScope(defaultScope);
+      setSelectedObjectIds([]);
+      setShowObjectPicker(false);
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -67,7 +89,7 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-4">New Context</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -181,6 +203,58 @@ export const AddContextModal: React.FC<AddContextModalProps> = ({
                 {scope === 'workspace' && 'Available in all projects of this workspace'}
                 {scope === 'project' && 'Available only in this project'}
               </p>
+            </div>
+          )}
+
+          {/* Link Objects (optional, collapsible) */}
+          {objects.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowObjectPicker(!showObjectPicker)}
+                className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`transition-transform ${showObjectPicker ? 'rotate-90' : ''}`}
+                >
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+                Link Objects
+                {selectedObjectIds.length > 0 && (
+                  <span className="text-xs bg-zinc-200 text-zinc-600 px-1.5 py-0.5 rounded-full">
+                    {selectedObjectIds.length}
+                  </span>
+                )}
+              </button>
+
+              {showObjectPicker && (
+                <div className="mt-2 space-y-1 max-h-40 overflow-y-auto border border-zinc-200 rounded-lg p-2">
+                  {objects.map((obj) => (
+                    <label
+                      key={obj.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-zinc-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedObjectIds.includes(obj.id)}
+                        onChange={() => toggleObject(obj.id)}
+                        className="rounded border-zinc-300"
+                      />
+                      <span className="text-base">{obj.icon}</span>
+                      <span className="text-sm text-zinc-700">{obj.name}</span>
+                    </label>
+                  ))}
+                  <p className="text-[11px] text-zinc-400 px-2 pt-1">
+                    Items from linked objects will be imported as nodes
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

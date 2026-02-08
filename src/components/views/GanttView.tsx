@@ -3,39 +3,16 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { Context, ContextNode } from '@/types';
 import { useStore } from '@/lib/store';
+import { DAY_WIDTH, ROW_HEIGHT, formatDate, parseDate, getDaysBetween, addDays } from '@/lib/date-utils';
 
 interface GanttViewProps {
   context: Context;
   isItemContext?: boolean;
   itemId?: string;
+  onOpenNode?: (nodeId: string) => void;
 }
 
-const DAY_WIDTH = 40;
-const ROW_HEIGHT = 40;
-
-// Helper to format date as YYYY-MM-DD
-const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
-
-// Helper to parse date string
-const parseDate = (dateStr: string): Date => {
-  return new Date(dateStr + 'T00:00:00');
-};
-
-// Get days between two dates
-const getDaysBetween = (start: Date, end: Date): number => {
-  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-};
-
-// Add days to a date
-const addDays = (date: Date, days: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
-
-export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, itemId }) => {
+export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, itemId, onOpenNode }) => {
   // Context functions
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
@@ -45,6 +22,13 @@ export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, it
   const addItemNode = useStore((state) => state.addItemNode);
   const updateItemNode = useStore((state) => state.updateItemNode);
   const deleteItemNode = useStore((state) => state.deleteItemNode);
+
+  // For type badges
+  const allItems = useStore((state) => state.items);
+  const allObjects = useStore((state) => state.objects);
+
+  // For sidebar item drop
+  const addNodeForItem = useStore((state) => state.addNodeForItem);
 
   // Use appropriate functions based on mode
   const addNode = isItemContext && itemId
@@ -140,6 +124,27 @@ export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, it
     }
     return months;
   }, [dayHeaders]);
+
+  const handleItemDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isItemContext) return;
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    try {
+      const { itemId } = JSON.parse(raw);
+      if (!itemId) return;
+      const ctxNodes = context.data?.nodes || [];
+      const alreadyExists = ctxNodes.some(n => n.metadata?.sourceItemId === itemId);
+      if (!alreadyExists) {
+        await addNodeForItem(context.id, itemId, null);
+      }
+    } catch { /* ignore */ }
+  }, [isItemContext, context.id, context.data?.nodes, addNodeForItem]);
+
+  const handleItemDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
 
   const handleAddTask = useCallback(async () => {
     const todayDate = formatDate(new Date());
@@ -269,6 +274,8 @@ export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, it
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onDragOver={handleItemDragOver}
+      onDrop={handleItemDrop}
     >
       {/* Toolbar */}
       <div className="sticky top-0 z-20 bg-white border-b border-zinc-200 px-4 py-2 flex items-center gap-2">
@@ -292,6 +299,9 @@ export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, it
           {/* Task rows */}
           {nodes.map((node) => {
             const isEditing = editingNodeId === node.id;
+            const nodeSourceItemId = node.metadata?.sourceItemId as string | undefined;
+            const nodeItem = nodeSourceItemId ? allItems.find(i => i.id === nodeSourceItemId) : null;
+            const nodeObjType = nodeItem?.objectId ? allObjects.find(o => o.id === nodeItem.objectId) : null;
             return (
               <div
                 key={node.id}
@@ -321,15 +331,36 @@ export const GanttView: React.FC<GanttViewProps> = ({ context, isItemContext, it
                     >
                       {node.content}
                     </span>
-                    <button
-                      onClick={() => handleDelete(node.id)}
-                      className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 p-1 transition-opacity"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
+                    {nodeObjType && (
+                      <span className="flex-shrink-0 inline-flex items-center gap-0.5 text-[10px] text-zinc-500 bg-zinc-100 px-1 py-0.5 rounded-full mr-1">
+                        <span>{nodeObjType.icon}</span>
+                        <span>{nodeObjType.name}</span>
+                      </span>
+                    )}
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      {onOpenNode && (
+                        <button
+                          onClick={() => onOpenNode(node.id)}
+                          className="text-zinc-400 hover:text-blue-500 p-1"
+                          title="Open"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(node.id)}
+                        className="text-zinc-400 hover:text-red-500 p-1"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

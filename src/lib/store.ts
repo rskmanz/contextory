@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Workspace, Project, Context, ObjectType, ObjectItem, ContextNode, ContextEdge, AISettings, AIProvider, FieldDefinition, FieldValue, UserSettings, Connection, Workflow } from '@/types';
 import { createClient } from '@/lib/supabase';
 import { generateId, toSnakeKeys, toCamelKeys } from '@/lib/utils';
+import { importObjectItemsToContext } from '@/lib/import-utils';
 
 interface AppState {
     // Data
@@ -52,12 +53,16 @@ interface AppState {
 
     // Context Nodes
     addNode: (contextId: string, node: Omit<ContextNode, 'id'>) => Promise<string>;
+    addNodeForItem: (contextId: string, itemId: string, parentId?: string | null) => Promise<string>;
     updateNode: (contextId: string, nodeId: string, updates: Partial<ContextNode>) => Promise<void>;
     deleteNode: (contextId: string, nodeId: string) => Promise<void>;
 
     // Context Edges
     addEdge: (contextId: string, edge: Omit<ContextEdge, 'id'>) => Promise<string>;
     deleteEdge: (contextId: string, edgeId: string) => Promise<void>;
+
+    // Object-to-Context sync
+    syncObjectsToContext: (contextId: string) => Promise<void>;
 
     // Objects
     addObject: (object: Omit<ObjectType, 'id'>) => Promise<string>;
@@ -255,7 +260,7 @@ export const useStore = create<AppState>((set, get) => ({
                 c.workspaceId !== id && (c.projectId === null || !projectIds.includes(c.projectId))
             ),
             objects: state.objects.filter((o) => !objectIds.includes(o.id)),
-            items: state.items.filter((i) => !objectIds.includes(i.objectId)),
+            items: state.items.filter((i) => !i.objectId || !objectIds.includes(i.objectId)),
         }));
 
         // Delete orphaned objects first (items cascade from objects)
@@ -296,7 +301,7 @@ export const useStore = create<AppState>((set, get) => ({
             contexts: state.contexts.filter((c) => c.projectId !== id),
             objects: state.objects.filter((o) => !projectObjectIds.includes(o.id)),
             items: state.items.filter((i) =>
-                !projectObjectIds.includes(i.objectId) && i.projectId !== id
+                (!i.objectId || !projectObjectIds.includes(i.objectId)) && i.projectId !== id
             ),
         }));
 
@@ -361,6 +366,28 @@ export const useStore = create<AppState>((set, get) => ({
     // Context Nodes (update jsonb data column)
     addNode: async (contextId, node) => {
         const nodeId = generateId();
+        const itemId = generateId();
+        const userId = get().userId;
+        const ctx = get().contexts.find(c => c.id === contextId);
+
+        // Create a backing Item for this node (Information Unit)
+        const newItem: ObjectItem = {
+            id: itemId,
+            name: node.content,
+            objectId: null,
+            contextId,
+            projectId: ctx?.projectId || null,
+            fieldValues: {},
+        };
+        set((state) => ({ items: [...state.items, newItem] }));
+        getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+
+        // Create the ContextNode with sourceItemId
+        const newNode = {
+            ...node,
+            id: nodeId,
+            metadata: { ...node.metadata, sourceItemId: itemId },
+        };
         set((state) => ({
             contexts: state.contexts.map((c) =>
                 c.id === contextId
@@ -368,15 +395,47 @@ export const useStore = create<AppState>((set, get) => ({
                         ...c,
                         data: {
                             ...c.data,
-                            nodes: [...(c.data?.nodes || []), { ...node, id: nodeId }],
+                            nodes: [...(c.data?.nodes || []), newNode],
                             edges: c.data?.edges || [],
                         },
                     }
                     : c
             ),
         }));
-        const ctx = get().contexts.find(c => c.id === contextId);
-        if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
+        const updatedCtx = get().contexts.find(c => c.id === contextId);
+        if (updatedCtx) await getSupabase().from('contexts').update({ data: updatedCtx.data }).eq('id', contextId);
+        return nodeId;
+    },
+
+    addNodeForItem: async (contextId, itemId, parentId = null) => {
+        const nodeId = generateId();
+        const item = get().items.find(i => i.id === itemId);
+        if (!item) return '';
+
+        const newNode: ContextNode = {
+            id: nodeId,
+            content: item.name,
+            parentId: parentId ?? null,
+            metadata: { sourceItemId: itemId },
+        };
+
+        set((state) => ({
+            contexts: state.contexts.map((c) =>
+                c.id === contextId
+                    ? {
+                        ...c,
+                        data: {
+                            ...c.data,
+                            nodes: [...(c.data?.nodes || []), newNode],
+                            edges: c.data?.edges || [],
+                        },
+                    }
+                    : c
+            ),
+        }));
+
+        const updatedCtx = get().contexts.find(c => c.id === contextId);
+        if (updatedCtx) await getSupabase().from('contexts').update({ data: updatedCtx.data }).eq('id', contextId);
         return nodeId;
     },
 
@@ -461,6 +520,41 @@ export const useStore = create<AppState>((set, get) => ({
         }));
         const ctx = get().contexts.find(c => c.id === contextId);
         if (ctx) await getSupabase().from('contexts').update({ data: ctx.data }).eq('id', contextId);
+    },
+
+    // Object-to-Context sync
+    syncObjectsToContext: async (contextId) => {
+        const context = get().contexts.find((c) => c.id === contextId);
+        if (!context) return;
+        const objectIds = context.objectIds || [];
+        if (objectIds.length === 0) return;
+
+        const objects = get().objects.filter((o) => objectIds.includes(o.id));
+        const allItems = get().items.filter((i) => i.objectId && objectIds.includes(i.objectId));
+
+        // Start with manual (non-imported) nodes only
+        let mergedNodes = (context.data?.nodes || []).filter(
+            (n) => !n.metadata?.sourceObjectId
+        );
+
+        // Import items from each linked object
+        for (const obj of objects) {
+            const objItems = allItems.filter((i) => i.objectId === obj.id);
+            mergedNodes = importObjectItemsToContext(
+                objItems,
+                obj,
+                mergedNodes,
+            );
+        }
+
+        // Update context with merged nodes
+        const updatedData = { ...context.data, nodes: mergedNodes };
+        set((state) => ({
+            contexts: state.contexts.map((c) =>
+                c.id === contextId ? { ...c, data: updatedData } : c
+            ),
+        }));
+        await getSupabase().from('contexts').update({ data: updatedData }).eq('id', contextId);
     },
 
     // Objects
@@ -724,7 +818,28 @@ export const useStore = create<AppState>((set, get) => ({
 
     addItemNode: async (itemId, node) => {
         const nodeId = generateId();
-        const newNode: ContextNode = { ...node, id: nodeId };
+        const childItemId = generateId();
+        const userId = get().userId;
+        const parentItem = get().items.find(i => i.id === itemId);
+
+        // Create a backing Item for this node (Information Unit)
+        const newItem: ObjectItem = {
+            id: childItemId,
+            name: node.content,
+            objectId: null,
+            contextId: null,
+            projectId: parentItem?.projectId || null,
+            fieldValues: {},
+        };
+        set((state) => ({ items: [...state.items, newItem] }));
+        getSupabase().from('items').insert({ ...toSnakeKeys(newItem), user_id: userId });
+
+        // Create the ContextNode with sourceItemId
+        const newNode: ContextNode = {
+            ...node,
+            id: nodeId,
+            metadata: { ...node.metadata, sourceItemId: childItemId },
+        };
         set((state) => ({
             items: state.items.map((i) =>
                 i.id === itemId

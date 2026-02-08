@@ -9,12 +9,14 @@ export interface StreamEvent {
   step?: string;
   message?: string;
   suggestions?: unknown[];
+  group?: string;
+  groupIcon?: string;
 }
 
 export interface StreamCallbacks {
   onDelta: (text: string) => void;
   onToolCalls: (toolCalls: NonNullable<StreamEvent['toolCalls']>) => void;
-  onToolResult?: (name: string, output: string) => void;
+  onToolResult?: (name: string, output: string, group?: string, groupIcon?: string) => void;
   onDone: (model: string) => void;
   onError: (error: string) => void;
   onStep?: (step: string, message: string) => void;
@@ -70,7 +72,7 @@ export async function streamChat(
               callbacks.onToolCalls(event.toolCalls || []);
               break;
             case 'tool_result':
-              callbacks.onToolResult?.(event.toolName || '', event.toolOutput || '');
+              callbacks.onToolResult?.(event.toolName || '', event.toolOutput || '', event.group, event.groupIcon);
               break;
             case 'done':
               callbacks.onDone(event.model || '');

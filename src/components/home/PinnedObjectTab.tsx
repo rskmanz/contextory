@@ -25,7 +25,7 @@ export const PinnedObjectTab: React.FC<PinnedObjectTabProps> = ({
   addItem,
 }) => {
   const router = useRouter();
-  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table'>('grid');
+  const [objectDisplayMode, setObjectDisplayMode] = useState<'grid' | 'list' | 'table' | 'kanban' | 'gantt'>('grid');
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemProjectId, setNewItemProjectId] = useState<string>('');

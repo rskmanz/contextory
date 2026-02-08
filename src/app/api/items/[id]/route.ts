@@ -52,6 +52,7 @@ export async function PUT(
     const dbUpdates: Record<string, unknown> = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.objectId !== undefined) dbUpdates.object_id = updates.objectId;
+    if (updates.contextId !== undefined) dbUpdates.context_id = updates.contextId;
     if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
     if (updates.markdownId !== undefined) dbUpdates.markdown_id = updates.markdownId;
     if (updates.viewLayout !== undefined) dbUpdates.view_layout = updates.viewLayout;

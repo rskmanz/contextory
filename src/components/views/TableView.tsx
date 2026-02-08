@@ -8,12 +8,13 @@ interface TableViewProps {
   context: Context;
   isItemContext?: boolean;
   itemId?: string;
+  onOpenNode?: (nodeId: string) => void;
 }
 
 type SortField = 'content' | 'parent' | 'created';
 type SortDirection = 'asc' | 'desc';
 
-export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, itemId }) => {
+export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, itemId, onOpenNode }) => {
   // Context functions
   const addContextNode = useStore((state) => state.addNode);
   const updateContextNode = useStore((state) => state.updateNode);
@@ -23,6 +24,13 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
   const addItemNode = useStore((state) => state.addItemNode);
   const updateItemNode = useStore((state) => state.updateItemNode);
   const deleteItemNode = useStore((state) => state.deleteItemNode);
+
+  // For type badges
+  const allItems = useStore((state) => state.items);
+  const allObjects = useStore((state) => state.objects);
+
+  // For sidebar item drop
+  const addNodeForItem = useStore((state) => state.addNodeForItem);
 
   // Use appropriate functions based on mode
   const addNode = isItemContext && itemId
@@ -96,6 +104,27 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
     }
   };
 
+  const handleItemDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isItemContext) return;
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    try {
+      const { itemId } = JSON.parse(raw);
+      if (!itemId) return;
+      const ctxNodes = context.data?.nodes || [];
+      const alreadyExists = ctxNodes.some(n => n.metadata?.sourceItemId === itemId);
+      if (!alreadyExists) {
+        await addNodeForItem(context.id, itemId, null);
+      }
+    } catch { /* ignore */ }
+  }, [isItemContext, context.id, context.data?.nodes, addNodeForItem]);
+
+  const handleItemDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
   const handleAddRow = useCallback(async () => {
     await addNode({
       content: 'New item',
@@ -168,7 +197,7 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
   };
 
   return (
-    <div className="h-full overflow-auto p-4">
+    <div className="h-full overflow-auto p-4" onDragOver={handleItemDragOver} onDrop={handleItemDrop}>
       {/* Toolbar */}
       <div className="flex items-center gap-2 mb-4">
         <button
@@ -208,6 +237,9 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
               >
                 Name <SortIcon field="content" />
               </th>
+              <th className="text-left px-3 py-2.5 font-medium text-zinc-700 w-32">
+                Type
+              </th>
               <th
                 onClick={() => handleSort('parent')}
                 className="text-left px-3 py-2.5 font-medium text-zinc-700 cursor-pointer hover:bg-zinc-100 select-none w-40"
@@ -223,7 +255,7 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
           <tbody>
             {sortedNodes.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-zinc-400">
+                <td colSpan={6} className="text-center py-8 text-zinc-400">
                   No items yet. Click &quot;Add Row&quot; to create one.
                 </td>
               </tr>
@@ -233,6 +265,9 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
                 const isEditingContent = editingCell?.nodeId === node.id && editingCell?.field === 'content';
                 const isEditingParent = editingCell?.nodeId === node.id && editingCell?.field === 'parent';
                 const parentName = node.parentId ? parentMap.get(node.parentId) || '—' : '—';
+                const nodeSourceItemId = node.metadata?.sourceItemId as string | undefined;
+                const nodeItem = nodeSourceItemId ? allItems.find(i => i.id === nodeSourceItemId) : null;
+                const nodeObjType = nodeItem?.objectId ? allObjects.find(o => o.id === nodeItem.objectId) : null;
 
                 return (
                   <tr
@@ -274,6 +309,16 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
                       )}
                     </td>
                     <td className="px-3 py-2">
+                      {nodeObjType ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded-full">
+                          <span>{nodeObjType.icon}</span>
+                          <span>{nodeObjType.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
                       {isEditingParent ? (
                         <select
                           value={editValue}
@@ -302,15 +347,30 @@ export const TableView: React.FC<TableViewProps> = ({ context, isItemContext, it
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        onClick={() => handleDelete(node.id)}
-                        className="text-zinc-400 hover:text-red-500 transition-colors"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {onOpenNode && (
+                          <button
+                            onClick={() => onOpenNode(node.id)}
+                            className="text-zinc-400 hover:text-blue-500 transition-colors"
+                            title="Open"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(node.id)}
+                          className="text-zinc-400 hover:text-red-500 transition-colors"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

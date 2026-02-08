@@ -4,6 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateRequest } from '@/lib/api-auth';
 
 // OpenAI strict structured outputs requires ALL properties in 'required'
 // and forbids z.record() (produces 'propertyNames') and .optional() (removes from 'required').
@@ -52,6 +53,10 @@ const extractionSchema = z.object({
   })),
 });
 
+function genId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,6 +85,17 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { resources, workspaceId, projectId, provider, model, apiKey } = body;
 
+  // Get userId from auth (cookie or API key), fallback to owner of target workspace
+  const auth = await authenticateRequest(request);
+  let userId = auth?.userId || null;
+  if (!userId && workspaceId) {
+    try {
+      const sb = getSupabase();
+      const { data } = await sb.from('workspaces').select('user_id').eq('id', workspaceId).single();
+      userId = data?.user_id || null;
+    } catch { /* ignore */ }
+  }
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -106,7 +122,6 @@ export async function POST(request: NextRequest) {
         if (!parsedContent.trim()) {
           emit(controller, encoder, { type: 'delta', content: 'No analyzable content found in sources.' });
           emit(controller, encoder, { type: 'done' });
-          controller.close();
           return;
         }
 
@@ -114,11 +129,13 @@ export async function POST(request: NextRequest) {
         emit(controller, encoder, { type: 'step', step: 'analyze', message: 'Analyzing structure...' });
 
         const sb = getSupabase();
+
+        // Query existing objects using the correct columns
         let existingObjects: Array<{ id: string; name: string; icon: string }> = [];
         try {
           const query = projectId
-            ? sb.from('objects').select('id, name, icon').eq('project_id', projectId)
-            : sb.from('objects').select('id, name, icon').eq('workspace_id', workspaceId);
+            ? sb.from('objects').select('id, name, icon').contains('available_in_projects', [projectId])
+            : sb.from('objects').select('id, name, icon').contains('available_in_workspaces', [workspaceId]);
           const { data } = await query;
           existingObjects = (data || []) as Array<{ id: string; name: string; icon: string }>;
         } catch { /* ignore */ }
@@ -129,7 +146,6 @@ export async function POST(request: NextRequest) {
 
         if (!key) {
           emit(controller, encoder, { type: 'error', error: `No API key configured for ${provider}` });
-          controller.close();
           return;
         }
 
@@ -177,7 +193,6 @@ ${existingObjectsContext}`;
         if (suggestions.length === 0) {
           emit(controller, encoder, { type: 'delta', content: 'No structured data found to extract.' });
           emit(controller, encoder, { type: 'done' });
-          controller.close();
           return;
         }
 
@@ -197,32 +212,38 @@ ${existingObjectsContext}`;
           message: `Creating ${suggestions.length} suggestion${suggestions.length !== 1 ? 's' : ''}...`,
         });
 
-        const createdItems: Array<{ type: string; name: string; id: string }> = [];
+        const createdItems: Array<{ type: string; name: string; id: string; group?: string }> = [];
 
         for (const suggestion of suggestions) {
           if (suggestion.type === 'object_with_items' && suggestion.objectName) {
+            // Objects use available_in_projects/available_in_workspaces, NOT project_id/workspace_id
+            const objId = genId();
             const { data: objData, error: objErr } = await sb.from('objects').insert({
+              id: objId,
               name: suggestion.objectName,
               icon: suggestion.icon || null,
-              scope: projectId ? 'project' : 'workspace',
-              workspace_id: workspaceId,
-              project_id: projectId || null,
               category: null,
               fields: (suggestion.fields || []).map((f, i) => ({
                 id: `field_${i}`,
                 name: f.name,
                 type: f.type,
               })),
+              available_global: false,
+              available_in_workspaces: projectId ? [] : [workspaceId],
+              available_in_projects: projectId ? [projectId] : [],
+              user_id: userId,
             }).select('id, name').single();
 
-            if (objErr) continue;
+            if (objErr) { console.error('[analyze] object insert error:', objErr.message); continue; }
 
             emit(controller, encoder, {
               type: 'tool_result',
               toolName: 'create_object',
               toolOutput: JSON.stringify({ id: objData.id, name: objData.name }),
+              group: suggestion.title,
+              groupIcon: suggestion.icon,
             });
-            createdItems.push({ type: 'object', name: objData.name, id: objData.id });
+            createdItems.push({ type: 'object', name: objData.name, id: objData.id, group: suggestion.title });
 
             const items = suggestion.items || [];
             for (const item of items) {
@@ -236,21 +257,26 @@ ${existingObjectsContext}`;
                 }
               }
 
+              const itemId = genId();
               const { data: itemData, error: itemErr } = await sb.from('items').insert({
+                id: itemId,
                 object_id: objData.id,
                 name: item.name,
                 project_id: projectId || null,
                 field_values: fieldValues,
+                user_id: userId,
               }).select('id, name').single();
 
-              if (itemErr) continue;
+              if (itemErr) { console.error('[analyze] item insert error:', itemErr.message); continue; }
 
               emit(controller, encoder, {
                 type: 'tool_result',
                 toolName: 'create_item',
                 toolOutput: JSON.stringify({ id: itemData.id, name: itemData.name }),
+                group: suggestion.title,
+                groupIcon: suggestion.icon,
               });
-              createdItems.push({ type: 'item', name: itemData.name, id: itemData.id });
+              createdItems.push({ type: 'item', name: itemData.name, id: itemData.id, group: suggestion.title });
             }
           } else if (suggestion.type === 'context_nodes' && suggestion.contextName) {
             const viewStyle = suggestion.viewStyle || 'notes';
@@ -258,72 +284,71 @@ ${existingObjectsContext}`;
               : viewStyle === 'kanban' ? 'board'
               : 'tree';
 
+            // Build nodes array inline (stored in contexts.data JSONB, not separate table)
+            const rawNodes = suggestion.nodes || [];
+            const nodeIds: string[] = rawNodes.map(() => genId());
+            const contextNodes = rawNodes.map((n, i) => ({
+              id: nodeIds[i],
+              content: n.content,
+              parentId: n.parentIndex != null && nodeIds[n.parentIndex] ? nodeIds[n.parentIndex] : null,
+              metadata: n.metadata || {},
+            }));
+
+            const contextEdges = (suggestion.edges || [])
+              .filter(e => nodeIds[e.sourceIndex] && nodeIds[e.targetIndex])
+              .map(e => ({
+                id: genId(),
+                sourceId: nodeIds[e.sourceIndex],
+                targetId: nodeIds[e.targetIndex],
+              }));
+
+            const ctxId = genId();
+            // NOTE: DB columns are swapped — DB project_id = app workspaceId, DB workspace_id = app projectId
             const { data: ctxData, error: ctxErr } = await sb.from('contexts').insert({
-              project_id: projectId,
+              id: ctxId,
               name: suggestion.contextName,
               icon: suggestion.icon || null,
               type: contextType,
               view_style: viewStyle,
+              scope: 'local',
+              project_id: workspaceId,
+              workspace_id: projectId || null,
+              data: { nodes: contextNodes, edges: contextEdges },
+              user_id: userId,
             }).select('id, name').single();
 
-            if (ctxErr) continue;
+            if (ctxErr) { console.error('[analyze] context insert error:', ctxErr.message); continue; }
 
             emit(controller, encoder, {
               type: 'tool_result',
               toolName: 'create_context',
               toolOutput: JSON.stringify({ id: ctxData.id, name: ctxData.name }),
+              group: suggestion.title,
+              groupIcon: suggestion.icon,
             });
-            createdItems.push({ type: 'context', name: ctxData.name, id: ctxData.id });
-
-            const nodes = suggestion.nodes || [];
-            const nodeIdMap: Record<number, string> = {};
-
-            for (let i = 0; i < nodes.length; i++) {
-              const node = nodes[i];
-              const parentId = node.parentIndex != null && nodeIdMap[node.parentIndex]
-                ? nodeIdMap[node.parentIndex]
-                : null;
-
-              const { data: nodeData, error: nodeErr } = await sb.from('context_nodes').insert({
-                context_id: ctxData.id,
-                content: node.content,
-                parent_id: parentId,
-              }).select('id').single();
-
-              if (nodeErr) continue;
-              nodeIdMap[i] = nodeData.id;
-            }
-
-            if (suggestion.edges?.length) {
-              for (const edge of suggestion.edges) {
-                const sourceId = nodeIdMap[edge.sourceIndex];
-                const targetId = nodeIdMap[edge.targetIndex];
-                if (sourceId && targetId) {
-                  await sb.from('context_edges').insert({
-                    context_id: ctxData.id,
-                    source_id: sourceId,
-                    target_id: targetId,
-                  });
-                }
-              }
-            }
+            createdItems.push({ type: 'context', name: ctxData.name, id: ctxData.id, group: suggestion.title });
           } else if (suggestion.type === 'standalone_items' && suggestion.targetObjectId) {
             const items = suggestion.standaloneItems || [];
             for (const item of items) {
+              const itemId = genId();
               const { data: itemData, error: itemErr } = await sb.from('items').insert({
+                id: itemId,
                 object_id: suggestion.targetObjectId,
                 name: item.name,
                 project_id: projectId || null,
+                user_id: userId,
               }).select('id, name').single();
 
-              if (itemErr) continue;
+              if (itemErr) { console.error('[analyze] standalone item error:', itemErr.message); continue; }
 
               emit(controller, encoder, {
                 type: 'tool_result',
                 toolName: 'create_item',
                 toolOutput: JSON.stringify({ id: itemData.id, name: itemData.name }),
+                group: suggestion.title,
+                groupIcon: suggestion.icon,
               });
-              createdItems.push({ type: 'item', name: itemData.name, id: itemData.id });
+              createdItems.push({ type: 'item', name: itemData.name, id: itemData.id, group: suggestion.title });
             }
           }
         }
@@ -348,7 +373,7 @@ ${existingObjectsContext}`;
         const errMsg = err instanceof Error ? err.message : 'Analysis failed';
         emit(controller, encoder, { type: 'error', error: errMsg });
       } finally {
-        controller.close();
+        try { controller.close(); } catch { /* already closed */ }
       }
     },
   });

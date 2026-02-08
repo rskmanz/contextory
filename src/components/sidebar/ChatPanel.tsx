@@ -19,6 +19,8 @@ export interface ActionLogEntry {
   name: string;
   icon: string;
   timestamp: string;
+  group?: string;
+  groupIcon?: string;
 }
 
 interface ChatPanelProps {
@@ -62,23 +64,55 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({
   const [isLoading, setIsLoading] = useState(false);
   const [currentDocContent, setCurrentDocContent] = useState('');
 
-  // Fetch current document markdown when item/context changes
+  // Fetch current document content when item/context changes
   useEffect(() => {
-    const markdownId = item?.markdownId || context?.markdownId;
-    const markdownType = item?.markdownId ? 'items' : 'contexts';
-    if (!markdownId) {
-      // Fallback: serialize context nodes if available
-      const nodesText = context?.data?.nodes?.length
-        ? context.data.nodes.map((n: { content: string }) => n.content).join('\n')
-        : '';
-      setCurrentDocContent(nodesText);
-      return;
+    let cancelled = false;
+
+    async function loadDocContent() {
+      const parts: string[] = [];
+
+      // 1. Try to load markdown content (markdownId or item.id as fallback)
+      const markdownId = item?.markdownId || context?.markdownId;
+      const fetchId = markdownId || item?.id; // SmartEditor uses entityId as key
+      const fetchType = (item?.markdownId || (!markdownId && item?.id)) ? 'items' : 'contexts';
+
+      if (fetchId) {
+        try {
+          const res = await fetch(`/api/markdown?id=${fetchId}&type=${fetchType}`);
+          const json = await res.json();
+          if (json.data?.content) parts.push(json.data.content);
+        } catch { /* ignore */ }
+      }
+
+      // 2. Always include context nodes (this IS the visual content users see)
+      if (context?.data?.nodes?.length) {
+        const nodesText = context.data.nodes
+          .map((n: { content: string }) => n.content)
+          .filter(Boolean)
+          .join('\n');
+        if (nodesText) parts.push(nodesText);
+      }
+
+      // 3. Include item context data nodes if present
+      if (item?.contextData?.nodes?.length) {
+        const nodesText = (item.contextData.nodes as Array<{ content: string }>)
+          .map(n => n.content)
+          .filter(Boolean)
+          .join('\n');
+        if (nodesText) parts.push(nodesText);
+      }
+
+      if (!cancelled) setCurrentDocContent(parts.join('\n\n'));
     }
-    fetch(`/api/markdown?id=${markdownId}&type=${markdownType}`)
-      .then(res => res.json())
-      .then(json => setCurrentDocContent(json.data?.content || ''))
-      .catch(() => setCurrentDocContent(''));
-  }, [item?.markdownId, context?.markdownId, context?.data?.nodes]);
+
+    if (item || context) {
+      loadDocContent();
+    } else {
+      setCurrentDocContent('');
+    }
+
+    return () => { cancelled = true; };
+  }, [item?.id, item?.markdownId, item?.contextData?.nodes, context?.id, context?.markdownId, context?.data?.nodes]);
 
   const currentDocName = item?.name || context?.name;
   const resourcesWithContent = resources.filter(r => r.content).length;
@@ -249,8 +283,16 @@ Be concise and direct.`;
     let stepMessages: string[] = [];
 
     try {
+      // Merge explicit resources with current document content
+      const allResources = [
+        ...params.resources,
+        ...(currentDocContent && currentDocName
+          ? [{ name: currentDocName, content: currentDocContent }]
+          : []),
+      ];
+
       const requestBody = {
-        resources: params.resources,
+        resources: allResources,
         workspaceId: params.workspaceId,
         projectId: params.projectId,
         provider: aiSettings.provider || 'openai',
@@ -281,7 +323,7 @@ Be concise and direct.`;
           feedEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         },
         onToolCalls: () => {},
-        onToolResult: (toolName, output) => {
+        onToolResult: (toolName, output, group, groupIcon) => {
           try {
             const parsed = JSON.parse(output);
             if (parsed && typeof parsed === 'object' && 'id' in parsed && 'name' in parsed) {
@@ -292,8 +334,10 @@ Be concise and direct.`;
                 id: parsed.id,
                 type,
                 name: parsed.name,
-                icon: '\u2728',
+                icon: groupIcon || '\u2728',
                 timestamp: new Date().toISOString(),
+                group,
+                groupIcon,
               });
             }
           } catch { /* skip */ }
@@ -316,7 +360,7 @@ Be concise and direct.`;
     } finally {
       setIsLoading(false);
     }
-  }, [aiSettings, onActionsCreated]);
+  }, [aiSettings, onActionsCreated, currentDocContent, currentDocName]);
 
   useImperativeHandle(ref, () => ({
     sendAnalysis: sendSuggestion,

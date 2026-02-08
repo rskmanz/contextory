@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { NoteView } from '@/components/views/NoteView';
 import { MindmapView } from '@/components/views/MindmapView';
@@ -13,15 +13,17 @@ import { GanttView } from '@/components/views/GanttView';
 import { ObjectGridView } from '@/components/views/ObjectGridView';
 import { ObjectTableView } from '@/components/views/ObjectTableView';
 import { ObjectListView } from '@/components/views/ObjectListView';
+import { ObjectKanbanView } from '@/components/views/ObjectKanbanView';
+import { ObjectGanttView } from '@/components/views/ObjectGanttView';
 import { ContextMarkdownSidebar } from '@/components/views/ContextMarkdownSidebar';
 import { MarkdownView } from '@/components/views/MarkdownView';
-import { RightSidebar } from '@/components/views/RightSidebar';
+import { NodeDetailModal } from '@/components/modals/NodeDetailModal';
 import { ViewToggle } from '@/components/shared/ViewToggle';
 import { Context, ObjectType, ObjectItem, Workspace, Project, ViewStyle, ContextType } from '@/types';
 import { VISUALIZATION_OPTIONS } from './visualizationOptions';
 
 type ActiveTab = { type: 'context'; id: string } | { type: 'object'; id: string } | { type: 'item'; id: string };
-type ObjectDisplayMode = 'grid' | 'list' | 'table';
+type ObjectDisplayMode = 'grid' | 'list' | 'table' | 'kanban' | 'gantt';
 
 interface WorkspaceContentProps {
   selectedContext: Context | null;
@@ -45,6 +47,8 @@ interface WorkspaceContentProps {
   globalObjects: ObjectType[];
   workspaceObjects: ObjectType[];
   projectObjects: ObjectType[];
+  rightSidebarPinned?: boolean;
+  onRightSidebarPinnedChange?: (pinned: boolean) => void;
 }
 
 export function WorkspaceContent({
@@ -69,7 +73,6 @@ export function WorkspaceContent({
   workspaceObjects,
   projectObjects,
 }: WorkspaceContentProps) {
-  const showRightSidebar = useStore((state) => state.userSettings.showRightSidebar);
   const theme = useStore((state) => state.userSettings.theme);
 
   useEffect(() => {
@@ -107,17 +110,6 @@ export function WorkspaceContent({
           projectObjects={projectObjects}
         />
       </div>
-
-      {/* Right Sidebar - Resources + AI Chat */}
-      {showRightSidebar && (
-        <RightSidebar
-          workspace={currentWorkspace}
-          project={currentProject}
-          context={selectedContext || undefined}
-          object={selectedObject || undefined}
-          item={selectedItem || undefined}
-        />
-      )}
     </div>
   );
 }
@@ -206,7 +198,29 @@ interface ContextViewProps {
 }
 
 function ContextView({ context, onSelectVisualization }: ContextViewProps) {
+  const syncObjectsToContext = useStore((state) => state.syncObjectsToContext);
+  const allItems = useStore((state) => state.items);
+  const [openNodeItem, setOpenNodeItem] = useState<ObjectItem | null>(null);
+
+  const handleOpenNode = useCallback((nodeId: string) => {
+    const nodes = context.data?.nodes || [];
+    const node = nodes.find((n) => n.id === nodeId);
+    const sourceItemId = node?.metadata?.sourceItemId as string | undefined;
+    if (sourceItemId) {
+      const item = allItems.find((i) => i.id === sourceItemId);
+      if (item) setOpenNodeItem(item);
+    }
+  }, [context.data?.nodes, allItems]);
+
   const { type, viewStyle } = context;
+  const linkedObjectCount = context.objectIds?.length || 0;
+
+  // Auto-sync imported object items when context is opened
+  useEffect(() => {
+    if (linkedObjectCount > 0) {
+      syncObjectsToContext(context.id);
+    }
+  }, [context.id, linkedObjectCount, syncObjectsToContext]);
 
   if (!viewStyle) {
     return (
@@ -232,23 +246,71 @@ function ContextView({ context, onSelectVisualization }: ContextViewProps) {
     );
   }
 
-  // Tree views
+  // Determine the view component
+  let viewElement: React.ReactNode = null;
+
   if (type === 'tree') {
-    if (viewStyle === 'mindmap') return <MindmapView context={context} />;
-    return <NoteView context={context} />;
+    viewElement = viewStyle === 'mindmap'
+      ? <MindmapView context={context} onOpenNode={handleOpenNode} />
+      : <NoteView context={context} />;
+  } else if (type === 'board') {
+    if (viewStyle === 'kanban') viewElement = <KanbanView context={context} onOpenNode={handleOpenNode} />;
+    else if (viewStyle === 'flow') viewElement = <FlowView context={context} onOpenNode={handleOpenNode} />;
+    else if (viewStyle === 'table') viewElement = <TableView context={context} onOpenNode={handleOpenNode} />;
+    else if (viewStyle === 'gantt') viewElement = <GanttView context={context} onOpenNode={handleOpenNode} />;
+    else viewElement = <GridView context={context} onOpenNode={handleOpenNode} />;
+  } else {
+    viewElement = <FreeformView context={context} />;
   }
 
-  // Board views
-  if (type === 'board') {
-    if (viewStyle === 'kanban') return <KanbanView context={context} />;
-    if (viewStyle === 'flow') return <FlowView context={context} />;
-    if (viewStyle === 'table') return <TableView context={context} />;
-    if (viewStyle === 'gantt') return <GanttView context={context} />;
-    return <GridView context={context} />;
+  // Wrap with sync indicator if objects are linked
+  if (linkedObjectCount > 0) {
+    return (
+      <>
+        <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-1.5 border-b border-zinc-100 bg-white">
+            <span className="inline-flex items-center gap-1 text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Synced from {linkedObjectCount} object{linkedObjectCount > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={() => syncObjectsToContext(context.id)}
+              className="text-[11px] text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {viewElement}
+          </div>
+        </div>
+        {openNodeItem && (
+          <NodeDetailModal
+            item={openNodeItem}
+            workspaceId={context.workspaceId || ''}
+            projectId={context.projectId || undefined}
+            onClose={() => setOpenNodeItem(null)}
+          />
+        )}
+      </>
+    );
   }
 
-  // Canvas view
-  return <FreeformView context={context} />;
+  return (
+    <>
+      {viewElement}
+      {openNodeItem && (
+        <NodeDetailModal
+          item={openNodeItem}
+          workspaceId={context.workspaceId || ''}
+          projectId={context.projectId || undefined}
+          onClose={() => setOpenNodeItem(null)}
+        />
+      )}
+    </>
+  );
 }
 
 // --- Object View ---
@@ -268,13 +330,29 @@ function ObjectView({ object, items, project, objectDisplayMode, onObjectDisplay
     ? items.filter((i) => i.objectId === object.id)
     : items.filter((i) => i.objectId === object.id && i.projectId === project);
 
+  const viewOptions: Array<'grid' | 'list' | 'table' | 'kanban' | 'gantt'> = ['grid', 'list', 'table', 'kanban', 'gantt'];
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-end px-4 py-2 border-b border-zinc-100 bg-white">
-        <ViewToggle mode={objectDisplayMode} onChange={onObjectDisplayModeChange} />
+        <ViewToggle mode={objectDisplayMode} onChange={onObjectDisplayModeChange} options={viewOptions} />
       </div>
       <div className="flex-1 overflow-hidden">
-        {objectDisplayMode === 'table' ? (
+        {objectDisplayMode === 'kanban' ? (
+          <ObjectKanbanView
+            object={object}
+            items={objectItems}
+            workspaceId={project}
+            onItemClick={(itemId) => setActiveTab({ type: 'item', id: itemId })}
+          />
+        ) : objectDisplayMode === 'gantt' ? (
+          <ObjectGanttView
+            object={object}
+            items={objectItems}
+            workspaceId={project}
+            onItemClick={(itemId) => setActiveTab({ type: 'item', id: itemId })}
+          />
+        ) : objectDisplayMode === 'table' ? (
           <ObjectTableView
             object={object}
             items={objectItems}

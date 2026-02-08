@@ -48,6 +48,8 @@ export interface ContextNode {
     startDate?: string;   // ISO date string (YYYY-MM-DD)
     endDate?: string;     // ISO date string (YYYY-MM-DD)
     progress?: number;    // 0-100 percentage
+    /** References another Context.id — enables context-to-context links (e.g., sidebar grouping) */
+    sourceContextId?: string;
     [key: string]: unknown;
   };
 }
@@ -231,7 +233,8 @@ export type ItemViewLayout = 'side-by-side' | 'tabs' | 'stacked' | 'visualizatio
 export interface ObjectItem {
   id: string;
   name: string;
-  objectId: string;
+  objectId: string | null;      // null = not in any Object (e.g., context-only item)
+  contextId?: string | null;    // belongs to a Context (node = Markdown + Property)
   projectId: string | null;     // null = global object item
   markdownId?: string;            // reference to .md file (optional)
   viewLayout?: ItemViewLayout;    // layout for markdown + visualization (default: 'visualization')
