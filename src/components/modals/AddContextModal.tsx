@@ -7,8 +7,8 @@ import { CONTEXT_TYPES, ContextType, DEFAULT_VIEW_STYLE, ObjectScope, ObjectType
 interface AddContextModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
-  workspaceId: string;
+  projectId: string | null;
+  workspaceId: string | null;
   defaultScope?: ObjectScope;
   allowedScopes?: ObjectScope[];
   objects?: ObjectType[];

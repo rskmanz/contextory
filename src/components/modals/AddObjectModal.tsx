@@ -38,10 +38,10 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
     const [allProjects, setAllProjects] = useState(defaultScope === 'global');
     const [allWorkspaces, setAllWorkspaces] = useState(defaultScope === 'global');
     const [selectedProjects, setSelectedProjects] = useState<string[]>(
-        defaultScope === 'workspace' && projectId ? [projectId] : []
+        defaultScope === 'project' && projectId ? [projectId] : []
     );
     const [selectedWorkspaces, setSelectedWorkspaces] = useState<string[]>(
-        defaultScope === 'project' && workspaceId ? [workspaceId] : []
+        defaultScope === 'workspace' && workspaceId ? [workspaceId] : []
     );
 
     const { addObject, objects, updateObject, projects, workspaces } = useStore();
@@ -86,8 +86,8 @@ export const AddObjectModal: React.FC<AddObjectModalProps> = ({
         setAvailableGlobal(defaultScope === 'global');
         setAllProjects(defaultScope === 'global');
         setAllWorkspaces(defaultScope === 'global');
-        setSelectedProjects(defaultScope === 'workspace' && projectId ? [projectId] : []);
-        setSelectedWorkspaces(defaultScope === 'project' && workspaceId ? [workspaceId] : []);
+        setSelectedProjects(defaultScope === 'project' && projectId ? [projectId] : []);
+        setSelectedWorkspaces(defaultScope === 'workspace' && workspaceId ? [workspaceId] : []);
         onClose();
     };
 

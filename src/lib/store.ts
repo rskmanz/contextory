@@ -650,15 +650,37 @@ export const useStore = create<AppState>((set, get) => ({
         const id = generateId();
         const userId = get().userId;
         set((state) => ({ items: [...state.items, { ...item, id }] }));
-        await getSupabase().from('items').insert({ ...toSnakeKeys({ ...item, id }), user_id: userId });
+        const payload = { ...toSnakeKeys({ ...item, id }), user_id: userId };
+        const { error } = await getSupabase().from('items').insert(payload);
+        if (error) {
+            // Retry without workspace_id if column doesn't exist yet
+            if (error.message?.includes('workspace_id')) {
+                const { workspace_id, ...safePayload } = payload as Record<string, unknown>;
+                const { error: retryError } = await getSupabase().from('items').insert(safePayload);
+                if (retryError) {
+                    console.error('Failed to create item:', retryError.message);
+                    set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
+                }
+            } else {
+                console.error('Failed to create item:', error.message);
+                set((state) => ({ items: state.items.filter((i) => i.id !== id) }));
+            }
+        }
         return id;
     },
 
     updateItem: async (id, updates) => {
+        const prev = get().items.find((i) => i.id === id);
         set((state) => ({
             items: state.items.map((i) => (i.id === id ? { ...i, ...updates } : i)),
         }));
-        await getSupabase().from('items').update(toSnakeKeys(updates)).eq('id', id);
+        const { error } = await getSupabase().from('items').update(toSnakeKeys(updates)).eq('id', id);
+        if (error) {
+            console.error('Failed to update item:', error.message);
+            if (prev) set((state) => ({
+                items: state.items.map((i) => (i.id === id ? prev : i)),
+            }));
+        }
     },
 
     deleteItem: async (id) => {

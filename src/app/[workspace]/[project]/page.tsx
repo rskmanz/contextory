@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AddContextModal } from '@/components/modals/AddContextModal';
@@ -24,6 +24,7 @@ type ModalName = 'addContext' | 'editContext' | 'addObject' | 'editObject' | 'ed
 export default function ProjectPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { workspace, project } = params as { workspace: string; project: string };
 
   const workspaces = useStore((state) => state.workspaces);
@@ -306,7 +307,7 @@ export default function ProjectPage() {
                 ...(viewLevel !== 'global' ? [{
                   label: currentWorkspace.name,
                   icon: currentWorkspace.icon,
-                  onClick: () => setViewLevel(viewLevel === 'project' ? 'workspace' : 'project'),
+                  onClick: () => router.push(`/${workspace}`),
                   options: workspaces.map(ws => {
                     const firstProj = projects.find(p => p.workspaceId === ws.id);
                     return {

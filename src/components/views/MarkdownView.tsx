@@ -29,6 +29,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({ item }) => {
         minimal
         showWordCount
         title={item.name}
+        onTitleChange={(newTitle) => updateItem(item.id, { name: newTitle })}
         placeholder="Start writing... Use the toolbar above for formatting."
       />
     </div>

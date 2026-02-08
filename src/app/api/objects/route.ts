@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
       icon: body.icon || '',
       category: body.category || 'Work',
       built_in: body.builtIn || false,
-      available_global: body.availableGlobal ?? true,
-      available_in_projects: body.availableInProjects || ['*'],
-      available_in_workspaces: body.availableInWorkspaces || ['*'],
+      available_global: body.availableGlobal ?? false,
+      available_in_projects: body.availableInProjects || [],
+      available_in_workspaces: body.availableInWorkspaces || [],
       fields: body.fields || [],
     };
 

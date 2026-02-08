@@ -196,6 +196,9 @@ function ContentView({
       workspaceObjects={workspaceObjects}
       projectObjects={projectObjects}
       items={items}
+      project={project}
+      workspace={workspace}
+      viewLevel={viewLevel}
       setActiveTab={setActiveTab}
       onQuickCreateContext={onQuickCreateContext}
     />
@@ -405,6 +408,9 @@ interface DashboardViewProps {
   workspaceObjects: ObjectType[];
   projectObjects: ObjectType[];
   items: ObjectItem[];
+  project: string;
+  workspace: string;
+  viewLevel: 'global' | 'workspace' | 'project';
   setActiveTab: (tab: ActiveTab | null) => void;
   onQuickCreateContext: () => void;
 }
@@ -417,11 +423,21 @@ function DashboardView({
   workspaceObjects,
   projectObjects,
   items,
+  project,
+  workspace,
+  viewLevel,
   setActiveTab,
   onQuickCreateContext,
 }: DashboardViewProps) {
-  const allContexts = [...globalContexts, ...workspaceContexts, ...projectContexts];
-  const allObjects = [...globalObjects, ...workspaceObjects, ...projectObjects];
+  const allContexts =
+    viewLevel === 'project' ? [...projectContexts, ...workspaceContexts, ...globalContexts] :
+    viewLevel === 'workspace' ? [...workspaceContexts, ...globalContexts] :
+    globalContexts;
+
+  const allObjects =
+    viewLevel === 'project' ? [...projectObjects, ...workspaceObjects, ...globalObjects] :
+    viewLevel === 'workspace' ? [...workspaceObjects, ...globalObjects] :
+    globalObjects;
 
   if (allContexts.length === 0 && allObjects.length === 0) {
     return (
@@ -477,7 +493,12 @@ function DashboardView({
           <h2 className="text-lg font-semibold text-zinc-800 mb-4">Objects</h2>
           <div className="grid grid-cols-3 gap-4">
             {allObjects.map((obj) => {
-              const objectItems = items.filter((i) => i.objectId === obj.id);
+              const objectItems = items.filter((i) => {
+                if (i.objectId !== obj.id) return false;
+                if (viewLevel === 'project') return i.projectId === project;
+                if (viewLevel === 'workspace') return i.workspaceId === workspace && !i.projectId;
+                return !i.workspaceId && !i.projectId;
+              });
               return (
                 <button
                   key={obj.id}

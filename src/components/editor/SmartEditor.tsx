@@ -17,6 +17,7 @@ interface SmartEditorProps {
   placeholder?: string;
   showWordCount?: boolean;
   title?: string;
+  onTitleChange?: (newTitle: string) => void;
 }
 
 export const SmartEditor: React.FC<SmartEditorProps> = ({
@@ -31,8 +32,17 @@ export const SmartEditor: React.FC<SmartEditorProps> = ({
   placeholder = 'Start writing...',
   showWordCount = false,
   title,
+  onTitleChange,
 }) => {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(title || '');
   const [content, setContent] = useState('');
+
+  // Sync editTitle when title prop changes (e.g. navigating items)
+  useEffect(() => {
+    setEditTitle(title || '');
+    setIsEditingTitle(false);
+  }, [title]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
@@ -83,11 +93,16 @@ export const SmartEditor: React.FC<SmartEditorProps> = ({
       saveTimerRef.current = setTimeout(async () => {
         try {
           const id = markdownId || entityId;
-          await fetch('/api/markdown', {
+          const response = await fetch('/api/markdown', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, type: markdownType, content: latestContentRef.current }),
           });
+
+          if (!response.ok) {
+            console.error('Markdown save failed:', response.status, await response.text());
+            return;
+          }
 
           if (!markdownId && !markdownIdCreatedRef.current) {
             markdownIdCreatedRef.current = true;
@@ -131,7 +146,43 @@ export const SmartEditor: React.FC<SmartEditorProps> = ({
         <div className="max-w-3xl mx-auto px-6 py-8">
           {title && (
             <div className="mb-8">
-              <h1 className="text-xl text-zinc-800 mb-1">{title}</h1>
+              {isEditingTitle && onTitleChange ? (
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={() => {
+                    const trimmed = editTitle.trim();
+                    if (trimmed && trimmed !== title) onTitleChange(trimmed);
+                    setIsEditingTitle(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const trimmed = editTitle.trim();
+                      if (trimmed && trimmed !== title) onTitleChange(trimmed);
+                      setIsEditingTitle(false);
+                    }
+                    if (e.key === 'Escape') {
+                      setEditTitle(title || '');
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                  className="text-xl text-zinc-800 mb-1 w-full bg-transparent border-b border-blue-400 outline-none py-0.5"
+                  autoFocus
+                />
+              ) : (
+                <h1
+                  className="text-xl text-zinc-800 mb-1 cursor-text hover:bg-zinc-50 rounded px-1 -mx-1 transition-colors"
+                  onClick={() => {
+                    if (onTitleChange) {
+                      setEditTitle(title || '');
+                      setIsEditingTitle(true);
+                    }
+                  }}
+                >
+                  {title}
+                </h1>
+              )}
             </div>
           )}
           {showWordCount && (

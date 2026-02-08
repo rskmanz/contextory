@@ -5,22 +5,32 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Breadcrumb } from '@/components/layout/Breadcrumb';
 import { AddWorkspaceModal as AddProjectModal } from '@/components/modals/AddWorkspaceModal';
+import { AddObjectModal } from '@/components/modals/AddObjectModal';
+import { AddContextModal } from '@/components/modals/AddContextModal';
 import { EditProjectModal } from '@/components/modals/EditProjectModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { useStore } from '@/lib/store';
 import { Project } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function WorkspaceOverviewPage() {
   const params = useParams();
   const { workspace } = params as { workspace: string };
 
+  const router = useRouter();
   const workspaces = useStore((state) => state.workspaces);
   const projects = useStore((state) => state.projects);
+  const items = useStore((state) => state.items);
+  const objects = useStore((state) => state.objects);
   const loadData = useStore((state) => state.loadData);
   const isLoaded = useStore((state) => state.isLoaded);
   const deleteProject = useStore((state) => state.deleteProject);
+  const getWorkspaceObjects = useStore((state) => state.getWorkspaceObjects);
+  const getWorkspaceContexts = useStore((state) => state.getWorkspaceContexts);
 
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [isAddObjectOpen, setIsAddObjectOpen] = useState(false);
+  const [isAddContextOpen, setIsAddContextOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -40,6 +50,10 @@ export default function WorkspaceOverviewPage() {
     acc[cat].push(proj);
     return acc;
   }, {} as Record<string, Project[]>);
+
+  // Workspace-scoped only (no global)
+  const wsObjects = getWorkspaceObjects(workspace);
+  const wsContexts = getWorkspaceContexts(workspace);
 
   const handleEditProject = (proj: Project) => {
     setEditingProject(proj);
@@ -110,6 +124,81 @@ export default function WorkspaceOverviewPage() {
                 <h1 className="text-2xl font-bold text-zinc-900">{currentWorkspace.name}</h1>
                 <p className="text-sm text-zinc-500">{currentWorkspace.category}</p>
               </div>
+            </div>
+
+            {/* Contexts Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-zinc-800">Contexts</h2>
+                <button
+                  onClick={() => setIsAddContextOpen(true)}
+                  className="px-3 py-1.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
+                >
+                  + Add Context
+                </button>
+              </div>
+              {wsContexts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {wsContexts.map((ctx) => (
+                    <button
+                      key={ctx.id}
+                      onClick={() => {
+                        const firstProj = workspaceProjects[0];
+                        if (firstProj) router.push(`/${workspace}/${firstProj.id}?tab=context:${ctx.id}`);
+                      }}
+                      className="flex flex-col items-start p-4 bg-white border border-zinc-200 rounded-xl hover:border-zinc-400 hover:shadow-sm transition-all text-left"
+                    >
+                      <span className="text-2xl mb-2">{ctx.icon}</span>
+                      <span className="font-medium text-zinc-800">{ctx.name}</span>
+                      <span className="text-xs text-zinc-500 capitalize">{ctx.viewStyle || 'Not set'}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-zinc-50 rounded-xl p-6 text-center">
+                  <p className="text-zinc-500 text-sm">No workspace-scoped contexts yet</p>
+                </div>
+              )}
+            </div>
+
+            {/* Objects Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-zinc-800">Objects</h2>
+                <button
+                  onClick={() => setIsAddObjectOpen(true)}
+                  className="px-3 py-1.5 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800"
+                >
+                  + Add Object
+                </button>
+              </div>
+              {wsObjects.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {wsObjects.map((obj) => {
+                    const objItems = items.filter((i) =>
+                      i.objectId === obj.id && i.workspaceId === workspace && !i.projectId
+                    );
+                    return (
+                      <button
+                        key={obj.id}
+                        onClick={() => {
+                          const firstProj = workspaceProjects[0];
+                          if (firstProj) router.push(`/${workspace}/${firstProj.id}?tab=object:${obj.id}`);
+                        }}
+                        className="flex flex-col items-start p-4 bg-white border border-zinc-200 rounded-xl hover:border-zinc-400 hover:shadow-sm transition-all text-left"
+                      >
+                        <span className="text-2xl mb-2">{obj.icon}</span>
+                        <span className="font-medium text-zinc-800">{obj.name}</span>
+                        <span className="text-xs text-zinc-500">{objItems.length} items</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-zinc-50 rounded-xl p-6 text-center">
+                  <p className="text-zinc-500 text-sm">No workspace-scoped objects yet</p>
+                </div>
+              )}
             </div>
 
             {/* Projects Section */}
@@ -188,6 +277,25 @@ export default function WorkspaceOverviewPage() {
         isOpen={isAddProjectOpen}
         onClose={() => setIsAddProjectOpen(false)}
         workspaceId={workspace}
+      />
+
+      <AddObjectModal
+        isOpen={isAddObjectOpen}
+        onClose={() => setIsAddObjectOpen(false)}
+        workspaceId={workspace}
+        projectId={null}
+        defaultScope="workspace"
+        allowedScopes={['global', 'workspace']}
+      />
+
+      <AddContextModal
+        isOpen={isAddContextOpen}
+        onClose={() => setIsAddContextOpen(false)}
+        workspaceId={workspace}
+        projectId={null}
+        defaultScope="workspace"
+        allowedScopes={['global', 'workspace']}
+        objects={objects}
       />
 
       <EditProjectModal
