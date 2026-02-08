@@ -28,6 +28,14 @@ export default function SettingsPage() {
   const deleteConnection = useStore((state) => state.deleteConnection);
   const workspaces = useStore((state) => state.workspaces);
   const projects = useStore((state) => state.projects);
+  const userEmail = useStore((state) => state.userEmail);
+  const userAvatarUrl = useStore((state) => state.userAvatarUrl);
+  const signOut = useStore((state) => state.signOut);
+  const loadData = useStore((state) => state.loadData);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const [provider, setProvider] = useState<AIProvider>(aiSettings.provider);
   const [model, setModel] = useState(aiSettings.model);
@@ -182,6 +190,37 @@ export default function SettingsPage() {
 
       {/* Content */}
       <div className="max-w-2xl mx-auto py-8 px-6">
+        {/* Account Section */}
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-900">Account</h2>
+          </div>
+          <div className="p-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {userAvatarUrl ? (
+                <img
+                  src={userAvatarUrl}
+                  alt=""
+                  className="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-medium text-zinc-600">
+                  {userEmail ? userEmail[0].toUpperCase() : '?'}
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-zinc-900">{userEmail || 'Not signed in'}</p>
+              </div>
+            </div>
+            <button
+              onClick={signOut}
+              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+
         {/* User Settings Section */}
         <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden mb-6">
           <div className="px-6 py-4 border-b border-zinc-100">
