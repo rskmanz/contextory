@@ -24,20 +24,25 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
   const editorRef = useRef<Editor | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Use refs to avoid re-render loops — tldraw save updates context.data,
+  // which would recreate callbacks and remount tldraw if used in deps
+  const contextRef = useRef(context);
+  contextRef.current = context;
+
   // Get update functions from store
   const updateContext = useStore((state) => state.updateContext);
   const updateItem = useStore((state) => state.updateItem);
 
-  // Save snapshot with debounce
+  // Save snapshot with debounce — stable callback via refs
   const saveSnapshotFn = useCallback(() => {
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
     const snapshot = getSnapshot(editor.store);
     const snapshotJson = JSON.stringify(snapshot);
+    const ctx = contextRef.current;
 
     if (isItemContext && itemId) {
-      // Save to item's contextData
       updateItem(itemId, {
         contextData: {
           type: 'canvas',
@@ -47,16 +52,15 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
         },
       });
     } else {
-      // Save to context's data
-      updateContext(context.id, {
+      updateContext(ctx.id, {
         data: {
-          nodes: context.data?.nodes || [],
-          edges: context.data?.edges,
+          nodes: ctx.data?.nodes || [],
+          edges: ctx.data?.edges,
           tldrawSnapshot: snapshotJson,
         },
       });
     }
-  }, [context.id, context.data, isItemContext, itemId, updateContext, updateItem]);
+  }, [isItemContext, itemId, updateContext, updateItem]);
 
   // Debounced save
   const debouncedSave = useCallback(() => {
@@ -66,13 +70,13 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
     saveTimeoutRef.current = setTimeout(saveSnapshotFn, 500);
   }, [saveSnapshotFn]);
 
-  // Load existing snapshot on mount
+  // Load existing snapshot on mount — stable callback
   const handleMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
 
       // Load saved snapshot if exists
-      const snapshotData = context.data?.tldrawSnapshot;
+      const snapshotData = contextRef.current.data?.tldrawSnapshot;
       if (snapshotData) {
         try {
           const parsed = JSON.parse(snapshotData);
@@ -88,7 +92,7 @@ export const FreeformView: React.FC<FreeformViewProps> = ({
         scope: 'document',
       });
     },
-    [context.data?.tldrawSnapshot, debouncedSave]
+    [debouncedSave]
   );
 
   // Handle drop from sidebar
