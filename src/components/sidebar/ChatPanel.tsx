@@ -24,7 +24,7 @@ export interface ActionLogEntry {
 }
 
 interface ChatPanelProps {
-  workspace: Workspace;
+  workspace?: Workspace | null;
   project?: Project;
   resources: Resource[];
   object?: ObjectType;
@@ -38,7 +38,7 @@ export interface ChatPanelHandle {
   sendAnalysis: (message: string) => void;
   runAnalysis: (params: {
     resources: Array<{ name: string; content?: string; summary?: string; url?: string }>;
-    workspaceId: string;
+    workspaceId?: string;
     projectId?: string;
   }) => void;
 }
@@ -132,7 +132,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({
     const connSummary = connections
       .filter((c) =>
         c.scope === 'global' ||
-        (c.scope === 'workspace' && c.workspaceId === workspace.id) ||
+        (c.scope === 'workspace' && c.workspaceId === workspace?.id) ||
         (c.scope === 'project' && project && c.projectId === project.id)
       )
       .map((c) => `${c.name} (${c.type}, ${c.scope})`)
@@ -147,7 +147,7 @@ export const ChatPanel = forwardRef<ChatPanelHandle, ChatPanelProps>(({
       ? `\n\nCurrent document "${currentDocName}":\n${currentDocContent.slice(0, 4000)}`
       : '';
 
-    return `You are Contextory assistant for workspace "${workspace.name}"${
+    return `You are Contextory assistant${workspace ? ` for workspace "${workspace.name}"` : ''}${
       project ? ` > project "${project.name}"` : ''
     }.
 ${currentDocName ? `\nCurrently viewing: "${currentDocName}"` : ''}
@@ -266,7 +266,7 @@ Be concise and direct.`;
 
   const runAnalysis = useCallback(async (params: {
     resources: Array<{ name: string; content?: string; summary?: string; url?: string }>;
-    workspaceId: string;
+    workspaceId?: string;
     projectId?: string;
   }) => {
     abortControllerRef.current?.abort();

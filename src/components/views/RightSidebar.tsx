@@ -10,7 +10,7 @@ import { ActionsTab } from '@/components/sidebar/ActionsTab';
 import { ChatPanel, type ChatPanelHandle } from '@/components/sidebar/ChatPanel';
 
 interface RightSidebarProps {
-  workspace: Workspace;
+  workspace?: Workspace | null;
   project?: Project;
   context?: Context;
   object?: ObjectType;
@@ -113,14 +113,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatRef = useRef<ChatPanelHandle>(null);
 
-  const workspaceResources: Resource[] = workspace.resources || [];
+  const workspaceResources: Resource[] = workspace?.resources || [];
   const projectResources: Resource[] = project?.resources || [];
   const resources: Resource[] = [...workspaceResources, ...projectResources];
 
   const relevantConnections = connections.filter(
     (c) =>
       c.scope === 'global' ||
-      (c.scope === 'workspace' && c.workspaceId === workspace.id) ||
+      (c.scope === 'workspace' && c.workspaceId === workspace?.id) ||
       (c.scope === 'project' && project && c.projectId === project.id)
   );
 
@@ -131,12 +131,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       await updateProject(project.id, {
         resources: [...projectResources, newResource],
       });
-    } else {
+    } else if (workspace) {
       await updateWorkspace(workspace.id, {
         resources: [...workspaceResources, newResource],
       });
     }
-  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace.id]);
+  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace?.id]);
 
   const handleQuickAddResource = useCallback(async (url: string) => {
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -189,20 +189,20 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
     if (project && projectResources.some(r => r.id === resourceId)) {
       await updateProject(project.id, { resources: projectResources.map(updateResource) });
-    } else {
+    } else if (workspace) {
       await updateWorkspace(workspace.id, { resources: workspaceResources.map(updateResource) });
     }
     setEditingNoteId(null);
-  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace.id]);
+  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace?.id]);
 
   const handleDeleteResource = useCallback(async (resourceId: string) => {
     if (project && projectResources.some(r => r.id === resourceId)) {
       await updateProject(project.id, { resources: projectResources.filter((r: Resource) => r.id !== resourceId) });
-    } else {
+    } else if (workspace) {
       await updateWorkspace(workspace.id, { resources: workspaceResources.filter((r: Resource) => r.id !== resourceId) });
     }
     if (editingNoteId === resourceId) setEditingNoteId(null);
-  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace.id, editingNoteId]);
+  }, [project, projectResources, workspaceResources, updateProject, updateWorkspace, workspace?.id, editingNoteId]);
 
   const handleResourceClick = useCallback((resource: Resource) => {
     if (resource.type === 'note') { setEditingNoteId(resource.id); return; }
@@ -233,11 +233,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     await addConnection({
       name, type,
       url: url || undefined,
-      scope: project ? 'project' : 'workspace',
-      workspaceId: workspace.id,
+      scope: project ? 'project' : workspace ? 'workspace' : 'global',
+      workspaceId: workspace?.id,
       projectId: project?.id,
     });
-  }, [addConnection, project, workspace.id]);
+  }, [addConnection, project, workspace?.id]);
 
   const handleDeleteConnection = useCallback(async (id: string) => {
     await deleteConnection(id);
@@ -283,10 +283,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 
     chatRef.current.runAnalysis({
       resources: analyzableResources,
-      workspaceId: workspace.id,
+      workspaceId: workspace?.id,
       projectId: project?.id,
     });
-  }, [resources, workspace.id, project?.id]);
+  }, [resources, workspace?.id, project?.id]);
 
   return (
     <div

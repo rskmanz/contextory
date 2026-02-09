@@ -359,7 +359,6 @@ export default function DashboardPage() {
             }
           >
             <RightSidebar
-              workspace={null as unknown as any}
               context={selectedContext || undefined}
               object={selectedObject || undefined}
               item={selectedItem || undefined}
