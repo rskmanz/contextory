@@ -111,7 +111,7 @@ export function ContextsObjectsPanel({
       )}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto py-3">
-        {(viewLevel === 'project' || viewLevel === 'workspace') && (
+        {(viewLevel === 'project' || viewLevel === 'workspace' || viewLevel === 'global') && (
           <ContextsList
             isExpanded={isContextsExpanded}
             onToggleExpanded={() => setIsContextsExpanded(!isContextsExpanded)}

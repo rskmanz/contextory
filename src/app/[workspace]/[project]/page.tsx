@@ -302,7 +302,7 @@ export default function ProjectPage() {
                 {
                   label: 'Global',
                   icon: '🌐',
-                  onClick: () => setViewLevel('global'),
+                  onClick: () => router.push('/dashboard'),
                 },
                 ...(viewLevel !== 'global' ? [{
                   label: currentWorkspace.name,

@@ -278,6 +278,7 @@ export default function WorkspaceOverviewPage() {
                 {
                   label: 'Global',
                   icon: '🌐',
+                  onClick: () => router.push('/dashboard'),
                 },
                 {
                   label: currentWorkspace.name,
