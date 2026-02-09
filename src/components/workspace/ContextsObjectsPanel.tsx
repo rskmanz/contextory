@@ -111,13 +111,14 @@ export function ContextsObjectsPanel({
       )}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto py-3">
-        {viewLevel === 'project' && (
+        {(viewLevel === 'project' || viewLevel === 'workspace') && (
           <ContextsList
             isExpanded={isContextsExpanded}
             onToggleExpanded={() => setIsContextsExpanded(!isContextsExpanded)}
             contexts={filteredContexts}
             contextViewScope={contextViewScope}
             setContextViewScope={setContextViewScope}
+            showScopeToggle={viewLevel === 'project'}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             onQuickCreate={onQuickCreateContext}
@@ -172,6 +173,7 @@ interface ContextsListProps {
   contexts: Context[];
   contextViewScope: 'workspace' | 'project';
   setContextViewScope: (scope: 'workspace' | 'project') => void;
+  showScopeToggle?: boolean;
   activeTab: ActiveTab | null;
   setActiveTab: (tab: ActiveTab | null) => void;
   onQuickCreate: () => void;
@@ -193,6 +195,7 @@ function ContextsList({
   contexts,
   contextViewScope,
   setContextViewScope,
+  showScopeToggle = true,
   activeTab,
   setActiveTab,
   onQuickCreate,
@@ -244,28 +247,30 @@ function ContextsList({
       </div>
       {isExpanded && (
         <>
-          <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setContextViewScope('workspace')}
-              className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                contextViewScope === 'workspace'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
-              }`}
-            >
-              Workspace
-            </button>
-            <button
-              onClick={() => setContextViewScope('project')}
-              className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                contextViewScope === 'project'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
-              }`}
-            >
-              Project
-            </button>
-          </div>
+          {showScopeToggle && (
+            <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setContextViewScope('workspace')}
+                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                  contextViewScope === 'workspace'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Workspace
+              </button>
+              <button
+                onClick={() => setContextViewScope('project')}
+                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                  contextViewScope === 'project'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Project
+              </button>
+            </div>
+          )}
 
           {contexts.length === 0 ? (
             <p className="text-xs text-zinc-400 py-2 text-center">No contexts</p>
@@ -479,28 +484,30 @@ function ObjectsList({
 
       {isExpanded && (
         <>
-          <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setObjectViewScope('workspace')}
-              className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                objectViewScope === 'workspace'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
-              }`}
-            >
-              Workspace
-            </button>
-            <button
-              onClick={() => setObjectViewScope('project')}
-              className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                objectViewScope === 'project'
-                  ? 'bg-white text-zinc-900 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
-              }`}
-            >
-              Project
-            </button>
-          </div>
+          {project && (
+            <div className="flex items-center gap-1 mb-2 bg-zinc-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setObjectViewScope('workspace')}
+                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                  objectViewScope === 'workspace'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Workspace
+              </button>
+              <button
+                onClick={() => setObjectViewScope('project')}
+                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                  objectViewScope === 'project'
+                    ? 'bg-white text-zinc-900 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Project
+              </button>
+            </div>
+          )}
           <div className="space-y-0.5">
             {objects.length === 0 ? (
               <p className="text-xs text-zinc-400 py-2 text-center">No objects</p>

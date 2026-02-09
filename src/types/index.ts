@@ -106,6 +106,7 @@ export interface Context {
     nodes: ContextNode[];
     edges?: ContextEdge[];        // keeping for backward compatibility
     tldrawSnapshot?: string;      // JSON stringified tldraw state for canvas view
+    tableColumns?: Array<{ id: string; name: string }>;  // dynamic table column definitions
   };
 }
 

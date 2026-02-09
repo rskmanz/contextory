@@ -152,13 +152,7 @@ function GlobalWorkspacesList({
                   <div
                     className="flex items-center gap-2 flex-1 min-w-0"
                     onClick={() => {
-                      setViewLevel('workspace');
-                      if (ws.id !== workspace) {
-                        const firstProj = projects.find(p => p.workspaceId === ws.id);
-                        if (firstProj) {
-                          window.location.href = `/${ws.id}/${firstProj.id}`;
-                        }
-                      }
+                      window.location.href = `/${ws.id}`;
                     }}
                   >
                     <span className="text-sm">{ws.icon || '📁'}</span>
@@ -263,7 +257,7 @@ function ProjectsList({
       {isExpanded && (
         <div className="px-2 space-y-0.5">
           <div
-            onClick={() => setViewLevel('workspace')}
+            onClick={() => { window.location.href = `/${workspace}`; }}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               viewLevel === 'workspace'
                 ? 'bg-white text-zinc-900 shadow-sm'

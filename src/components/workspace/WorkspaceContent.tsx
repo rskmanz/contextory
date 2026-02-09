@@ -29,7 +29,7 @@ interface WorkspaceContentProps {
   selectedContext: Context | null;
   selectedObject: ObjectType | null;
   selectedItem: ObjectItem | null;
-  currentProject: Project;
+  currentProject: Project | null;
   currentWorkspace: Workspace;
   project: string;
   workspace: string;
