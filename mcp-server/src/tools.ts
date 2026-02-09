@@ -328,6 +328,38 @@ export const tools = [
         scope: { type: 'string', description: 'Scope: global, workspace, or project (default: project)' },
         workspaceId: { type: 'string', description: 'Workspace ID (required for workspace/project scope)' },
         projectId: { type: 'string', description: 'Project ID (required for project scope)' },
+        data: {
+          type: 'object',
+          description: 'Context data with nodes and edges',
+          properties: {
+            nodes: {
+              type: 'array',
+              description: 'Context nodes',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Node ID' },
+                  content: { type: 'string', description: 'Node content' },
+                  parentId: { type: ['string', 'null'], description: 'Parent node ID (null for root)' },
+                },
+                required: ['id', 'content'],
+              },
+            },
+            edges: {
+              type: 'array',
+              description: 'Context edges',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Edge ID' },
+                  sourceId: { type: 'string', description: 'Source node ID' },
+                  targetId: { type: 'string', description: 'Target node ID' },
+                },
+                required: ['id', 'sourceId', 'targetId'],
+              },
+            },
+          },
+        },
       },
       required: ['name'],
     },
